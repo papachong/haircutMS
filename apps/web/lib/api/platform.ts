@@ -82,3 +82,84 @@ export async function platformLogin(data: LoginRequest): Promise<LoginResponse> 
 export async function getPlatformProfile() {
   return platformApiFetch<{ code: number; data: any }>('/auth/me');
 }
+
+// Platform Overview API
+export interface PlatformOverview {
+  totalShops: number;
+  activeShops: number;
+  suspendedShops: number;
+  archivedShops: number;
+  totalMembers: number;
+  totalOrders: number;
+  totalRevenue: number;
+  revenueThisMonth: number;
+  ordersThisMonth: number;
+  activeShopsThisMonth: number;
+}
+
+export interface ShopRevenue {
+  shopId: string;
+  shopName: string;
+  totalRevenue: number;
+  orderCount: number;
+  memberCount: number;
+}
+
+export interface ShopUsage {
+  shopId: string;
+  shopName: string;
+  phone: string | null;
+  status: string;
+  staffCount: number;
+  memberCount: number;
+  orderCount: number;
+  totalRevenue: number;
+  storageUsage: number;
+  lastActiveAt: string | null;
+  createdAt: string;
+}
+
+export interface NewShopsTrend {
+  date: string;
+  count: number;
+}
+
+export interface RevenueTrend {
+  date: string;
+  revenue: number;
+  orderCount: number;
+}
+
+export async function getPlatformOverview(): Promise<{
+  code: number;
+  data: PlatformOverview;
+  message: string;
+}> {
+  return platformApiFetch('/overview');
+}
+
+export async function getTopShopsByRevenue(
+  limit: number = 10,
+): Promise<{ code: number; data: ShopRevenue[]; message: string }> {
+  return platformApiFetch(`/overview/top-revenue?limit=${limit}`);
+}
+
+export async function getShopUsageStats(): Promise<{
+  code: number;
+  data: ShopUsage[];
+  message: string;
+}> {
+  return platformApiFetch('/overview/shop-usage');
+}
+
+export async function getNewShopsTrend(
+  days: number = 30,
+): Promise<{ code: number; data: NewShopsTrend[]; message: string }> {
+  return platformApiFetch(`/overview/trend/new-shops?days=${days}`);
+}
+
+export async function getRevenueTrend(
+  days: number = 30,
+): Promise<{ code: number; data: RevenueTrend[]; message: string }> {
+  return platformApiFetch(`/overview/trend/revenue?days=${days}`);
+}
