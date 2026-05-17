@@ -21,8 +21,8 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
 
   const tabs = [
     { href: '/m/pos', label: '收银', icon: '💰' },
-    { href: '/m/members', label: '会员', icon: '👥' },
-    { href: '/m/orders', label: '挂单', icon: '📋' },
+    { href: '/m/members', label: '会员管理', icon: '👥' },
+    { href: '/m/analytics', label: '分析', icon: '📊' },
   ];
 
   return (

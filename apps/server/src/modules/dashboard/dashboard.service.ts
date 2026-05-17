@@ -34,6 +34,32 @@ export interface DashboardTrendsResponse {
   totalVisitors: number;
 }
 
+export interface MemberLevelDistribution {
+  levelId: string;
+  levelName: string;
+  count: number;
+  percentage: number;
+}
+
+export interface MemberConsumptionTrendData {
+  date: string;
+  recharge: number;
+  consume: number;
+}
+
+export interface MemberConsumptionTrendsResponse {
+  data: MemberConsumptionTrendData[];
+  totalRecharge: number;
+  totalConsume: number;
+  granularity: Granularity;
+}
+
+export interface DormantMembersStats {
+  totalCount: number;
+  dormantCount: number;
+  dormantPercentage: number;
+}
+
 @Injectable()
 export class DashboardService {
   constructor(private prisma: PrismaService) {}
@@ -376,5 +402,197 @@ export class DashboardService {
     const result = new Date(date);
     result.setMonth(result.getMonth() + 1, 0);
     return this.getEndOfDay(result);
+  }
+
+  async getMemberLevelDistribution(shopId: string): Promise<MemberLevelDistribution[]> {
+    const distribution = await this.prisma.member.groupBy({
+      where: {
+        shopId,
+        isActive: true,
+      },
+      by: ['memberLevelId'],
+      _count: {
+        id: true,
+      },
+    });
+
+    const totalMembers = distribution.reduce((sum, d) => sum + d._count.id, 0);
+
+    const levels = await this.prisma.memberLevel.findMany({
+      where: {
+        shopId,
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    const result: MemberLevelDistribution[] = levels.map((level) => {
+      const group = distribution.find((d) => d.memberLevelId === level.id);
+      const count = group?._count.id ?? 0;
+      return {
+        levelId: level.id,
+        levelName: level.name,
+        count,
+        percentage: totalMembers > 0 ? Math.round((count / totalMembers) * 100) : 0,
+      };
+    });
+
+    return result.sort((a, b) => b.count - a.count);
+  }
+
+  async getMemberConsumptionTrends(
+    shopId: string,
+    timeRange: TimeRange = TimeRange.MONTH,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<MemberConsumptionTrendsResponse> {
+    const { current } = this.getDateRanges(timeRange, startDate, endDate);
+    const granularity = this.determineGranularity(timeRange, current.start, current.end);
+    const dataPoints = await this.generateConsumptionTrendData(shopId, current.start, current.end, granularity);
+
+    const totalRecharge = dataPoints.reduce((sum, p) => sum + p.recharge, 0);
+    const totalConsume = dataPoints.reduce((sum, p) => sum + p.consume, 0);
+
+    return {
+      data: dataPoints,
+      totalRecharge,
+      totalConsume,
+      granularity,
+    };
+  }
+
+  async getDormantMembersStats(shopId: string, days: number = 90): Promise<DormantMembersStats> {
+    const dormantThreshold = new Date();
+    dormantThreshold.setDate(dormantThreshold.getDate() - days);
+    dormantThreshold.setHours(0, 0, 0, 0);
+
+    const [total, dormant] = await Promise.all([
+      this.prisma.member.count({
+        where: {
+          shopId,
+          isActive: true,
+        },
+      }),
+      this.prisma.member.count({
+        where: {
+          shopId,
+          isActive: true,
+          OR: [
+            { lastVisitAt: null },
+            { lastVisitAt: { lt: dormantThreshold } },
+          ],
+        },
+      }),
+    ]);
+
+    const dormantPercentage = total > 0 ? Math.round((dormant / total) * 100) : 0;
+
+    return {
+      totalCount: total,
+      dormantCount: dormant,
+      dormantPercentage,
+    };
+  }
+
+  private async generateConsumptionTrendData(
+    shopId: string,
+    startDate: Date,
+    endDate: Date,
+    granularity: Granularity,
+  ): Promise<MemberConsumptionTrendData[]> {
+    const dataPoints: MemberConsumptionTrendData[] = [];
+
+    if (granularity === 'day') {
+      const days = this.getDateRange(startDate, endDate, 'day');
+
+      for (const day of days) {
+        const { start, end } = day;
+        const [recharge, consume] = await Promise.all([
+          this.getRechargeAmount(shopId, start, end),
+          this.getConsumeAmount(shopId, start, end),
+        ]);
+
+        dataPoints.push({
+          date: start.toISOString().split('T')[0],
+          recharge,
+          consume,
+        });
+      }
+    } else if (granularity === 'week') {
+      const weeks = this.getDateRange(startDate, endDate, 'week');
+
+      for (const week of weeks) {
+        const { start, end } = week;
+        const [recharge, consume] = await Promise.all([
+          this.getRechargeAmount(shopId, start, end),
+          this.getConsumeAmount(shopId, start, end),
+        ]);
+
+        const weekLabel = `${start.toISOString().split('T')[0]}`;
+        dataPoints.push({
+          date: weekLabel,
+          recharge,
+          consume,
+        });
+      }
+    } else {
+      const months = this.getDateRange(startDate, endDate, 'month');
+
+      for (const month of months) {
+        const { start, end } = month;
+        const [recharge, consume] = await Promise.all([
+          this.getRechargeAmount(shopId, start, end),
+          this.getConsumeAmount(shopId, start, end),
+        ]);
+
+        const monthLabel = start.toISOString().slice(0, 7);
+        dataPoints.push({
+          date: monthLabel,
+          recharge,
+          consume,
+        });
+      }
+    }
+
+    return dataPoints;
+  }
+
+  private async getRechargeAmount(shopId: string, startDate: Date, endDate: Date): Promise<number> {
+    const result = await this.prisma.rechargeRecord.aggregate({
+      where: {
+        member: {
+          shopId,
+        },
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    return result._sum.amount ?? 0;
+  }
+
+  private async getConsumeAmount(shopId: string, startDate: Date, endDate: Date): Promise<number> {
+    const result = await this.prisma.order.aggregate({
+      where: {
+        shopId,
+        status: 'SETTLED',
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      _sum: {
+        paidAmount: true,
+      },
+    });
+
+    return result._sum.paidAmount ?? 0;
   }
 }

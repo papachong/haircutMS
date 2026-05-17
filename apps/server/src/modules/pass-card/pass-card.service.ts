@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
-enum PassCardStatus {
+export enum PassCardStatus {
   ACTIVE = 'ACTIVE',
   EXPIRED = 'EXPIRED',
   USED_UP = 'USED_UP',
