@@ -54,6 +54,9 @@ export class MemberService {
           take: 10,
           include: { items: true },
         },
+        passCards: {
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
 
@@ -68,6 +71,8 @@ export class MemberService {
     if (!keyword || keyword.length < 2) {
       return [];
     }
+
+    const now = new Date();
 
     return this.prisma.member.findMany({
       where: {
@@ -96,6 +101,23 @@ export class MemberService {
         },
         principalBalance: true,
         giftBalance: true,
+        passCards: {
+          where: {
+            isActive: true,
+            remainingTimes: { gt: 0 },
+            OR: [
+              { expiresAt: null },
+              { expiresAt: { gt: now } },
+            ],
+          },
+          select: {
+            id: true,
+            name: true,
+            totalTimes: true,
+            remainingTimes: true,
+            expiresAt: true,
+          },
+        },
       },
     });
   }

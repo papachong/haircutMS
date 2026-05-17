@@ -253,6 +253,26 @@ export default function POSPage() {
                 <div className="font-medium">¥{(selectedMember.giftBalance / 100).toFixed(2)}</div>
               </div>
             </div>
+            {selectedMember.passCards && selectedMember.passCards.length > 0 && (
+              <div className="mt-3">
+                <div className="text-xs text-muted-foreground mb-1">可用次卡</div>
+                <div className="space-y-1">
+                  {selectedMember.passCards.map((pc) => (
+                    <div key={pc.id} className="bg-background rounded px-2 py-1 text-xs">
+                      <span className="font-medium">{pc.name}</span>
+                      <span className="text-muted-foreground ml-1">
+                        {pc.remainingTimes}/{pc.totalTimes}
+                      </span>
+                      {pc.expiresAt && (
+                        <span className="text-muted-foreground ml-1">
+                          ({new Date(pc.expiresAt).toLocaleDateString('zh-CN')})
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </aside>

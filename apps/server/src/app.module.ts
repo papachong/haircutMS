@@ -13,6 +13,7 @@ import { StaffModule } from './modules/staff/staff.module';
 import { PlatformAuthModule } from './modules/platform/auth/platform-auth.module';
 import { OrderModule } from './modules/order/order.module';
 import { ShopManagementModule } from './modules/platform/shop-management/shop-management.module';
+import { PassCardModule } from './modules/pass-card/pass-card.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -35,6 +36,7 @@ import { AppService } from './app.service';
     PlatformAuthModule,
     OrderModule,
     ShopManagementModule,
+    PassCardModule,
   ],
   controllers: [AppController],
   providers: [
