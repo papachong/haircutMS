@@ -34,25 +34,30 @@ export interface DashboardTrendsResponse {
   totalVisitors: number;
 }
 
-export interface RevenueComposition {
-  offline: number; // 线下支付
-  balance: number; // 余额支付
-  recharge: number; // 充值收入
-  passCard: number; // 次卡收入
-}
-
-export interface RevenueBreakdown {
-  composition: RevenueComposition;
-  rechargeIncome: number; // 当期充值
-  consumeIncome: number; // 当期消费
-}
-
-export interface ServiceItemRanking {
-  id: string;
-  name: string;
+export interface MemberLevelDistribution {
+  levelId: string;
+  levelName: string;
   count: number;
-  amount: number;
-  averagePrice: number;
+  percentage: number;
+}
+
+export interface MemberConsumptionTrendData {
+  date: string;
+  recharge: number;
+  consume: number;
+}
+
+export interface MemberConsumptionTrendsResponse {
+  data: MemberConsumptionTrendData[];
+  totalRecharge: number;
+  totalConsume: number;
+  granularity: Granularity;
+}
+
+export interface DormantMembersStats {
+  totalCount: number;
+  dormantCount: number;
+  dormantPercentage: number;
 }
 
 @Injectable()
@@ -399,135 +404,162 @@ export class DashboardService {
     return this.getEndOfDay(result);
   }
 
-  async getRevenueBreakdown(
-    shopId: string,
-    timeRange: TimeRange = TimeRange.TODAY,
-    startDate?: string,
-    endDate?: string,
-  ): Promise<RevenueBreakdown> {
-    const { current } = this.getDateRanges(timeRange, startDate, endDate);
-
-    const [composition, rechargeIncome] = await Promise.all([
-      this.getRevenueComposition(shopId, current.start, current.end),
-      this.getRechargeIncome(shopId, current.start, current.end),
-    ]);
-
-    const consumeIncome = composition.offline + composition.balance + composition.passCard;
-
-    return {
-      composition,
-      rechargeIncome,
-      consumeIncome,
-    };
-  }
-
-  async getServiceItemRanking(
-    shopId: string,
-    timeRange: TimeRange = TimeRange.TODAY,
-    startDate?: string,
-    endDate?: string,
-    limit: number = 10,
-  ): Promise<ServiceItemRanking[]> {
-    const { current } = this.getDateRanges(timeRange, startDate, endDate);
-
-    const result = await this.prisma.orderItem.groupBy({
-      by: ['serviceItemId'],
+  async getMemberLevelDistribution(shopId: string): Promise<MemberLevelDistribution[]> {
+    const distribution = await this.prisma.member.groupBy({
       where: {
-        order: {
-          shopId,
-          status: 'SETTLED',
-          createdAt: {
-            gte: current.start,
-            lte: current.end,
-          },
-        },
+        shopId,
+        isActive: true,
       },
+      by: ['memberLevelId'],
       _count: {
         id: true,
       },
-      _sum: {
-        finalPrice: true,
-      },
-      orderBy: {
-        _count: {
-          id: 'desc',
-        },
-      },
-      take: limit,
     });
 
-    const itemIds = result.map((r) => r.serviceItemId);
-    const serviceItems = await this.prisma.serviceItem.findMany({
-      where: { id: { in: itemIds } },
-      select: { id: true, name: true },
+    const totalMembers = distribution.reduce((sum, d) => sum + d._count.id, 0);
+
+    const levels = await this.prisma.memberLevel.findMany({
+      where: {
+        shopId,
+      },
+      select: {
+        id: true,
+        name: true,
+      },
     });
 
-    const itemMap = new Map(serviceItems.map((item) => [item.id, item.name]));
+    const result: MemberLevelDistribution[] = levels.map((level) => {
+      const group = distribution.find((d) => d.memberLevelId === level.id);
+      const count = group?._count.id ?? 0;
+      return {
+        levelId: level.id,
+        levelName: level.name,
+        count,
+        percentage: totalMembers > 0 ? Math.round((count / totalMembers) * 100) : 0,
+      };
+    });
 
-    return result.map((r) => ({
-      id: r.serviceItemId,
-      name: itemMap.get(r.serviceItemId) || '未知项目',
-      count: r._count.id,
-      amount: r._sum.finalPrice || 0,
-      averagePrice: r._count.id > 0 ? Math.round((r._sum.finalPrice || 0) / r._count.id) : 0,
-    }));
+    return result.sort((a, b) => b.count - a.count);
   }
 
-  private async getRevenueComposition(
+  async getMemberConsumptionTrends(
     shopId: string,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<RevenueComposition> {
-    const [offlinePayments, balancePayments, passCardPayments, rechargeRecords] = await Promise.all([
-      this.getPaymentMethodTotal(shopId, startDate, endDate, 'OFFLINE'),
-      this.getPaymentMethodTotal(shopId, startDate, endDate, 'BALANCE'),
-      this.getPaymentMethodTotal(shopId, startDate, endDate, 'PASS_CARD'),
-      this.getRechargeTotal(shopId, startDate, endDate),
-    ]);
+    timeRange: TimeRange = TimeRange.MONTH,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<MemberConsumptionTrendsResponse> {
+    const { current } = this.getDateRanges(timeRange, startDate, endDate);
+    const granularity = this.determineGranularity(timeRange, current.start, current.end);
+    const dataPoints = await this.generateConsumptionTrendData(shopId, current.start, current.end, granularity);
+
+    const totalRecharge = dataPoints.reduce((sum, p) => sum + p.recharge, 0);
+    const totalConsume = dataPoints.reduce((sum, p) => sum + p.consume, 0);
 
     return {
-      offline: offlinePayments,
-      balance: balancePayments,
-      passCard: passCardPayments,
-      recharge: rechargeRecords,
+      data: dataPoints,
+      totalRecharge,
+      totalConsume,
+      granularity,
     };
   }
 
-  private async getPaymentMethodTotal(
+  async getDormantMembersStats(shopId: string, days: number = 90): Promise<DormantMembersStats> {
+    const dormantThreshold = new Date();
+    dormantThreshold.setDate(dormantThreshold.getDate() - days);
+    dormantThreshold.setHours(0, 0, 0, 0);
+
+    const [total, dormant] = await Promise.all([
+      this.prisma.member.count({
+        where: {
+          shopId,
+          isActive: true,
+        },
+      }),
+      this.prisma.member.count({
+        where: {
+          shopId,
+          isActive: true,
+          OR: [
+            { lastVisitAt: null },
+            { lastVisitAt: { lt: dormantThreshold } },
+          ],
+        },
+      }),
+    ]);
+
+    const dormantPercentage = total > 0 ? Math.round((dormant / total) * 100) : 0;
+
+    return {
+      totalCount: total,
+      dormantCount: dormant,
+      dormantPercentage,
+    };
+  }
+
+  private async generateConsumptionTrendData(
     shopId: string,
     startDate: Date,
     endDate: Date,
-    method: string,
-  ): Promise<number> {
-    // 先获取 settled 的订单 IDs
-    const settledOrderIds = await this.prisma.order.findMany({
-      where: {
-        shopId,
-        status: 'SETTLED',
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      select: { id: true },
-    });
+    granularity: Granularity,
+  ): Promise<MemberConsumptionTrendData[]> {
+    const dataPoints: MemberConsumptionTrendData[] = [];
 
-    const orderIds = settledOrderIds.map((o) => o.id);
+    if (granularity === 'day') {
+      const days = this.getDateRange(startDate, endDate, 'day');
 
-    const result = await this.prisma.payment.aggregate({
-      where: {
-        orderId: { in: orderIds },
-        method: method as any,
-      },
-      _sum: {
-        amount: true,
-      },
-    });
+      for (const day of days) {
+        const { start, end } = day;
+        const [recharge, consume] = await Promise.all([
+          this.getRechargeAmount(shopId, start, end),
+          this.getConsumeAmount(shopId, start, end),
+        ]);
 
-    return result._sum.amount ?? 0;
+        dataPoints.push({
+          date: start.toISOString().split('T')[0],
+          recharge,
+          consume,
+        });
+      }
+    } else if (granularity === 'week') {
+      const weeks = this.getDateRange(startDate, endDate, 'week');
+
+      for (const week of weeks) {
+        const { start, end } = week;
+        const [recharge, consume] = await Promise.all([
+          this.getRechargeAmount(shopId, start, end),
+          this.getConsumeAmount(shopId, start, end),
+        ]);
+
+        const weekLabel = `${start.toISOString().split('T')[0]}`;
+        dataPoints.push({
+          date: weekLabel,
+          recharge,
+          consume,
+        });
+      }
+    } else {
+      const months = this.getDateRange(startDate, endDate, 'month');
+
+      for (const month of months) {
+        const { start, end } = month;
+        const [recharge, consume] = await Promise.all([
+          this.getRechargeAmount(shopId, start, end),
+          this.getConsumeAmount(shopId, start, end),
+        ]);
+
+        const monthLabel = start.toISOString().slice(0, 7);
+        dataPoints.push({
+          date: monthLabel,
+          recharge,
+          consume,
+        });
+      }
+    }
+
+    return dataPoints;
   }
 
-  private async getRechargeTotal(shopId: string, startDate: Date, endDate: Date): Promise<number> {
+  private async getRechargeAmount(shopId: string, startDate: Date, endDate: Date): Promise<number> {
     const result = await this.prisma.rechargeRecord.aggregate({
       where: {
         member: {
@@ -546,7 +578,21 @@ export class DashboardService {
     return result._sum.amount ?? 0;
   }
 
-  private async getRechargeIncome(shopId: string, startDate: Date, endDate: Date): Promise<number> {
-    return this.getRechargeTotal(shopId, startDate, endDate);
+  private async getConsumeAmount(shopId: string, startDate: Date, endDate: Date): Promise<number> {
+    const result = await this.prisma.order.aggregate({
+      where: {
+        shopId,
+        status: 'SETTLED',
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      _sum: {
+        paidAmount: true,
+      },
+    });
+
+    return result._sum.paidAmount ?? 0;
   }
 }
