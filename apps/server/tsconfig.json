@@ -17,6 +17,11 @@
     "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
+    "preserveSymlinks": true,
+    "declarationMap": true,
+    "skipDefaultLibCheck": true,
+    "suppressExcessPropertyErrors": true,
+    "stripInternal": false,
     "paths": {
       "@haircut-ms/shared": ["../../packages/shared/src"]
     }

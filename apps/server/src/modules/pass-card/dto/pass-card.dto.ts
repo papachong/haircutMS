@@ -1,7 +1,7 @@
 import { IsString, IsInt, IsOptional, IsDateString, IsBoolean, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 
-enum PassCardStatus {
+export enum PassCardStatus {
   ACTIVE = 'ACTIVE',
   EXPIRED = 'EXPIRED',
   USED_UP = 'USED_UP',

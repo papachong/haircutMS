@@ -23,6 +23,7 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
     { href: '/m/pos', label: '收银', icon: '💰' },
     { href: '/m/members', label: '会员', icon: '👥' },
     { href: '/m/orders', label: '挂单', icon: '📋' },
+    { href: '/m/stats', label: '统计', icon: '📈' },
   ];
 
   return (
