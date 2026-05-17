@@ -17,7 +17,7 @@ export class ServiceCategoryService {
 
   async findAll(shopId: string) {
     return this.prisma.serviceCategory.findMany({
-      where: { shopId, isActive: true },
+      where: { shopId },
       orderBy: { sortOrder: 'asc' },
       include: { _count: { select: { items: true } } },
     });

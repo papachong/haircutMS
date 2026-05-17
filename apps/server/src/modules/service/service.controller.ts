@@ -7,12 +7,15 @@ import {
   Body,
   Param,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ServiceCategoryService } from './service-category.service';
 import { ServiceItemService } from './service-item.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentShop } from '../../common/decorators/current-shop.decorator';
 
-@Controller('api/v1')
+@Controller()
+@UseGuards(JwtAuthGuard)
 export class ServiceController {
   constructor(
     private categoryService: ServiceCategoryService,
@@ -57,9 +60,12 @@ export class ServiceController {
   async findAllItems(
     @CurrentShop() shopId: string,
     @Query('categoryId') categoryId?: string,
-    @Query('activeOnly') activeOnly?: boolean,
+    @Query('activeOnly') activeOnly?: string,
   ) {
-    return this.itemService.findAll(shopId, { categoryId, activeOnly });
+    return this.itemService.findAll(shopId, {
+      categoryId: categoryId || undefined,
+      activeOnly: activeOnly === 'true',
+    });
   }
 
   @Post('service-items')
