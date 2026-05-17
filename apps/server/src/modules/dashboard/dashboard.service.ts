@@ -34,6 +34,27 @@ export interface DashboardTrendsResponse {
   totalVisitors: number;
 }
 
+export interface RevenueComposition {
+  offline: number; // 线下支付
+  balance: number; // 余额支付
+  recharge: number; // 充值收入
+  passCard: number; // 次卡收入
+}
+
+export interface RevenueBreakdown {
+  composition: RevenueComposition;
+  rechargeIncome: number; // 当期充值
+  consumeIncome: number; // 当期消费
+}
+
+export interface ServiceItemRanking {
+  id: string;
+  name: string;
+  count: number;
+  amount: number;
+  averagePrice: number;
+}
+
 @Injectable()
 export class DashboardService {
   constructor(private prisma: PrismaService) {}
@@ -376,5 +397,156 @@ export class DashboardService {
     const result = new Date(date);
     result.setMonth(result.getMonth() + 1, 0);
     return this.getEndOfDay(result);
+  }
+
+  async getRevenueBreakdown(
+    shopId: string,
+    timeRange: TimeRange = TimeRange.TODAY,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<RevenueBreakdown> {
+    const { current } = this.getDateRanges(timeRange, startDate, endDate);
+
+    const [composition, rechargeIncome] = await Promise.all([
+      this.getRevenueComposition(shopId, current.start, current.end),
+      this.getRechargeIncome(shopId, current.start, current.end),
+    ]);
+
+    const consumeIncome = composition.offline + composition.balance + composition.passCard;
+
+    return {
+      composition,
+      rechargeIncome,
+      consumeIncome,
+    };
+  }
+
+  async getServiceItemRanking(
+    shopId: string,
+    timeRange: TimeRange = TimeRange.TODAY,
+    startDate?: string,
+    endDate?: string,
+    limit: number = 10,
+  ): Promise<ServiceItemRanking[]> {
+    const { current } = this.getDateRanges(timeRange, startDate, endDate);
+
+    const result = await this.prisma.orderItem.groupBy({
+      by: ['serviceItemId'],
+      where: {
+        order: {
+          shopId,
+          status: 'SETTLED',
+          createdAt: {
+            gte: current.start,
+            lte: current.end,
+          },
+        },
+      },
+      _count: {
+        id: true,
+      },
+      _sum: {
+        finalPrice: true,
+      },
+      orderBy: {
+        _count: {
+          id: 'desc',
+        },
+      },
+      take: limit,
+    });
+
+    const itemIds = result.map((r) => r.serviceItemId);
+    const serviceItems = await this.prisma.serviceItem.findMany({
+      where: { id: { in: itemIds } },
+      select: { id: true, name: true },
+    });
+
+    const itemMap = new Map(serviceItems.map((item) => [item.id, item.name]));
+
+    return result.map((r) => ({
+      id: r.serviceItemId,
+      name: itemMap.get(r.serviceItemId) || '未知项目',
+      count: r._count.id,
+      amount: r._sum.finalPrice || 0,
+      averagePrice: r._count.id > 0 ? Math.round((r._sum.finalPrice || 0) / r._count.id) : 0,
+    }));
+  }
+
+  private async getRevenueComposition(
+    shopId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<RevenueComposition> {
+    const [offlinePayments, balancePayments, passCardPayments, rechargeRecords] = await Promise.all([
+      this.getPaymentMethodTotal(shopId, startDate, endDate, 'OFFLINE'),
+      this.getPaymentMethodTotal(shopId, startDate, endDate, 'BALANCE'),
+      this.getPaymentMethodTotal(shopId, startDate, endDate, 'PASS_CARD'),
+      this.getRechargeTotal(shopId, startDate, endDate),
+    ]);
+
+    return {
+      offline: offlinePayments,
+      balance: balancePayments,
+      passCard: passCardPayments,
+      recharge: rechargeRecords,
+    };
+  }
+
+  private async getPaymentMethodTotal(
+    shopId: string,
+    startDate: Date,
+    endDate: Date,
+    method: string,
+  ): Promise<number> {
+    // 先获取 settled 的订单 IDs
+    const settledOrderIds = await this.prisma.order.findMany({
+      where: {
+        shopId,
+        status: 'SETTLED',
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: { id: true },
+    });
+
+    const orderIds = settledOrderIds.map((o) => o.id);
+
+    const result = await this.prisma.payment.aggregate({
+      where: {
+        orderId: { in: orderIds },
+        method: method as any,
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    return result._sum.amount ?? 0;
+  }
+
+  private async getRechargeTotal(shopId: string, startDate: Date, endDate: Date): Promise<number> {
+    const result = await this.prisma.rechargeRecord.aggregate({
+      where: {
+        member: {
+          shopId,
+        },
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    return result._sum.amount ?? 0;
+  }
+
+  private async getRechargeIncome(shopId: string, startDate: Date, endDate: Date): Promise<number> {
+    return this.getRechargeTotal(shopId, startDate, endDate);
   }
 }
