@@ -64,6 +64,42 @@ export class MemberService {
     return member;
   }
 
+  async searchByKeyword(shopId: string, keyword: string) {
+    if (!keyword || keyword.length < 2) {
+      return [];
+    }
+
+    return this.prisma.member.findMany({
+      where: {
+        shopId,
+        isActive: true,
+        OR: [
+          { name: { contains: keyword, mode: 'insensitive' } },
+          { phone: { contains: keyword } },
+          { cardNo: { contains: keyword } },
+        ],
+      },
+      orderBy: { lastVisitAt: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        name: true,
+        cardNo: true,
+        phone: true,
+        avatar: true,
+        memberLevel: {
+          select: {
+            id: true,
+            name: true,
+            discount: true,
+          },
+        },
+        principalBalance: true,
+        giftBalance: true,
+      },
+    });
+  }
+
   async create(shopId: string, data: {
     name: string;
     phone: string;

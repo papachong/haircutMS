@@ -25,6 +25,14 @@ export class MemberController {
     return this.memberService.findAll(shopId, query);
   }
 
+  @Get('search/keyword')
+  async searchByKeyword(
+    @Query('keyword') keyword: string,
+    @CurrentShop() shopId: string,
+  ) {
+    return this.memberService.searchByKeyword(shopId, keyword);
+  }
+
   @Get(':id')
   async findById(
     @Param('id') id: string,
