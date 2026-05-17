@@ -1,0 +1,453 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model PlatformAdmin {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(50)
+  phone     String   @db.VarChar(20) @unique
+  password  String
+  role      PlatformAdminRole @default(ADMIN)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("platform_admins")
+}
+
+enum PlatformAdminRole {
+  SUPER_ADMIN
+  ADMIN
+  OPERATOR
+}
+
+model Shop {
+  id            String   @id @default(cuid())
+  name          String   @db.VarChar(100)
+  address       String?  @db.VarChar(200)
+  phone         String?  @db.VarChar(20)
+  businessHours String?  @db.VarChar(100)
+  logo          String?
+  status        ShopStatus @default(ACTIVE)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  staff          Staff[]
+  members        Member[]
+  memberLevels   MemberLevel[]
+  serviceCategories ServiceCategory[]
+  orders         Order[]
+  rechargePlans  RechargePlan[]
+  couponTemplates CouponTemplate[]
+  license        License?
+  auditLogs      AuditLog[]
+  tags           MemberTagGroup[]
+
+  @@map("shops")
+}
+
+enum ShopStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+model Staff {
+  id        String   @id @default(cuid())
+  shopId    String   @map("shop_id")
+  name      String   @db.VarChar(50)
+  phone     String   @db.VarChar(20)
+  password  String
+  role      StaffRole @default(STYLIST)
+  avatar    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop            Shop     @relation(fields: [shopId], references: [id])
+  orderItems      OrderItem[]
+  rechargeRecords RechargeRecord[]
+
+  @@unique([shopId, phone])
+  @@map("staff")
+}
+
+enum StaffRole {
+  OWNER
+  MANAGER
+  RECEPTIONIST
+  STYLIST
+  TECHNICIAN
+}
+
+model MemberLevel {
+  id          String   @id @default(cuid())
+  shopId      String   @map("shop_id")
+  name        String   @db.VarChar(50)
+  discount    Decimal  @db.Decimal(3, 2) @default(1.00)
+  sortOrder   Int      @default(0)
+  remark      String?  @db.VarChar(200)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  shop        Shop     @relation(fields: [shopId], references: [id])
+  members     Member[]
+
+  @@map("member_levels")
+}
+
+model Member {
+  id              String   @id @default(cuid())
+  shopId          String   @map("shop_id")
+  cardNo          String   @db.VarChar(30)
+  name            String   @db.VarChar(50)
+  phone           String   @db.VarChar(20)
+  gender          Gender?
+  birthday        DateTime? @db.Date
+  avatar          String?
+  memberLevelId   String   @map("member_level_id")
+  principalBalance Int     @default(0)
+  giftBalance     Int      @default(0)
+  totalRecharge   Int      @default(0)
+  totalConsume    Int      @default(0)
+  visitCount      Int      @default(0)
+  lastVisitAt     DateTime?
+  remark          String?  @db.Text
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  shop            Shop          @relation(fields: [shopId], references: [id])
+  memberLevel     MemberLevel   @relation(fields: [memberLevelId], references: [id])
+  tagRelations    MemberTagRelation[]
+  rechargeRecords RechargeRecord[]
+  passCards       PassCard[]
+  couponInstances CouponInstance[]
+  orders          Order[]
+
+  @@unique([shopId, cardNo])
+  @@index([shopId, phone])
+  @@index([shopId, lastVisitAt])
+  @@map("members")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+model MemberTagGroup {
+  id        String   @id @default(cuid())
+  shopId    String   @map("shop_id")
+  name      String   @db.VarChar(50)
+  createdAt DateTime @default(now())
+
+  shop      Shop     @relation(fields: [shopId], references: [id])
+  tags      MemberTag[]
+
+  @@map("member_tag_groups")
+}
+
+model MemberTag {
+  id        String   @id @default(cuid())
+  groupId   String   @map("group_id")
+  name      String   @db.VarChar(30)
+  createdAt DateTime @default(now())
+
+  group     MemberTagGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  memberRelations MemberTagRelation[]
+
+  @@map("member_tags")
+}
+
+model MemberTagRelation {
+  memberId  String   @map("member_id")
+  tagId     String   @map("tag_id")
+  createdAt DateTime @default(now())
+
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  tag       MemberTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([memberId, tagId])
+  @@map("member_tag_relations")
+}
+
+model RechargePlan {
+  id          String    @id @default(cuid())
+  shopId      String    @map("shop_id")
+  name        String    @db.VarChar(100)
+  amount      Int
+  giftAmount  Int       @default(0)
+  type        RechargePlanType @default(DIRECT)
+  isActive    Boolean   @default(true)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  shop        Shop      @relation(fields: [shopId], references: [id])
+  rechargeRecords RechargeRecord[]
+
+  @@map("recharge_plans")
+}
+
+enum RechargePlanType {
+  DIRECT
+  GIFT
+  PERCENTAGE
+  TIMED
+}
+
+model RechargeRecord {
+  id            String   @id @default(cuid())
+  memberId      String   @map("member_id")
+  operatorId    String   @map("operator_id")
+  planId        String?  @map("plan_id")
+  amount        Int
+  giftAmount    Int      @default(0)
+  payMethod     String   @db.VarChar(20)
+  remark        String?  @db.VarChar(200)
+  createdAt     DateTime @default(now())
+
+  member        Member       @relation(fields: [memberId], references: [id])
+  operator      Staff        @relation(fields: [operatorId], references: [id])
+  plan          RechargePlan? @relation(fields: [planId], references: [id])
+
+  @@index([memberId, createdAt])
+  @@map("recharge_records")
+}
+
+model PassCard {
+  id             String    @id @default(cuid())
+  memberId       String    @map("member_id")
+  name           String    @db.VarChar(100)
+  totalTimes     Int
+  remainingTimes Int
+  price          Int
+  expiresAt      DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+
+  member         Member   @relation(fields: [memberId], references: [id])
+  usages         PassCardUsage[]
+
+  @@map("pass_cards")
+}
+
+model PassCardUsage {
+  id          String   @id @default(cuid())
+  passCardId  String   @map("pass_card_id")
+  orderItemId String?  @unique @map("order_item_id")
+  usedAt      DateTime @default(now())
+
+  passCard    PassCard @relation(fields: [passCardId], references: [id])
+  orderItem   OrderItem? @relation(fields: [orderItemId], references: [id])
+
+  @@map("pass_card_usages")
+}
+
+model CouponTemplate {
+  id          String   @id @default(cuid())
+  shopId      String   @map("shop_id")
+  name        String   @db.VarChar(100)
+  type        CouponType
+  threshold   Int      @default(0)
+  discount    Int
+  total       Int
+  issued      Int      @default(0)
+  startsAt    DateTime
+  endsAt      DateTime
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  shop        Shop      @relation(fields: [shopId], references: [id])
+  instances   CouponInstance[]
+
+  @@map("coupon_templates")
+}
+
+enum CouponType {
+  FIXED
+  PERCENT
+}
+
+model CouponInstance {
+  id          String   @id @default(cuid())
+  templateId  String   @map("template_id")
+  memberId    String   @map("member_id")
+  status      CouponStatus @default(AVAILABLE)
+  usedAt      DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  template    CouponTemplate @relation(fields: [templateId], references: [id])
+  member      Member   @relation(fields: [memberId], references: [id])
+
+  @@map("coupon_instances")
+}
+
+enum CouponStatus {
+  AVAILABLE
+  USED
+  EXPIRED
+}
+
+model ServiceCategory {
+  id        String   @id @default(cuid())
+  shopId    String   @map("shop_id")
+  name      String   @db.VarChar(50)
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+
+  shop      Shop     @relation(fields: [shopId], references: [id])
+  items     ServiceItem[]
+
+  @@map("service_categories")
+}
+
+model ServiceItem {
+  id          String   @id @default(cuid())
+  categoryId  String   @map("category_id")
+  name        String   @db.VarChar(100)
+  price       Int
+  duration    Int
+  image       String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category    ServiceCategory @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+
+  @@map("service_items")
+}
+
+model Order {
+  id             String   @id @default(cuid())
+  shopId         String   @map("shop_id")
+  orderNo        String   @db.VarChar(30) @unique
+  memberId       String   @map("member_id")
+  status         OrderStatus @default(PENDING)
+  originalAmount Int
+  discountAmount Int      @default(0)
+  couponAmount   Int      @default(0)
+  payableAmount  Int
+  paidAmount     Int      @default(0)
+  remark         String?  @db.Text
+  settledAt      DateTime?
+  cancelledAt    DateTime?
+  cancelReason   String?  @db.VarChar(200)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  shop           Shop     @relation(fields: [shopId], references: [id])
+  member         Member   @relation(fields: [memberId], references: [id])
+  items          OrderItem[]
+  payments       Payment[]
+
+  @@index([shopId, createdAt])
+  @@index([memberId, createdAt])
+  @@index([status])
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  SETTLED
+  CANCELLED
+  REFUNDED
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderId       String   @map("order_id")
+  serviceItemId String   @map("service_item_id")
+  staffId       String   @map("staff_id")
+  serviceName   String   @db.VarChar(100)
+  staffName     String   @db.VarChar(50)
+  unitPrice     Int
+  quantity      Int      @default(1)
+  subtotal      Int
+  discountRate  Decimal  @db.Decimal(3, 2) @default(1.00)
+  finalPrice    Int
+
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  serviceItem   ServiceItem @relation(fields: [serviceItemId], references: [id])
+  staff         Staff    @relation(fields: [staffId], references: [id])
+  passCardUsage PassCardUsage?
+
+  @@index([staffId])
+  @@map("order_items")
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  orderId     String   @map("order_id")
+  method      PaymentMethod
+  amount      Int
+  detail      String?  @db.VarChar(100)
+  createdAt   DateTime @default(now())
+
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+enum PaymentMethod {
+  BALANCE
+  PASS_CARD
+  OFFLINE
+  COUPON
+}
+
+model License {
+  id           String   @id @default(cuid())
+  shopId       String   @unique @map("shop_id")
+  licenseKey   String   @db.VarChar(30) @unique
+  plan         LicensePlan
+  staffLimit   Int      @default(2)
+  membersLimit Int      @default(200)
+  modules      String[]
+  features     Json
+  issuedAt     DateTime
+  expiresAt    DateTime
+  signature    String   @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  shop         Shop     @relation(fields: [shopId], references: [id])
+
+  @@map("licenses")
+}
+
+enum LicensePlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  shopId      String   @map("shop_id")
+  staffId     String?  @map("staff_id")
+  action      String   @db.VarChar(50)
+  targetType  String?  @db.VarChar(30)
+  targetId    String?  @db.VarChar(30)
+  detail      Json?
+  ip          String?  @db.VarChar(45)
+  createdAt   DateTime @default(now())
+
+  shop        Shop     @relation(fields: [shopId], references: [id])
+
+  @@index([shopId, createdAt])
+  @@index([action])
+  @@map("audit_logs")
+}
