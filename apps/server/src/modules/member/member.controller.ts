@@ -1,11 +1,21 @@
 import { Controller, Get, Post, Patch, Param, Body, Query } from '@nestjs/common';
 import { MemberService } from './member.service';
+import { RechargeOperationService } from './recharge-operation.service';
 import { CurrentShop } from '../../common/decorators/current-shop.decorator';
-import { CreateMemberDto, UpdateMemberDto, QueryMemberDto } from './dto/member.dto';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import {
+  CreateMemberDto,
+  UpdateMemberDto,
+  QueryMemberDto,
+} from './dto/member.dto';
+import { RechargeMemberDto, RechargeHistoryQueryDto } from './dto/recharge.dto';
 
 @Controller('api/v1/members')
 export class MemberController {
-  constructor(private memberService: MemberService) {}
+  constructor(
+    private memberService: MemberService,
+    private rechargeOperationService: RechargeOperationService,
+  ) {}
 
   @Get()
   async findAll(
@@ -38,5 +48,35 @@ export class MemberController {
     @Body() dto: UpdateMemberDto,
   ) {
     return this.memberService.update(id, shopId, dto);
+  }
+
+  @Post(':id/recharge')
+  async recharge(
+    @Param('id') memberId: string,
+    @CurrentShop() shopId: string,
+    @CurrentUser('id') operatorId: string,
+    @CurrentUser('ip') ip: string,
+    @Body() dto: RechargeMemberDto,
+  ) {
+    return this.rechargeOperationService.recharge(
+      memberId,
+      shopId,
+      operatorId,
+      ip,
+      dto,
+    );
+  }
+
+  @Get(':id/recharge-history')
+  async getRechargeHistory(
+    @Param('id') memberId: string,
+    @CurrentShop() shopId: string,
+    @Query() query: RechargeHistoryQueryDto,
+  ) {
+    return this.rechargeOperationService.getRechargeHistory(
+      memberId,
+      shopId,
+      query,
+    );
   }
 }
