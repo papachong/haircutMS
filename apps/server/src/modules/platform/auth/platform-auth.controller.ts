@@ -28,7 +28,7 @@ export class PlatformAuthController {
 
   @Get('me')
   @UseGuards(PlatformAuthGuard)
-  async me(@Request() req) {
+  async me(@Request() req: any) {
     const admin = await this.platformAuthService.validateAdmin(req.user.adminId);
     return {
       code: 0,
