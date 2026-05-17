@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
@@ -7,6 +7,13 @@ enum OrderStatus {
   SETTLED = 'SETTLED',
   CANCELLED = 'CANCELLED',
   REFUNDED = 'REFUNDED',
+}
+
+enum PaymentMethod {
+  BALANCE = 'BALANCE',
+  PASS_CARD = 'PASS_CARD',
+  OFFLINE = 'OFFLINE',
+  COUPON = 'COUPON',
 }
 
 interface CreateOrderItemData {
@@ -36,6 +43,16 @@ interface UpdateOrderData {
   status?: OrderStatus;
   remark?: string;
   cancelReason?: string;
+}
+
+interface SettleOrderData {
+  payments: Array<{
+    method: PaymentMethod;
+    amount: number;
+    detail?: string;
+    passCardId?: string;
+    couponInstanceId?: string;
+  }>;
 }
 
 @Injectable()
@@ -340,6 +357,259 @@ export class OrderService {
       where: { id },
       data: updateData,
     });
+  }
+
+  async settle(id: string, shopId: string, data: SettleOrderData) {
+    const order = await this.prisma.order.findFirst({
+      where: { id, shopId },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException('Only pending orders can be settled');
+    }
+
+    const totalPaymentAmount = data.payments.reduce((sum, p) => sum + p.amount, 0);
+    if (totalPaymentAmount !== order.payableAmount) {
+      throw new BadRequestException(`Payment amount ${totalPaymentAmount} does not match payable amount ${order.payableAmount}`);
+    }
+
+    const member = await this.prisma.member.findFirst({
+      where: { id: order.memberId },
+      include: {
+        couponInstances: true,
+        passCards: true,
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Member not found');
+    }
+
+    const { items } = order;
+    let remainingAmount = order.payableAmount;
+
+    // 余额支付：先扣赠送余额，再扣本金
+    const balancePayment = data.payments.find(p => p.method === PaymentMethod.BALANCE);
+    if (balancePayment) {
+      const totalBalance = member.principalBalance + member.giftBalance;
+      if (totalBalance < balancePayment.amount) {
+        throw new BadRequestException('Insufficient balance');
+      }
+
+      let giftDeduct = Math.min(member.giftBalance, balancePayment.amount);
+      let principalDeduct = balancePayment.amount - giftDeduct;
+
+      remainingAmount -= balancePayment.amount;
+    }
+
+    // 次卡核销
+    const passCardPayments = data.payments.filter(p => p.method === PaymentMethod.PASS_CARD);
+    for (const payment of passCardPayments) {
+      const passCard = member.passCards.find(pc => pc.id === payment.passCardId);
+      if (!passCard) {
+        throw new NotFoundException('Pass card not found');
+      }
+
+      if (passCard.expiresAt && new Date() > passCard.expiresAt) {
+        throw new BadRequestException('Pass card has expired');
+      }
+
+      if (passCard.remainingTimes <= 0) {
+        throw new BadRequestException('Pass card has no remaining times');
+      }
+
+      remainingAmount -= payment.amount;
+    }
+
+    // 优惠券抵扣
+    const couponPayments = data.payments.filter(p => p.method === PaymentMethod.COUPON);
+    for (const payment of couponPayments) {
+      const coupon = member.couponInstances.find(c => c.id === payment.couponInstanceId);
+      if (!coupon) {
+        throw new NotFoundException('Coupon not found');
+      }
+
+      if (coupon.status !== 'AVAILABLE') {
+        throw new BadRequestException('Coupon is not available');
+      }
+
+      if (coupon.expiresAt && new Date() > coupon.expiresAt) {
+        throw new BadRequestException('Coupon has expired');
+      }
+
+      remainingAmount -= payment.amount;
+    }
+
+    // 执行结算事务
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 处理余额支付
+      if (balancePayment) {
+        let giftDeduct = Math.min(member.giftBalance, balancePayment.amount);
+        let principalDeduct = balancePayment.amount - giftDeduct;
+
+        await tx.member.update({
+          where: { id: member.id },
+          data: {
+            giftBalance: { decrement: giftDeduct },
+            principalBalance: { decrement: principalDeduct },
+            totalConsume: { increment: balancePayment.amount },
+          },
+        });
+      }
+
+      // 处理次卡核销
+      for (const payment of passCardPayments) {
+        const passCard = await tx.passCard.findUnique({
+          where: { id: payment.passCardId },
+        });
+
+        if (passCard) {
+          await tx.passCard.update({
+            where: { id: passCard.id },
+            data: { remainingTimes: { decrement: 1 } },
+          });
+
+          // 找到对应的订单项并关联
+          const orderItem = items.find(item => item.finalPrice === payment.amount);
+          if (orderItem) {
+            await tx.passCardUsage.create({
+              data: {
+                passCardId: passCard.id,
+                orderItemId: orderItem.id,
+              },
+            });
+          }
+        }
+      }
+
+      // 处理优惠券
+      for (const payment of couponPayments) {
+        await tx.couponInstance.update({
+          where: { id: payment.couponInstanceId },
+          data: {
+            status: 'USED',
+            usedAt: new Date(),
+          },
+        });
+      }
+
+      // 更新订单状态
+      const updatedOrder = await tx.order.update({
+        where: { id },
+        data: {
+          status: OrderStatus.SETTLED,
+          settledAt: new Date(),
+          paidAmount: totalPaymentAmount,
+        },
+      });
+
+      // 创建支付记录
+      await tx.payment.createMany({
+        data: data.payments.map(p => ({
+          orderId: id,
+          method: p.method,
+          amount: p.amount,
+          detail: p.detail,
+        })),
+      });
+
+      // 更新会员访问记录
+      await tx.member.update({
+        where: { id: member.id },
+        data: {
+          visitCount: { increment: 1 },
+          lastVisitAt: new Date(),
+        },
+      });
+
+      return updatedOrder;
+    });
+
+    return result;
+  }
+
+  async cancel(id: string, shopId: string, reason?: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id, shopId },
+      include: {
+        payments: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.status !== OrderStatus.SETTLED) {
+      throw new BadRequestException('Only settled orders can be cancelled');
+    }
+
+    // 检查是否为当日订单
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (order.settledAt && order.settledAt < today) {
+      throw new ForbiddenException('Cannot cancel orders from previous days');
+    }
+
+    // 恢复会员余额
+    const balancePayment = order.payments.find(p => p.method === PaymentMethod.BALANCE);
+    if (balancePayment) {
+      await this.prisma.member.update({
+        where: { id: order.memberId },
+        data: {
+          totalConsume: { decrement: balancePayment.amount },
+          principalBalance: { increment: balancePayment.amount },
+        },
+      });
+    }
+
+    // 恢复次卡
+    const passCardPayments = order.payments.filter(p => p.method === PaymentMethod.PASS_CARD);
+    for (const payment of passCardPayments) {
+      const usage = await this.prisma.passCardUsage.findUnique({
+        where: { orderItemId: payment.orderId },
+      });
+      if (usage) {
+        await this.prisma.passCard.update({
+          where: { id: usage.passCardId },
+          data: { remainingTimes: { increment: 1 } },
+        });
+        await this.prisma.passCardUsage.delete({
+          where: { id: usage.id },
+        });
+      }
+    }
+
+    // 恢复优惠券
+    const couponPayments = order.payments.filter(p => p.method === PaymentMethod.COUPON && p.detail);
+    for (const payment of couponPayments) {
+      await this.prisma.couponInstance.updateMany({
+        where: { id: payment.detail! },
+        data: {
+          status: 'AVAILABLE',
+          usedAt: null,
+        },
+      });
+    }
+
+    const cancelledOrder = await this.prisma.order.update({
+      where: { id },
+      data: {
+        status: OrderStatus.REFUNDED,
+        cancelledAt: new Date(),
+        cancelReason: reason,
+        paidAmount: 0,
+      },
+    });
+
+    return cancelledOrder;
   }
 
   async getPendingOrders(shopId: string) {

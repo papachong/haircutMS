@@ -8,6 +8,13 @@ enum OrderStatus {
   REFUNDED = 'REFUNDED',
 }
 
+enum PaymentMethod {
+  BALANCE = 'BALANCE',
+  PASS_CARD = 'PASS_CARD',
+  OFFLINE = 'OFFLINE',
+  COUPON = 'COUPON',
+}
+
 export class CreateOrderItemDto {
   @IsString()
   serviceItemId!: string;
@@ -73,4 +80,32 @@ export class QueryOrderDto {
   @Min(1)
   @Type(() => Number)
   pageSize?: number;
+}
+
+export class PaymentDto {
+  @IsEnum(PaymentMethod)
+  method!: PaymentMethod;
+
+  @IsInt()
+  @Min(1)
+  amount!: number;
+
+  @IsOptional()
+  @IsString()
+  detail?: string;
+
+  @IsOptional()
+  @IsString()
+  passCardId?: string;
+
+  @IsOptional()
+  @IsString()
+  couponInstanceId?: string;
+}
+
+export class SettleOrderDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PaymentDto)
+  payments!: PaymentDto[];
 }

@@ -2,6 +2,14 @@ import { Controller, Post, Body, Get, UseGuards, Request } from '@nestjs/common'
 import { PlatformAuthService } from './platform-auth.service';
 import { PlatformAuthGuard } from './guards/platform-auth.guard';
 
+interface PlatformRequest extends Request {
+  user?: {
+    adminId: string;
+    role: string;
+    type: string;
+  };
+}
+
 @Controller('api/v1/platform/auth')
 export class PlatformAuthController {
   constructor(private platformAuthService: PlatformAuthService) {}
@@ -28,8 +36,8 @@ export class PlatformAuthController {
 
   @Get('me')
   @UseGuards(PlatformAuthGuard)
-  async me(@Request() req) {
-    const admin = await this.platformAuthService.validateAdmin(req.user.adminId);
+  async me(@Request() req: PlatformRequest) {
+    const admin = await this.platformAuthService.validateAdmin(req.user?.adminId || '');
     return {
       code: 0,
       message: 'Success',
