@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 interface PlatformJwtPayload {
+  type: 'platform';
   adminId: string;
   role: string;
-  type: string;
 }
 
 @Injectable()
@@ -21,12 +21,13 @@ export class PlatformJwtStrategy extends PassportStrategy(Strategy, 'platform-jw
 
   async validate(payload: PlatformJwtPayload) {
     if (payload.type !== 'platform') {
-      throw new Error('Invalid token type');
+      throw new UnauthorizedException('Invalid token type');
     }
+
     return {
+      type: 'platform',
       adminId: payload.adminId,
       role: payload.role,
-      type: payload.type,
     };
   }
 }

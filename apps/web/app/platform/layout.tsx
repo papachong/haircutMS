@@ -3,6 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
+interface PlatformUser {
+  type: 'platform';
+  adminId: string;
+  role: string;
+}
+
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -26,10 +32,10 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   if (!ready) return null;
 
   const navItems = [
-    { href: '/platform/dashboard', label: '仪表盘', icon: '📊' },
+    { href: '/platform', label: '首页', icon: '📊' },
     { href: '/platform/shops', label: '店铺管理', icon: '🏪' },
+    { href: '/platform/licenses', label: 'License 管理', icon: '🔑' },
     { href: '/platform/admins', label: '管理员', icon: '👤' },
-    { href: '/platform/settings', label: '系统设置', icon: '⚙️' },
   ];
 
   const handleLogout = () => {
