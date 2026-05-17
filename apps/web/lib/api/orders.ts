@@ -38,6 +38,34 @@ export interface Member {
   };
   principalBalance: number;
   giftBalance: number;
+  passCards?: MemberPassCard[];
+}
+
+export interface PassCard {
+  id: string;
+  memberId: string;
+  name: string;
+  totalTimes: number;
+  remainingTimes: number;
+  price?: number;
+  expiresAt?: string;
+  isActive?: boolean;
+  status?: 'ACTIVE' | 'EXPIRED' | 'USED_UP' | 'INACTIVE';
+  createdAt?: string;
+  member?: {
+    id: string;
+    name: string;
+    cardNo: string;
+    phone: string;
+  };
+}
+
+export interface MemberPassCard {
+  id: string;
+  name: string;
+  totalTimes: number;
+  remainingTimes: number;
+  expiresAt?: string;
 }
 
 export interface OrderItemInput {
@@ -145,6 +173,49 @@ export async function updateOrder(
 ): Promise<Order> {
   const res = await apiFetch<{ code: number; data: Order }>(`/orders/${id}`, {
     method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
+// Pass card APIs
+export async function getPassCards(params?: {
+  memberId?: string;
+  status?: string;
+  availableOnly?: boolean;
+  page?: number;
+  pageSize?: number;
+}): Promise<{
+  items: PassCard[];
+  pagination: { total: number; page: number; pageSize: number; hasMore: boolean };
+}> {
+  const query = new URLSearchParams();
+  if (params?.memberId) query.append('memberId', params.memberId);
+  if (params?.status) query.append('status', params.status);
+  if (params?.availableOnly) query.append('availableOnly', 'true');
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.pageSize) query.append('pageSize', String(params.pageSize));
+  const path = `/pass-cards${query.toString() ? `?${query.toString()}` : ''}`;
+  const res = await apiFetch<{
+    code: number;
+    data: {
+      items: PassCard[];
+      pagination: { total: number; page: number; pageSize: number; hasMore: boolean };
+    };
+  }>(path);
+  return res.data;
+}
+
+export async function createPassCard(data: {
+  memberId: string;
+  name: string;
+  totalTimes: number;
+  price: number;
+  expiresAt?: string;
+  isActive?: boolean;
+}): Promise<PassCard> {
+  const res = await apiFetch<{ code: number; data: PassCard }>('/pass-cards', {
+    method: 'POST',
     body: JSON.stringify(data),
   });
   return res.data;
