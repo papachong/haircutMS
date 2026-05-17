@@ -220,3 +220,52 @@ export async function createPassCard(data: {
   });
   return res.data;
 }
+
+// Coupon APIs
+export interface CouponInstance {
+  id: string;
+  templateId: string;
+  memberId: string;
+  status: 'AVAILABLE' | 'USED' | 'EXPIRED';
+  usedAt: string | null;
+  expiresAt: string;
+  createdAt: string;
+  template?: {
+    id: string;
+    name: string;
+    type: 'FIXED' | 'PERCENT';
+    threshold: number;
+    discount: number;
+  };
+}
+
+export async function getAvailableCoupons(memberId: string, amount: number): Promise<Array<CouponInstance & {
+  template: { id: string; name: string; type: 'FIXED' | 'PERCENT'; threshold: number; discount: number };
+  canUse: boolean;
+  discount: number;
+  finalAmount: number;
+}>> {
+  const res = await apiFetch<{ code: number; data: Array<CouponInstance & {
+    template: { id: string; name: string; type: 'FIXED' | 'PERCENT'; threshold: number; discount: number };
+    canUse: boolean;
+    discount: number;
+    finalAmount: number;
+  }> }>(`/coupons/members/${memberId}/available?amount=${amount}`);
+  return res.data;
+}
+
+export interface PaymentInput {
+  method: 'BALANCE' | 'PASS_CARD' | 'OFFLINE' | 'COUPON';
+  amount: number;
+  detail?: string;
+  passCardId?: string;
+  couponInstanceId?: string;
+}
+
+export async function settleOrder(orderId: string, payments: PaymentInput[]): Promise<Order> {
+  const res = await apiFetch<{ code: number; data: Order }>(`/orders/${orderId}/settle`, {
+    method: 'POST',
+    body: JSON.stringify({ payments }),
+  });
+  return res.data;
+}
