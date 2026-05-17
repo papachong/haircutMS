@@ -11,6 +11,7 @@ import { AuditModule } from './modules/audit/audit.module';
 import { MemberModule } from './modules/member/member.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { PlatformAuthModule } from './modules/platform/auth/platform-auth.module';
+import { OrderModule } from './modules/order/order.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -31,6 +32,7 @@ import { AppService } from './app.service';
     MemberModule,
     StaffModule,
     PlatformAuthModule,
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [

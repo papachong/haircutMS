@@ -65,11 +65,7 @@ export class StaffService {
       throw new ConflictException('该手机号已有员工');
     }
 
-    const staffCount = await this.prisma.staff.count({
-      where: { shopId, isActive: true },
-    });
-
-    const licenseOk = await this.licenseService.isStaffLimitOk(shopId, staffCount);
+    const licenseOk = await this.licenseService.isStaffLimitOk(shopId);
     if (!licenseOk) {
       throw new ForbiddenException('员工数已达 License 上限，请升级版本');
     }

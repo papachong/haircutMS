@@ -46,7 +46,7 @@ export class AuditService {
         action: params.action,
         targetType: params.targetType,
         targetId: params.targetId,
-        detail: params.detail ?? undefined,
+        detail: params.detail as any,
         ip: params.ip,
       },
     });
