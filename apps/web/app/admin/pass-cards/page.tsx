@@ -258,13 +258,13 @@ export default function PassCardsPage() {
                   <span className="font-medium">{card.remainingTimes}</span>
                   <span className="text-muted-foreground"> / {card.totalTimes}</span>
                 </div>
-                <div>¥{(card.price / 100).toFixed(2)}</div>
+                <div>{card.price ? `¥${(card.price / 100).toFixed(2)}` : '免费'}</div>
                 <div className="text-muted-foreground">
                   {card.expiresAt ? new Date(card.expiresAt).toLocaleDateString('zh-CN') : '永久'}
                 </div>
                 <div>
-                  <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(card.status)}`}>
-                    {getStatusLabel(card.status)}
+                  <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(card.status || 'UNKNOWN')}`}>
+                    {getStatusLabel(card.status || 'UNKNOWN')}
                   </span>
                 </div>
               </div>

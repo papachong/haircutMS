@@ -24,8 +24,8 @@
       finally { setLoading(false); }
     }
 
-    function updateFilter(key: string, value: any) {
-      setFilters(prev => ({ ...prev, [key]: value }));
+    function updateFilter(key: string, value: unknown) {
+      setFilters((prev: Record<string, unknown>) => ({ ...prev, [key]: value }));
       setPage(1);
     }
   

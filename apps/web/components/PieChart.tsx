@@ -1,7 +1,7 @@
 interface PieChartData {
   label: string;
   value: number;
-  color: string;
+  color?: string;
 }
 
 interface PieChartProps {

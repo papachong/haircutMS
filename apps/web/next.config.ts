@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import path from 'path';
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@haircut-ms/shared'],
@@ -9,6 +10,10 @@ const nextConfig: NextConfig = {
         destination: 'http://localhost:4000/api/:path*',
       },
     ];
+  },
+  webpack: (config) => {
+    config.resolve.alias['@'] = path.resolve(__dirname, '.');
+    return config;
   },
 };
 
