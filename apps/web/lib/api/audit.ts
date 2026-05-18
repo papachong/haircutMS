@@ -56,6 +56,7 @@ export const ACTION_LABELS: Record<string, string> = {
 export interface AuditLogFilters {
   action?: string;
   staffId?: string;
+  targetId?: string;
   startDate?: string;
   endDate?: string;
   page?: number;
@@ -83,7 +84,13 @@ export async function getAuditLogs(filters?: AuditLogFilters): Promise<AuditLogP
   if (filters?.pageSize) {
     params.append('pageSize', filters.pageSize.toString());
   }
+  if (filters?.targetId) {
+    params.append('targetId', filters.targetId);
+  }
 
   const queryString = params.toString();
-  return apiFetch(`/audit-logs${queryString ? `?${queryString}` : ''}`);
+  const res = await apiFetch<{ code: number; data: AuditLogPagination }>(
+    `/audit-logs${queryString ? `?${queryString}` : ''}`
+  );
+  return res.data;
 }
