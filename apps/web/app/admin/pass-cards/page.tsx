@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import {
   getPassCards,
   createPassCard,
-  searchMembers,
   type PassCard,
-  type Member,
-} from '../../../lib/api/orders';
+} from '../../../lib/api/pass-cards';
+import { searchMembers, type Member } from '../../../lib/api/orders';
+import { getPassCardStatusLabel, getPassCardStatusColor } from '@/lib/api/pass-cards';
 
 export default function PassCardsPage() {
   const [passCards, setPassCards] = useState<PassCard[]>([]);
@@ -57,7 +57,7 @@ export default function PassCardsPage() {
       alert('请选择会员');
       return;
     }
-    if (!formData.name) {
+    if (!formData.name.trim()) {
       alert('请输入次卡名称');
       return;
     }
@@ -65,8 +65,8 @@ export default function PassCardsPage() {
       alert('次数必须大于0');
       return;
     }
-    if (formData.price <= 0) {
-      alert('价格必须大于0');
+    if (formData.price < 0) {
+      alert('价格不能为负数');
       return;
     }
 
@@ -74,10 +74,11 @@ export default function PassCardsPage() {
     try {
       await createPassCard({
         memberId: selectedMember.id,
-        name: formData.name,
+        name: formData.name.trim(),
         totalTimes: formData.totalTimes,
-        price: formData.price * 100, // Convert to cents
+        price: Math.round(formData.price * 100),
         expiresAt: formData.expiresAt || undefined,
+        isActive: true,
       });
 
       alert('次卡创建成功');
@@ -92,34 +93,13 @@ export default function PassCardsPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'bg-green-500/10 text-green-700';
-      case 'EXPIRED':
-        return 'bg-red-500/10 text-red-700';
-      case 'USED_UP':
-        return 'bg-yellow-500/10 text-yellow-700';
-      case 'INACTIVE':
-        return 'bg-gray-500/10 text-gray-700';
-      default:
-        return 'bg-gray-500/10 text-gray-700';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return '有效';
-      case 'EXPIRED':
-        return '已过期';
-      case 'USED_UP':
-        return '已用完';
-      case 'INACTIVE':
-        return '已停用';
-      default:
-        return '未知';
-    }
+  const getDaysUntilExpiry = (expiresAt: string | null): number | null => {
+    if (!expiresAt) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiry = new Date(expiresAt);
+    const diffTime = expiry.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
   return (
@@ -216,8 +196,10 @@ export default function PassCardsPage() {
                 type="date"
                 value={formData.expiresAt}
                 onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
+                min={new Date().toISOString().split('T')[0]}
                 className="w-full px-3 py-2 border rounded-md"
               />
+              <p className="text-xs text-muted-foreground mt-1">留空则永久有效</p>
             </div>
 
             <button
@@ -247,28 +229,39 @@ export default function PassCardsPage() {
           </div>
         ) : (
           <div>
-            {passCards.map((card) => (
-              <div key={card.id} className="grid grid-cols-6 gap-4 p-4 border-b text-sm hover:bg-accent">
-                <div className="font-medium">{card.name}</div>
-                <div>
-                  {card.member?.name}
-                  <div className="text-xs text-muted-foreground">{card.member?.cardNo}</div>
+            {passCards.map((card) => {
+              const daysUntilExpiry = getDaysUntilExpiry(card.expiresAt);
+              const isExpiringSoon = daysUntilExpiry !== null && daysUntilExpiry <= 30 && daysUntilExpiry > 0;
+
+              return (
+                <div
+                  key={card.id}
+                  className="grid grid-cols-6 gap-4 p-4 border-b text-sm hover:bg-accent"
+                >
+                  <div className="font-medium">{card.name}</div>
+                  <div>
+                    {card.member?.name}
+                    <div className="text-xs text-muted-foreground">{card.member?.cardNo}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">{card.remainingTimes}</span>
+                    <span className="text-muted-foreground"> / {card.totalTimes}</span>
+                  </div>
+                  <div>¥{(card.price / 100).toFixed(2)}</div>
+                  <div className="text-muted-foreground">
+                    {card.expiresAt ? new Date(card.expiresAt).toLocaleDateString('zh-CN') : '永久'}
+                    {isExpiringSoon && (
+                      <span className="ml-2 text-orange-600 text-xs">({daysUntilExpiry}天后过期)</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className={`px-2 py-1 rounded-full text-xs border ${getPassCardStatusColor(card.status)}`}>
+                      {getPassCardStatusLabel(card.status)}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="font-medium">{card.remainingTimes}</span>
-                  <span className="text-muted-foreground"> / {card.totalTimes}</span>
-                </div>
-                <div>¥{(card.price / 100).toFixed(2)}</div>
-                <div className="text-muted-foreground">
-                  {card.expiresAt ? new Date(card.expiresAt).toLocaleDateString('zh-CN') : '永久'}
-                </div>
-                <div>
-                  <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(card.status)}`}>
-                    {getStatusLabel(card.status)}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -8,12 +8,17 @@ import {
   getStaff,
   searchMembers,
   createOrder,
+  getPassCards,
   type ServiceItem,
   type ServiceCategory,
   type Staff,
   type Member,
   type OrderItemInput,
+  type PassCard,
 } from '../../../lib/api/orders';
+import { PassCardPurchaseDialog } from '@/components/pass-card/purchase-dialog';
+import { SettlementDialog } from '@/components/pass-card/settlement-dialog';
+import { getPassCardStatusLabel, getPassCardStatusColor, isPassCardUsable } from '@/lib/api/pass-cards';
 
 interface CartItem extends OrderItemInput {
   serviceItem: ServiceItem;
@@ -42,6 +47,10 @@ export default function MobilePOSPage() {
   const [memberResults, setMemberResults] = useState<Member[]>([]);
   const [remark, setRemark] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
+  const [showSettlementDialog, setShowSettlementDialog] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState<any>(null);
+  const [passCards, setPassCards] = useState<PassCard[]>([]);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -57,6 +66,12 @@ export default function MobilePOSPage() {
       loadServices();
     }
   }, [step, selectedCategory]);
+
+  useEffect(() => {
+    if (selectedMember) {
+      loadPassCards(selectedMember.id);
+    }
+  }, [selectedMember]);
 
   const loadData = async () => {
     const [cats, staffData] = await Promise.all([
@@ -77,6 +92,15 @@ export default function MobilePOSPage() {
     }
   };
 
+  const loadPassCards = async (memberId: string) => {
+    try {
+      const result = await getPassCards({ memberId });
+      setPassCards(result.items);
+    } catch {
+      // Handle error silently
+    }
+  };
+
   const handleMemberSearch = async (value: string) => {
     setMemberSearch(value);
     if (value.length >= 2) {
@@ -92,6 +116,8 @@ export default function MobilePOSPage() {
     setMemberSearch('');
     setMemberResults([]);
     setStep('services');
+    setCart([]);
+    setPassCards([]);
   };
 
   const addToCart = (serviceItem: ServiceItem) => {
@@ -180,8 +206,13 @@ export default function MobilePOSPage() {
         status,
       });
 
-      alert(`订单创建成功\n订单号: ${order.orderNo}`);
-      router.push('/m');
+      if (status === 'PENDING') {
+        alert(`订单创建成功\n订单号: ${order.orderNo}`);
+        router.push('/m');
+      } else {
+        setPendingOrder(order);
+        setShowSettlementDialog(true);
+      }
     } catch (error: unknown) {
       alert(`创建订单失败: ${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
@@ -189,10 +220,43 @@ export default function MobilePOSPage() {
     }
   };
 
+  const handleSettlementSuccess = (order: any) => {
+    alert(`订单结算成功\n订单号: ${order.orderNo}`);
+    setShowSettlementDialog(false);
+    setPendingOrder(null);
+    router.push('/m');
+  };
+
+  const handlePassCardPurchased = (passCard: PassCard) => {
+    loadPassCards(selectedMember?.id || '');
+    alert(`次卡购买成功: ${passCard.name}`);
+  };
+
   const payableAmount = cart.reduce((sum, item) => sum + item.finalPrice, 0);
+  const usablePassCards = passCards.filter(isPassCardUsable);
 
   return (
     <div className="min-h-screen bg-background">
+      {showPurchaseDialog && selectedMember && (
+        <PassCardPurchaseDialog
+          memberId={selectedMember.id}
+          memberName={selectedMember.name}
+          onSuccess={handlePassCardPurchased}
+          onClose={() => setShowPurchaseDialog(false)}
+        />
+      )}
+
+      {showSettlementDialog && pendingOrder && (
+        <SettlementDialog
+          order={pendingOrder}
+          onClose={() => {
+            setShowSettlementDialog(false);
+            setPendingOrder(null);
+          }}
+          onSuccess={handleSettlementSuccess}
+        />
+      )}
+
       {step === 'member' && (
         <div className="p-4">
           <h1 className="text-xl font-bold mb-4">选择会员</h1>
@@ -332,6 +396,46 @@ export default function MobilePOSPage() {
                   </div>
                 </div>
               </div>
+              <div className="mt-3 flex gap-2">
+                <div className="flex-1 bg-accent/50 rounded p-2 text-center">
+                  <div className="text-xs text-muted-foreground">本金余额</div>
+                  <div className="font-medium">¥{(selectedMember.principalBalance / 100).toFixed(2)}</div>
+                </div>
+                <div className="flex-1 bg-accent/50 rounded p-2 text-center">
+                  <div className="text-xs text-muted-foreground">赠送余额</div>
+                  <div className="font-medium">¥{(selectedMember.giftBalance / 100).toFixed(2)}</div>
+                </div>
+              </div>
+              {usablePassCards.length > 0 && (
+                <div className="mt-3 pt-3 border-t">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-muted-foreground">可用次卡</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowPurchaseDialog(true)}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      + 购买
+                    </button>
+                  </div>
+                  <div className="space-y-1">
+                    {usablePassCards.map((pc) => (
+                      <div key={pc.id} className="text-xs bg-accent/30 rounded px-2 py-1">
+                        {pc.name}: {pc.remainingTimes}/{pc.totalTimes}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {passCards.length > 0 && usablePassCards.length === 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowPurchaseDialog(true)}
+                  className="mt-3 w-full py-2 border border-dashed rounded text-xs text-muted-foreground"
+                >
+                  购买次卡
+                </button>
+              )}
             </div>
           )}
 
@@ -410,6 +514,12 @@ export default function MobilePOSPage() {
                   -¥{(cart.reduce((sum, item) => sum + item.subtotal, 0) - payableAmount) / 100}
                 </span>
               </div>
+              {usablePassCards.length > 0 && cart.length === 1 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>可用次卡</span>
+                  <span>{usablePassCards[0].name}</span>
+                </div>
+              )}
               <div className="flex justify-between font-bold text-lg pt-2 border-t">
                 <span>应付金额</span>
                 <span>¥{(payableAmount / 100).toFixed(2)}</span>
