@@ -26,7 +26,7 @@ export class RechargeOperationService {
 
     let amount: number;
     let giftAmount: number;
-    let planId = dto.planId ? String(dto.planId) : undefined;
+    const planId = dto.planId ? String(dto.planId) : undefined;
     let planName: string | undefined;
 
     if (dto.planId) {

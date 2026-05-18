@@ -426,8 +426,8 @@ export class OrderService {
         throw new BadRequestException('Insufficient balance');
       }
 
-      let giftDeduct = Math.min(member.giftBalance, balancePayment.amount);
-      let principalDeduct = balancePayment.amount - giftDeduct;
+      const giftDeduct = Math.min(member.giftBalance, balancePayment.amount);
+      const principalDeduct = balancePayment.amount - giftDeduct;
 
       remainingAmount -= balancePayment.amount;
     }
@@ -474,8 +474,8 @@ export class OrderService {
     const result = await this.prisma.$transaction(async (tx) => {
       // 处理余额支付
       if (balancePayment) {
-        let giftDeduct = Math.min(member.giftBalance, balancePayment.amount);
-        let principalDeduct = balancePayment.amount - giftDeduct;
+        const giftDeduct = Math.min(member.giftBalance, balancePayment.amount);
+        const principalDeduct = balancePayment.amount - giftDeduct;
 
         await tx.member.update({
           where: { id: member.id },
