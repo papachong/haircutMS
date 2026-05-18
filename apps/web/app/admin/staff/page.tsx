@@ -140,55 +140,55 @@ export default function StaffManagementPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold">员工管理</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold">员工管理</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             管理店铺员工信息、角色和权限
           </p>
         </div>
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          className="flex items-center gap-2 rounded-lg bg-primary px-3 sm:px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 self-start sm:self-auto"
         >
           <Plus className="h-4 w-4" />
           添加员工
         </button>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
-        <div className="rounded-xl border bg-card p-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="rounded-xl border bg-card p-4 md:p-6">
           <div className="flex items-center justify-between">
-            <CheckCircle className="h-5 w-5 text-green-600" />
+            <CheckCircle className="h-4 md:h-5 w-4 md:w-5 text-green-600" />
             <span className="text-xs text-muted-foreground">在职员工</span>
           </div>
-          <p className="mt-4 text-3xl font-bold text-green-600">{activeStaffCount}</p>
+          <p className="mt-3 md:mt-4 text-2xl md:text-3xl font-bold text-green-600">{activeStaffCount}</p>
         </div>
 
-        <div className="rounded-xl border bg-card p-6">
+        <div className="rounded-xl border bg-card p-4 md:p-6">
           <div className="flex items-center justify-between">
-            <XCircle className="h-5 w-5 text-red-600" />
+            <XCircle className="h-4 md:h-5 w-4 md:w-5 text-red-600" />
             <span className="text-xs text-muted-foreground">已停用</span>
           </div>
-          <p className="mt-4 text-3xl font-bold text-red-600">{totalStaffCount - activeStaffCount}</p>
+          <p className="mt-3 md:mt-4 text-2xl md:text-3xl font-bold text-red-600">{totalStaffCount - activeStaffCount}</p>
         </div>
 
-        <div className="rounded-xl border bg-card p-6">
+        <div className="rounded-xl border bg-card p-4 md:p-6">
           <div className="flex items-center justify-between">
-            <Edit2 className="h-5 w-5 text-blue-600" />
+            <Edit2 className="h-4 md:h-5 w-4 md:w-5 text-blue-600" />
             <span className="text-xs text-muted-foreground">发型师</span>
           </div>
-          <p className="mt-4 text-3xl font-bold text-blue-600">
+          <p className="mt-3 md:mt-4 text-2xl md:text-3xl font-bold text-blue-600">
             {staffList.filter(s => s.role === 'STYLIST' && s.isActive).length}
           </p>
         </div>
 
-        <div className="rounded-xl border bg-card p-6">
+        <div className="rounded-xl border bg-card p-4 md:p-6">
           <div className="flex items-center justify-between">
-            <AlertTriangle className="h-5 w-5 text-amber-600" />
+            <AlertTriangle className="h-4 md:h-5 w-4 md:w-5 text-amber-600" />
             <span className="text-xs text-muted-foreground">员工总数</span>
           </div>
-          <p className="mt-4 text-3xl font-bold">{totalStaffCount}</p>
+          <p className="mt-3 md:mt-4 text-2xl md:text-3xl font-bold">{totalStaffCount}</p>
         </div>
       </div>
 
@@ -205,16 +205,17 @@ export default function StaffManagementPage() {
       )}
 
       <div className="rounded-xl border bg-card">
-        <div className="overflow-x-auto">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="py-4 px-6 text-left font-medium">姓名</th>
-                <th className="py-4 px-6 text-left font-medium">角色</th>
-                <th className="py-4 px-6 text-left font-medium">手机号</th>
-                <th className="py-4 px-6 text-left font-medium">状态</th>
-                <th className="py-4 px-6 text-left font-medium">入职时间</th>
-                <th className="py-4 px-6 text-right font-medium">操作</th>
+                <th className="py-4 px-4 md:px-6 text-left font-medium">姓名</th>
+                <th className="py-4 px-4 md:px-6 text-left font-medium">角色</th>
+                <th className="py-4 px-4 md:px-6 text-left font-medium">手机号</th>
+                <th className="py-4 px-4 md:px-6 text-left font-medium">状态</th>
+                <th className="py-4 px-4 md:px-6 text-left font-medium">入职时间</th>
+                <th className="py-4 px-4 md:px-6 text-right font-medium">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -233,7 +234,7 @@ export default function StaffManagementPage() {
               ) : (
                 staffList.map((staff) => (
                   <tr key={staff.id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-4 md:px-6">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
                           {staff.name.charAt(0)}
@@ -241,13 +242,13 @@ export default function StaffManagementPage() {
                         <span className="font-medium">{staff.name}</span>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-4 md:px-6">
                       <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                         {STAFF_ROLE_LABELS[staff.role as StaffRole]}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-muted-foreground">{staff.phone}</td>
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-4 md:px-6 text-muted-foreground">{staff.phone}</td>
+                    <td className="py-4 px-4 md:px-6">
                       {staff.isActive ? (
                         <span className="flex items-center gap-1.5 text-green-600">
                           <CheckCircle className="h-4 w-4" />
@@ -260,10 +261,10 @@ export default function StaffManagementPage() {
                         </span>
                       )}
                     </td>
-                    <td className="py-4 px-6 text-muted-foreground">
+                    <td className="py-4 px-4 md:px-6 text-muted-foreground">
                       {new Date(staff.createdAt).toLocaleDateString('zh-CN')}
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-4 md:px-6">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => openEditModal(staff)}
@@ -302,11 +303,91 @@ export default function StaffManagementPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden p-4 space-y-3">
+          {loading ? (
+            <div className="text-center text-muted-foreground py-8">加载中...</div>
+          ) : staffList.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8">暂无员工数据</div>
+          ) : (
+            staffList.map((staff) => (
+              <div key={staff.id} className="border rounded-lg p-3 sm:p-4 space-y-2 sm:space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold shrink-0">
+                      {staff.name.charAt(0)}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-medium truncate text-sm sm:text-base">{staff.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">{staff.phone}</div>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-primary/10 px-2 sm:px-3 py-1 text-xs font-medium text-primary shrink-0">
+                    {STAFF_ROLE_LABELS[staff.role as StaffRole]}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">状态</span>
+                  {staff.isActive ? (
+                    <span className="flex items-center gap-1.5 text-green-600">
+                      <CheckCircle className="h-4 w-4" />
+                      <span>在职</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5 text-red-600">
+                      <XCircle className="h-4 w-4" />
+                      <span>已停用</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">入职时间</span>
+                  <span>{new Date(staff.createdAt).toLocaleDateString('zh-CN')}</span>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                  <button
+                    onClick={() => openEditModal(staff)}
+                    className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+                    title="编辑"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => openResetPasswordModal(staff)}
+                    className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+                    title="重置密码"
+                  >
+                    <KeyRound className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleToggleStatus(staff)}
+                    className={`rounded-md p-2 ${
+                      staff.isActive
+                        ? 'text-red-600 hover:bg-red-50'
+                        : 'text-green-600 hover:bg-green-50'
+                    }`}
+                    title={staff.isActive ? '停用' : '启用'}
+                  >
+                    {staff.isActive ? (
+                      <XCircle className="h-4 w-4" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {modal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-xl border bg-card p-6 shadow-lg">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl border bg-card p-4 sm:p-6 shadow-lg max-h-[90vh] overflow-y-auto">
             <h2 className="mb-6 text-xl font-bold">
               {modal.mode === 'create' && '添加员工'}
               {modal.mode === 'edit' && '编辑员工'}

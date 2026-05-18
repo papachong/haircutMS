@@ -99,20 +99,21 @@ export default function MembersPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">会员管理</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold">会员管理</h1>
         <button
           type="button"
           onClick={handleCreateMember}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-sm"
         >
           <Plus className="h-4 w-4" />
-          新建会员
+          <span className="hidden sm:inline">新建会员</span>
+          <span className="sm:hidden">新建</span>
         </button>
       </div>
 
       {/* Search */}
-      <div className="relative max-w-md">
+      <div className="relative w-full sm:max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <input
           type="text"
@@ -124,26 +125,26 @@ export default function MembersPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-card border rounded-lg p-4">
-          <div className="text-sm text-muted-foreground">会员总数</div>
-          <div className="text-2xl font-bold mt-1">{total}</div>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div className="bg-card border rounded-lg p-3 sm:p-4">
+          <div className="text-xs sm:text-sm text-muted-foreground">会员总数</div>
+          <div className="text-xl sm:text-2xl font-bold mt-1">{total}</div>
         </div>
-        <div className="bg-card border rounded-lg p-4">
-          <div className="text-sm text-muted-foreground">本金余额</div>
-          <div className="text-2xl font-bold mt-1">
+        <div className="bg-card border rounded-lg p-3 sm:p-4">
+          <div className="text-xs sm:text-sm text-muted-foreground">本金余额</div>
+          <div className="text-xl sm:text-2xl font-bold mt-1">
             ¥{(members.reduce((sum, m) => sum + m.principalBalance, 0) / 100).toFixed(2)}
           </div>
         </div>
-        <div className="bg-card border rounded-lg p-4">
-          <div className="text-sm text-muted-foreground">赠送余额</div>
-          <div className="text-2xl font-bold mt-1">
+        <div className="bg-card border rounded-lg p-3 sm:p-4">
+          <div className="text-xs sm:text-sm text-muted-foreground">赠送余额</div>
+          <div className="text-xl sm:text-2xl font-bold mt-1">
             ¥{(members.reduce((sum, m) => sum + m.giftBalance, 0) / 100).toFixed(2)}
           </div>
         </div>
-        <div className="bg-card border rounded-lg p-4">
-          <div className="text-sm text-muted-foreground">今日新增</div>
-          <div className="text-2xl font-bold mt-1">
+        <div className="bg-card border rounded-lg p-3 sm:p-4">
+          <div className="text-xs sm:text-sm text-muted-foreground">今日新增</div>
+          <div className="text-xl sm:text-2xl font-bold mt-1">
             {members.filter(m => {
               const today = new Date();
               const createdAt = new Date(m.createdAt);
@@ -424,7 +425,7 @@ function MemberFormDialog({ member, memberLevels, onClose, onSaved }: MemberForm
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-background rounded-lg shadow-lg w-full max-w-md">
+      <div className="bg-background rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="font-semibold">{member ? '编辑会员' : '新建会员'}</h2>
           <button

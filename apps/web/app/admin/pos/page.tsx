@@ -221,7 +221,7 @@ export default function POSPage() {
 
   return (
     <>
-      <div className="flex h-[calc(100vh-4rem)]">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)]">
         {/* Settlement Dialog */}
         {createdOrderId && (
           <SettlementDialog
@@ -236,9 +236,10 @@ export default function POSPage() {
             onSettleSuccess={handleSettleSuccess}
           />
         )}
-      <aside className="w-80 border-r flex flex-col bg-card">
-        <div className="p-4 border-b">
-          <h2 className="font-semibold mb-3">选择会员</h2>
+      {/* Left sidebar - Member selection */}
+      <aside className="w-full lg:w-80 border-r flex flex-col bg-card lg:border-r-0 lg:border-b lg:h-auto lg:order-2">
+        <div className="p-3 lg:p-4 border-b">
+          <h2 className="font-semibold text-sm lg:text-base mb-2 lg:mb-3">选择会员</h2>
           <div className="relative">
             <input
               type="text"
@@ -271,7 +272,7 @@ export default function POSPage() {
         </div>
 
         {selectedMember && (
-          <div className="p-4 border-b bg-primary/5">
+          <div className="p-3 lg:p-4 border-b bg-primary/5">
             <div className="flex items-center gap-3">
               {selectedMember.avatar && (
                 <img
@@ -280,9 +281,9 @@ export default function POSPage() {
                   className="w-10 h-10 rounded-full"
                 />
               )}
-              <div className="flex-1">
-                <div className="font-medium">{selectedMember.name}</div>
-                <div className="text-sm text-muted-foreground">{selectedMember.cardNo}</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">{selectedMember.name}</div>
+                <div className="text-sm text-muted-foreground truncate">{selectedMember.cardNo}</div>
                 <div className="text-xs text-primary">
                   {selectedMember.memberLevel.name} · {selectedMember.memberLevel.discount * 10}折
                 </div>
@@ -291,11 +292,11 @@ export default function POSPage() {
             <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
               <div className="bg-background rounded p-2">
                 <div className="text-muted-foreground text-xs">本金余额</div>
-                <div className="font-medium">¥{(selectedMember.principalBalance / 100).toFixed(2)}</div>
+                <div className="font-medium text-sm">¥{(selectedMember.principalBalance / 100).toFixed(2)}</div>
               </div>
               <div className="bg-background rounded p-2">
                 <div className="text-muted-foreground text-xs">赠送余额</div>
-                <div className="font-medium">¥{(selectedMember.giftBalance / 100).toFixed(2)}</div>
+                <div className="font-medium text-sm">¥{(selectedMember.giftBalance / 100).toFixed(2)}</div>
               </div>
             </div>
             {selectedMember.passCards && selectedMember.passCards.length > 0 && (
@@ -303,7 +304,7 @@ export default function POSPage() {
                 <div className="text-xs text-muted-foreground mb-1">可用次卡</div>
                 <div className="space-y-1">
                   {selectedMember.passCards.map((pc) => (
-                    <div key={pc.id} className="bg-background rounded px-2 py-1 text-xs">
+                    <div key={pc.id} className="bg-background rounded px-2 py-1 text-xs truncate">
                       <span className="font-medium">{pc.name}</span>
                       <span className="text-muted-foreground ml-1">
                         {pc.remainingTimes}/{pc.totalTimes}
@@ -322,12 +323,13 @@ export default function POSPage() {
         )}
       </aside>
 
-      <main className="flex-1 flex flex-col">
-        <div className="p-4 border-b flex gap-2">
+      {/* Main content - Services */}
+      <main className="flex-1 flex flex-col min-w-0 order-1">
+        <div className="p-3 lg:p-4 border-b flex gap-2 overflow-x-auto">
           <button
             type="button"
             onClick={() => setSelectedCategory(null)}
-            className={`px-4 py-2 rounded-md text-sm ${
+            className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-md text-xs lg:text-sm whitespace-nowrap ${
               selectedCategory === null ? 'bg-primary text-primary-foreground' : 'bg-accent'
             }`}
           >
@@ -338,7 +340,7 @@ export default function POSPage() {
               key={cat.id}
               type="button"
               onClick={() => setSelectedCategory(cat.id)}
-              className={`px-4 py-2 rounded-md text-sm ${
+              className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-md text-xs lg:text-sm whitespace-nowrap ${
                 selectedCategory === cat.id ? 'bg-primary text-primary-foreground' : 'bg-accent'
               }`}
             >
@@ -347,21 +349,21 @@ export default function POSPage() {
           ))}
         </div>
 
-        <div className="flex-1 p-4 overflow-auto">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="flex-1 p-3 lg:p-4 overflow-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4">
             {services.map((service) => (
               <button
                 key={service.id}
                 type="button"
                 onClick={() => addToCart(service)}
-                className="bg-card border rounded-lg p-4 text-left hover:border-primary transition-colors"
+                className="bg-card border rounded-lg p-3 lg:p-4 text-left hover:border-primary transition-colors"
               >
                 {service.image && (
-                  <img src={service.image} alt={service.name} className="w-full h-32 object-cover rounded mb-3" />
+                  <img src={service.image} alt={service.name} className="w-full h-24 lg:h-32 object-cover rounded mb-2 lg:mb-3" />
                 )}
-                <div className="font-medium">{service.name}</div>
-                <div className="text-sm text-muted-foreground mt-1">{service.duration}分钟</div>
-                <div className="text-lg font-bold text-primary mt-2">
+                <div className="font-medium text-sm lg:text-base truncate">{service.name}</div>
+                <div className="text-xs lg:text-sm text-muted-foreground mt-1">{service.duration}分钟</div>
+                <div className="text-base lg:text-lg font-bold text-primary mt-2">
                   ¥{(service.price / 100).toFixed(2)}
                 </div>
               </button>
@@ -370,27 +372,28 @@ export default function POSPage() {
         </div>
       </main>
 
-      <aside className="w-96 border-l flex flex-col bg-card">
-        <div className="p-4 border-b">
-          <h2 className="font-semibold">订单明细</h2>
+      {/* Right sidebar - Cart */}
+      <aside className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l flex flex-col bg-card lg:h-auto lg:order-3">
+        <div className="p-3 lg:p-4 border-b">
+          <h2 className="font-semibold text-sm lg:text-base">订单明细</h2>
         </div>
 
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto max-h-48 lg:max-h-none">
           {cart.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
+            <div className="flex items-center justify-center h-20 lg:h-full text-muted-foreground text-sm">
               请选择服务项目
             </div>
           ) : (
-            <div className="p-4 space-y-3">
+            <div className="p-3 lg:p-4 space-y-2 lg:space-y-3">
               {cart.map((item, index) => (
-                <div key={`${item.serviceItemId}-${item.staffId}`} className="border rounded-lg p-3">
+                <div key={`${item.serviceItemId}-${item.staffId}`} className="border rounded-lg p-2 lg:p-3">
                   <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{item.serviceName}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-xs lg:text-sm truncate">{item.serviceName}</div>
                       <select
                         value={item.staffId}
                         onChange={(e) => updateCartItemStaff(index, e.target.value)}
-                        className="mt-1 text-xs px-2 py-1 border rounded"
+                        className="mt-1 text-xs px-2 py-1 border rounded w-full max-w-[200px]"
                       >
                         {staff.map((s) => (
                           <option key={s.id} value={s.id}>
@@ -402,7 +405,7 @@ export default function POSPage() {
                     <button
                       type="button"
                       onClick={() => removeFromCart(index)}
-                      className="text-muted-foreground hover:text-destructive ml-2"
+                      className="text-muted-foreground hover:text-destructive ml-2 text-lg"
                     >
                       ×
                     </button>
@@ -413,15 +416,15 @@ export default function POSPage() {
                       <button
                         type="button"
                         onClick={() => updateCartItemQuantity(index, -1)}
-                        className="w-6 h-6 rounded bg-accent hover:bg-accent/80"
+                        className="w-6 h-6 lg:w-8 lg:h-8 rounded bg-accent hover:bg-accent/80 text-sm"
                       >
                         -
                       </button>
-                      <span>{item.quantity}</span>
+                      <span className="text-sm">{item.quantity}</span>
                       <button
                         type="button"
                         onClick={() => updateCartItemQuantity(index, 1)}
-                        className="w-6 h-6 rounded bg-accent hover:bg-accent/80"
+                        className="w-6 h-6 lg:w-8 lg:h-8 rounded bg-accent hover:bg-accent/80 text-sm"
                       >
                         +
                       </button>
@@ -432,7 +435,7 @@ export default function POSPage() {
                           ¥{(item.subtotal / 100).toFixed(2)}
                         </div>
                       )}
-                      <div className="font-medium">¥{(item.finalPrice / 100).toFixed(2)}</div>
+                      <div className="font-medium text-sm lg:text-base">¥{(item.finalPrice / 100).toFixed(2)}</div>
                     </div>
                   </div>
                 </div>
@@ -441,7 +444,7 @@ export default function POSPage() {
           )}
         </div>
 
-        <div className="p-4 border-t space-y-3">
+        <div className="p-3 lg:p-4 border-t space-y-2 lg:space-y-3">
           <textarea
             value={remark}
             onChange={(e) => setRemark(e.target.value)}
@@ -461,18 +464,18 @@ export default function POSPage() {
                 <span>-¥{(discountAmount / 100).toFixed(2)}</span>
               </div>
             )}
-            <div className="flex justify-between font-bold text-lg pt-2 border-t">
+            <div className="flex justify-between font-bold text-base lg:text-lg pt-2 border-t">
               <span>应付金额</span>
               <span>¥{(payableAmount / 100).toFixed(2)}</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="grid grid-cols-2 gap-2 lg:gap-3 pt-2">
             <button
               type="button"
               onClick={() => handleCreateOrder('PENDING')}
               disabled={loading || cart.length === 0 || !selectedMember}
-              className="px-4 py-3 bg-accent hover:bg-accent/80 rounded-md font-medium disabled:opacity-50"
+              className="px-3 lg:px-4 py-2.5 lg:py-3 bg-accent hover:bg-accent/80 rounded-md font-medium text-sm lg:text-base disabled:opacity-50"
             >
               挂单
             </button>
@@ -480,7 +483,7 @@ export default function POSPage() {
               type="button"
               onClick={() => handleCreateOrder('SETTLED')}
               disabled={loading || cart.length === 0 || !selectedMember}
-              className="px-4 py-3 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-medium disabled:opacity-50"
+              className="px-3 lg:px-4 py-2.5 lg:py-3 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-medium text-sm lg:text-base disabled:opacity-50"
             >
               {loading ? '处理中...' : '结算'}
             </button>
