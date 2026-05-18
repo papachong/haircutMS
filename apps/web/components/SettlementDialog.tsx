@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { X, Check, CreditCard, Wallet, Ticket, DollarSign } from 'lucide-react';
-import { getAvailableCoupons, settleOrder, type CouponInstance, type PaymentInput } from '../../lib/api/orders';
-import type { Member, PassCard } from '../../lib/api/orders';
+import { getAvailableCoupons, settleOrder, type CouponInstance, type PaymentInput } from '@/lib/api/orders';
+import type { Member, PassCard } from '@/lib/api/orders';
 
 export interface SettlementProps {
   isOpen: boolean;
@@ -198,7 +198,7 @@ export default function SettlementDialog({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
-      <div className="bg-background w-full sm:max-w-md sm:rounded-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-background w-full sm:max-w-md sm:rounded-lg max-h-[90vh] sm:max-h-[85vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-background border-b p-4 flex items-center justify-between">
           <h2 className="text-lg font-bold">收银结算</h2>

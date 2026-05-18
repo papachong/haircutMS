@@ -69,19 +69,19 @@ export default function OrdersPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 bg-background border-b p-4 flex items-center gap-3">
+      <div className="sticky top-0 bg-background border-b p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
         <button
           type="button"
           onClick={() => router.back()}
           className="p-2 hover:bg-accent rounded-full"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
-        <h1 className="text-lg font-bold">订单记录</h1>
+        <h1 className="text-base sm:text-lg font-bold">订单记录</h1>
       </div>
 
       {/* Search and Filter */}
-      <div className="p-4 space-y-3 border-b bg-muted/30">
+      <div className="p-3 sm:p-4 space-y-3 border-b bg-muted/30">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
@@ -89,7 +89,7 @@ export default function OrdersPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="搜索订单号/会员/卡号"
-            className="w-full pl-10 pr-4 py-2 border rounded-lg"
+            className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm"
           />
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
@@ -123,7 +123,7 @@ export default function OrdersPage() {
       </div>
 
       {/* Orders List */}
-      <div className="p-4">
+      <div className="p-3 sm:p-4">
         {filteredOrders.length === 0 && (
           <div className="text-center text-muted-foreground py-12">
             {searchTerm || selectedStatus !== 'ALL' ? '没有找到匹配的订单' : '暂无订单记录'}
@@ -138,33 +138,33 @@ export default function OrdersPage() {
                 key={order.id}
                 type="button"
                 onClick={() => router.push(`/m/orders/${order.id}`)}
-                className="w-full bg-card border rounded-lg p-4 text-left"
+                className="w-full bg-card border rounded-lg p-3 sm:p-4 text-left"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="font-medium">{order.orderNo}</div>
-                    <div className="text-sm text-muted-foreground mt-1">
+                <div className="flex items-start justify-between mb-2 sm:mb-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm sm:text-base truncate">{order.orderNo}</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">
                       {order.member.name} · {order.member.cardNo}
                     </div>
                   </div>
-                  <div className={`flex items-center gap-1 text-sm ${statusConfig[order.status as OrderStatus].color}`}>
-                    <StatusIcon className="w-4 h-4" />
-                    {statusConfig[order.status as OrderStatus].label}
+                  <div className={`flex items-center gap-1 text-xs sm:text-sm ${statusConfig[order.status as OrderStatus].color} shrink-0 ml-2`}>
+                    <StatusIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">{statusConfig[order.status as OrderStatus].label}</span>
                   </div>
                 </div>
 
-                <div className="space-y-1 text-sm mb-3">
+                <div className="space-y-1 text-xs sm:text-sm mb-2 sm:mb-3">
                   {order.items.map((item) => (
                     <div key={item.id} className="flex justify-between text-muted-foreground">
-                      <span>{item.serviceName} x{item.quantity}</span>
-                      <span>¥{(item.finalPrice / 100).toFixed(2)}</span>
+                      <span className="truncate max-w-[60%]">{item.serviceName} x{item.quantity}</span>
+                      <span className="shrink-0">¥{(item.finalPrice / 100).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t">
                   <span className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</span>
-                  <span className="font-bold">¥{(order.paidAmount / 100).toFixed(2)}</span>
+                  <span className="font-bold text-sm sm:text-base">¥{(order.paidAmount / 100).toFixed(2)}</span>
                 </div>
               </button>
             );

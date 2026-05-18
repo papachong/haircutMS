@@ -273,9 +273,9 @@ export default function MobilePOSPage() {
       </div>
 
       {step === 'member' && (
-        <div className="p-4 max-w-2xl mx-auto">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+        <div className="p-3 sm:p-4 max-w-2xl mx-auto">
+          <div className="mb-4 sm:mb-6">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2">
               选择会员
             </h1>
             <p className="text-slate-500 dark:text-slate-400 text-sm">
@@ -289,7 +289,7 @@ export default function MobilePOSPage() {
               value={memberSearch}
               onChange={(e) => handleMemberSearch(e.target.value)}
               placeholder="搜索会员..."
-              className="w-full px-4 py-4 pl-12 text-lg bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all dark:text-white"
+              className="w-full px-4 py-3 sm:py-4 pl-12 text-base sm:text-lg bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl sm:rounded-2xl focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all dark:text-white"
               autoFocus
             />
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl">🔍</span>
@@ -330,10 +330,10 @@ export default function MobilePOSPage() {
                   key={member.id}
                   type="button"
                   onClick={() => selectMember(member)}
-                  className="w-full p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 text-left active:scale-[0.98] transition-all hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg"
+                  className="w-full p-4 bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 text-left active:scale-[0.98] transition-all hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xl font-bold shadow-md">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-lg sm:text-xl font-bold shadow-md shrink-0">
                       {member.avatar ? (
                         <img src={member.avatar} alt={member.name} className="w-full h-full rounded-full object-cover" />
                       ) : (
@@ -341,10 +341,10 @@ export default function MobilePOSPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold text-lg text-slate-900 dark:text-white truncate">
+                      <div className="font-bold text-base sm:text-lg text-slate-900 dark:text-white truncate">
                         {member.name}
                       </div>
-                      <div className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                      <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                         {member.cardNo} · {member.phone}
                       </div>
                       <div className="flex items-center gap-2 mt-2">
@@ -356,7 +356,7 @@ export default function MobilePOSPage() {
                         </span>
                       </div>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white shrink-0">
                       →
                     </div>
                   </div>
@@ -422,7 +422,7 @@ export default function MobilePOSPage() {
           </div>
 
           {/* 服务项目列表 */}
-          <div className="p-4 pb-40 max-w-2xl mx-auto">
+          <div className="p-3 sm:p-4 pb-40 max-w-2xl mx-auto">
             {categories.map((category) => {
               const categoryServices = servicesByCategory.get(category.id) || [];
               if (categoryServices.length === 0) return null;
@@ -434,13 +434,13 @@ export default function MobilePOSPage() {
                   <button
                     type="button"
                     onClick={() => toggleCategory(category.id)}
-                    className="w-full p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between active:bg-slate-50 dark:active:bg-slate-750 transition-colors shadow-sm"
+                    className="w-full p-3 sm:p-4 bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between active:bg-slate-50 dark:active:bg-slate-750 transition-colors shadow-sm"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold shadow-md">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold shadow-md shrink-0">
                         {category.name[0]}
                       </div>
-                      <span className="font-bold text-slate-900 dark:text-white">{category.name}</span>
+                      <span className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">{category.name}</span>
                       <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">
                         {categoryServices.length}
                       </span>
@@ -457,10 +457,10 @@ export default function MobilePOSPage() {
                           key={service.id}
                           type="button"
                           onClick={() => addToCart(service)}
-                          className="bg-white dark:bg-slate-800 rounded-2xl p-4 text-left border border-slate-200 dark:border-slate-700 active:scale-[0.98] transition-all hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg group"
+                          className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-left border border-slate-200 dark:border-slate-700 active:scale-[0.98] transition-all hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg group"
                         >
                           {service.image && (
-                            <div className="w-full h-32 rounded-xl overflow-hidden mb-3 bg-slate-100 dark:bg-slate-700">
+                            <div className="w-full h-24 sm:h-32 rounded-xl overflow-hidden mb-2 sm:mb-3 bg-slate-100 dark:bg-slate-700">
                               <img
                                 src={service.image}
                                 alt={service.name}
@@ -468,12 +468,12 @@ export default function MobilePOSPage() {
                               />
                             </div>
                           )}
-                          <div className="font-bold text-slate-900 dark:text-white mb-1">{service.name}</div>
+                          <div className="font-bold text-sm sm:text-base text-slate-900 dark:text-white mb-1">{service.name}</div>
                           <div className="flex items-center justify-between mt-2">
-                            <span className="text-sm text-slate-500 dark:text-slate-400">
+                            <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                               ⏱ {service.duration}分钟
                             </span>
-                            <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                            <span className="text-base sm:text-lg font-bold text-blue-600 dark:text-blue-400">
                               ¥{(service.price / 100).toFixed(2)}
                             </span>
                           </div>
@@ -507,38 +507,38 @@ export default function MobilePOSPage() {
       )}
 
       {step === 'confirm' && (
-        <div className="p-4 pb-40 max-w-2xl mx-auto">
+        <div className="p-3 sm:p-4 pb-40 max-w-2xl mx-auto">
           {/* 顶部导航栏 */}
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
             <button
               type="button"
               onClick={() => setStep('services')}
-              className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-600 transition-colors"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-600 transition-colors"
             >
               ←
             </button>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">确认订单</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">确认订单</h1>
           </div>
 
           {/* 会员信息卡片 */}
           {selectedMember && (
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl p-4 mb-6 text-white shadow-lg shadow-blue-500/20">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold backdrop-blur">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6 text-white shadow-lg shadow-blue-500/20">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/20 flex items-center justify-center text-xl sm:text-2xl font-bold backdrop-blur shrink-0">
                   {selectedMember.avatar ? (
                     <img src={selectedMember.avatar} alt={selectedMember.name} className="w-full h-full rounded-full object-cover" />
                   ) : (
                     selectedMember.name[0]
                   )}
                 </div>
-                <div className="flex-1">
-                  <div className="font-bold text-lg">{selectedMember.name}</div>
-                  <div className="text-white/80 text-sm">{selectedMember.cardNo}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-base sm:text-lg truncate">{selectedMember.name}</div>
+                  <div className="text-white/80 text-xs sm:text-sm truncate">{selectedMember.cardNo}</div>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-white/20 rounded-full">
                       {selectedMember.memberLevel.name}
                     </span>
-                    <span className="text-sm text-white/80">{Math.round(selectedMember.memberLevel.discount * 10)}折</span>
+                    <span className="text-xs sm:text-sm text-white/80">{Math.round(selectedMember.memberLevel.discount * 10)}折</span>
                   </div>
                 </div>
               </div>
@@ -546,31 +546,31 @@ export default function MobilePOSPage() {
           )}
 
           {/* 服务项目列表 */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 mb-4 border border-slate-200 dark:border-slate-700 shadow-sm">
-            <h2 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-4 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <h2 className="font-bold text-slate-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-2">
               <span className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-sm">💇</span>
               服务项目
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {cart.map((item, index) => (
-                <div key={`${item.serviceItemId}-${item.staffId}`} className="border-b border-slate-100 dark:border-slate-700 pb-4 last:border-0 last:pb-0">
-                  <div className="flex justify-between items-start mb-3">
-                    <span className="font-bold text-slate-900 dark:text-white">{item.serviceName}</span>
+                <div key={`${item.serviceItemId}-${item.staffId}`} className="border-b border-slate-100 dark:border-slate-700 pb-3 sm:pb-4 last:border-0 last:pb-0">
+                  <div className="flex justify-between items-start mb-2 sm:mb-3">
+                    <span className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">{item.serviceName}</span>
                     <button
                       type="button"
                       onClick={() => removeFromCart(index)}
-                      className="text-red-500 text-sm px-3 py-1 rounded-full bg-red-50 dark:bg-red-900/20 active:bg-red-100 dark:active:bg-red-900/40 transition-colors"
+                      className="text-red-500 text-xs sm:text-sm px-2 sm:px-3 py-1 rounded-full bg-red-50 dark:bg-red-900/20 active:bg-red-100 dark:active:bg-red-900/40 transition-colors shrink-0"
                     >
                       删除
                     </button>
                   </div>
 
-                  <div className="mb-3">
+                  <div className="mb-2 sm:mb-3">
                     <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">服务员工</label>
                     <select
                       value={item.staffId}
                       onChange={(e) => updateCartItemStaff(index, e.target.value)}
-                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-white"
+                      className="w-full px-3 py-2 sm:py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-white"
                     >
                       {staff.map((s) => (
                         <option key={s.id} value={s.id}>
@@ -585,20 +585,20 @@ export default function MobilePOSPage() {
                       <button
                         type="button"
                         onClick={() => updateCartItemQuantity(index, -1)}
-                        className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-lg active:bg-slate-200 dark:active:bg-slate-600 transition-colors"
+                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-base sm:text-lg active:bg-slate-200 dark:active:bg-slate-600 transition-colors"
                       >
                         −
                       </button>
-                      <span className="w-8 text-center font-bold text-slate-900 dark:text-white">{item.quantity}</span>
+                      <span className="w-7 sm:w-8 text-center font-bold text-slate-900 dark:text-white">{item.quantity}</span>
                       <button
                         type="button"
                         onClick={() => updateCartItemQuantity(index, 1)}
-                        className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white font-bold text-lg active:bg-blue-600 transition-colors"
+                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white font-bold text-base sm:text-lg active:bg-blue-600 transition-colors"
                       >
                         +
                       </button>
                     </div>
-                    <div className="font-bold text-lg text-blue-600 dark:text-blue-400">
+                    <div className="font-bold text-base sm:text-lg text-blue-600 dark:text-blue-400">
                       ¥{(item.finalPrice / 100).toFixed(2)}
                     </div>
                   </div>
@@ -608,7 +608,7 @@ export default function MobilePOSPage() {
           </div>
 
           {/* 备注输入 */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 mb-4 border border-slate-200 dark:border-slate-700 shadow-sm">
+          <div className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-4 border border-slate-200 dark:border-slate-700 shadow-sm">
             <label className="text-xs text-slate-500 dark:text-slate-400 mb-2 block">订单备注</label>
             <textarea
               value={remark}
@@ -620,17 +620,17 @@ export default function MobilePOSPage() {
           </div>
 
           {/* 金额明细 */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 mb-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
+          <div className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="space-y-2 sm:space-y-3">
+              <div className="flex justify-between text-xs sm:text-sm">
                 <span className="text-slate-600 dark:text-slate-400">原价</span>
                 <span className="text-slate-900 dark:text-white">¥{(originalAmount / 100).toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+              <div className="flex justify-between text-xs sm:text-sm text-green-600 dark:text-green-400">
                 <span>会员折扣</span>
                 <span>-¥{((originalAmount - payableAmount) / 100).toFixed(2)}</span>
               </div>
-              <div className="flex justify-between font-bold text-lg pt-3 border-t border-slate-200 dark:border-slate-700">
+              <div className="flex justify-between font-bold text-base sm:text-lg pt-2 sm:pt-3 border-t border-slate-200 dark:border-slate-700">
                 <span className="text-slate-900 dark:text-white">应付金额</span>
                 <span className="text-blue-600 dark:text-blue-400">¥{(payableAmount / 100).toFixed(2)}</span>
               </div>
@@ -638,12 +638,12 @@ export default function MobilePOSPage() {
           </div>
 
           {/* 操作按钮 */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => handleCreateOrder('PENDING')}
               disabled={loading || cart.length === 0}
-              className="py-4 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed active:bg-slate-200 dark:active:bg-slate-600 transition-colors"
+              className="py-3 sm:py-4 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg disabled:opacity-50 disabled:cursor-not-allowed active:bg-slate-200 dark:active:bg-slate-600 transition-colors"
             >
               {loading ? '处理中...' : '挂单'}
             </button>
@@ -651,7 +651,7 @@ export default function MobilePOSPage() {
               type="button"
               onClick={() => handleCreateOrder('SETTLED')}
               disabled={loading || cart.length === 0}
-              className="py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl font-bold text-lg shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
+              className="py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
             >
               {loading ? '处理中...' : '结算'}
             </button>
