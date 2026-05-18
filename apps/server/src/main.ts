@@ -5,6 +5,11 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Health check endpoint
+  app.use('/health', (req, res) => {
+    res.status(200).send('healthy');
+  });
+
   app.setGlobalPrefix('api/v1');
 
   app.useGlobalPipes(
@@ -15,13 +20,18 @@ async function bootstrap() {
     }),
   );
 
+  const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? ['https://your-domain.com']
+    : ['http://localhost:3000'];
+
   app.enableCors({
-    origin: ['http://localhost:3000'],
+    origin: allowedOrigins,
     credentials: true,
   });
 
-  await app.listen(4000);
-  console.log('Server running on http://localhost:4000');
+  const port = process.env.PORT || 4000;
+  await app.listen(port);
+  console.log(`Server running on http://localhost:${port}`);
 }
 
 bootstrap();

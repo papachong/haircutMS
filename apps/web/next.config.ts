@@ -3,7 +3,7 @@ import path from 'path';
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@haircut-ms/shared'],
-  outputFileTracingRoot: '/Users/mac/AI_Dev/haircutMS/.claude/worktrees/frontend-member-recharge',
+  output: 'standalone',
   async rewrites() {
     return [
       {
