@@ -33,6 +33,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
 
   const navItems = [
     { href: '/platform', label: '首页', icon: '📊' },
+    { href: '/platform/overview', label: '数据总览', icon: '📈' },
     { href: '/platform/shops', label: '店铺管理', icon: '🏪' },
     { href: '/platform/licenses', label: 'License 管理', icon: '🔑' },
     { href: '/platform/admins', label: '管理员', icon: '👤' },
