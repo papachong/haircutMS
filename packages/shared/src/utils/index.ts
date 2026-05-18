@@ -1,1 +1,1 @@
-export { yuanToFen, fenToYuan, formatPrice } from './currency';
+export { yuanToFen, fenToYuan, formatPrice, formatCurrency } from './currency';

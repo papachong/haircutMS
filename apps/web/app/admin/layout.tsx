@@ -28,6 +28,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/services', label: '服务', icon: '✂️' },
     { href: '/admin/staff', label: '员工', icon: '👤' },
     { href: '/admin/staff-stats', label: '员工统计', icon: '📈' },
+    { href: '/admin/settings/recharge', label: '充值方案', icon: '💳' },
     { href: '/admin/settings', label: '设置', icon: '⚙️' },
   ];
 
