@@ -85,4 +85,19 @@ export class MemberLevelService {
     await this.prisma.memberLevel.delete({ where: { id } });
     return { id };
   }
+
+  async reorder(ids: string[], shopId: string) {
+    await this.$transaction(async (tx) => {
+      for (let i = 0; i < ids.length; i++) {
+        await tx.memberLevel.updateMany({
+          where: { id: ids[i], shopId },
+          data: { sortOrder: i },
+        });
+      }
+    });
+  }
+
+  private $transaction(fn: (tx: any) => Promise<void>) {
+    return this.prisma.$transaction(fn);
+  }
 }

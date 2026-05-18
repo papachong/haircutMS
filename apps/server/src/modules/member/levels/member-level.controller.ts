@@ -25,6 +25,15 @@ export class MemberLevelController {
     return this.memberLevelService.create(user.shopId, body);
   }
 
+  @Patch('reorder')
+  async reorder(
+    @CurrentUser() user: JwtUser,
+    @Body() body: { ids: string[] },
+  ) {
+    await this.memberLevelService.reorder(body.ids, user.shopId);
+    return { success: true };
+  }
+
   @Patch(':id')
   async update(
     @Param('id') id: string,
