@@ -62,6 +62,9 @@ export class OrderService {
   async findAll(shopId: string, query: {
     memberId?: string;
     status?: OrderStatus;
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
     page?: number;
     pageSize?: number;
   }) {
@@ -76,6 +79,26 @@ export class OrderService {
 
     if (query.status) {
       where.status = query.status;
+    }
+
+    if (query.keyword) {
+      where.OR = [
+        { orderNo: { contains: query.keyword, mode: 'insensitive' } },
+        { member: { name: { contains: query.keyword, mode: 'insensitive' } } },
+      ];
+    }
+
+    const dateFilter: Record<string, unknown> = {};
+    if (query.startDate) {
+      dateFilter.gte = new Date(query.startDate);
+    }
+    if (query.endDate) {
+      const endDate = new Date(query.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      dateFilter.lte = endDate;
+    }
+    if (query.startDate || query.endDate) {
+      where.createdAt = dateFilter;
     }
 
     const [items, total] = await Promise.all([

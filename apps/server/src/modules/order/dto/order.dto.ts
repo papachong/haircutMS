@@ -70,6 +70,18 @@ export class QueryOrderDto {
   status?: OrderStatus;
 
   @IsOptional()
+  @IsString()
+  keyword?: string;
+
+  @IsOptional()
+  @IsString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsString()
+  endDate?: string;
+
+  @IsOptional()
   @IsInt()
   @Min(1)
   @Type(() => Number)
