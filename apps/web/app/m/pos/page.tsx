@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   getServiceItems,
@@ -14,10 +14,6 @@ import {
   type Member,
   type OrderItemInput,
 } from '../../../lib/api/orders';
-import {
-  getAvailableCoupons,
-  type CouponInstance,
-} from '../../../lib/api/coupon';
 
 interface CartItem extends OrderItemInput {
   serviceItem: ServiceItem;
@@ -30,30 +26,35 @@ interface CartItem extends OrderItemInput {
   finalPrice: number;
 }
 
-const STEPS = ['member', 'services', 'confirm'] as const;
-type Step = typeof STEPS[number];
+type Step = 'member' | 'services' | 'confirm';
+
+interface ExpandedCategories {
+  [key: string]: boolean;
+}
+
+const STEPS: Array<{ value: Step; label: string; icon: string }> = [
+  { value: 'member', label: '会员', icon: '👤' },
+  { value: 'services', label: '项目', icon: '💇' },
+  { value: 'confirm', label: '确认', icon: '✓' },
+];
 
 export default function MobilePOSPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>('member');
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [services, setServices] = useState<ServiceItem[]>([]);
+  const [servicesByCategory, setServicesByCategory] = useState<Map<string, ServiceItem[]>>(new Map());
   const [staff, setStaff] = useState<Staff[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [memberSearch, setMemberSearch] = useState('');
   const [memberResults, setMemberResults] = useState<Member[]>([]);
   const [remark, setRemark] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedCoupon, setSelectedCoupon] = useState<CouponInstance | null>(null);
-  const [availableCoupons, setAvailableCoupons] = useState<Array<CouponInstance & {
-    canUse: boolean;
-    discount: number;
-    finalAmount: number;
-  }>>([]);
-  const [showCouponSelector, setShowCouponSelector] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<ExpandedCategories>({});
 
+  // 获取数据
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (!token) {
@@ -63,18 +64,28 @@ export default function MobilePOSPage() {
     loadData();
   }, [router]);
 
+  // 加载服务数据
   useEffect(() => {
-    if (step === 'services') {
-      loadServices();
-    }
-  }, [step, selectedCategory]);
+    loadServices();
+  }, [step]);
 
-  useEffect(() => {
-    if (selectedMember && step === 'confirm') {
-      loadAvailableCoupons();
+  // 搜索防抖
+  const handleMemberSearch = useCallback(async (value: string) => {
+    setMemberSearch(value);
+    if (value.length >= 2) {
+      setIsSearching(true);
+      try {
+        const results = await searchMembers(value);
+        setMemberResults(results);
+      } finally {
+        setIsSearching(false);
+      }
+    } else {
+      setMemberResults([]);
     }
-  }, [selectedMember, cart, step]);
+  }, []);
 
+  // 加载初始数据
   const loadData = async () => {
     const [cats, staffData] = await Promise.all([
       getServiceCategories(),
@@ -84,38 +95,25 @@ export default function MobilePOSPage() {
     setStaff(staffData);
   };
 
+  // 加载服务项目（按分类分组）
   const loadServices = async () => {
-    if (selectedCategory) {
-      const data = await getServiceItems(selectedCategory);
-      setServices(data);
-    } else {
-      const data = await getServiceItems();
-      setServices(data);
-    }
+    const allServices = await getServiceItems();
+    setServices(allServices);
+
+    // 按分类分组服务
+    const grouped = new Map<string, ServiceItem[]>();
+    categories.forEach(cat => {
+      grouped.set(cat.id, allServices.filter(s => s.categoryId === cat.id));
+    });
+
+    // 默认展开所有分类
+    const expanded: ExpandedCategories = {};
+    categories.forEach(cat => expanded[cat.id] = true);
+    setExpandedCategories(expanded);
+    setServicesByCategory(grouped);
   };
 
-  const loadAvailableCoupons = async () => {
-    if (!selectedMember) return;
-    try {
-      const amount = cart.reduce((sum, item) => sum + item.finalPrice, 0);
-      const coupons = await getAvailableCoupons(selectedMember.id, amount);
-      setAvailableCoupons(coupons.filter(c => c.canUse));
-    } catch (e: unknown) {
-      console.error('Failed to load coupons:', e);
-      setAvailableCoupons([]);
-    }
-  };
-
-  const handleMemberSearch = async (value: string) => {
-    setMemberSearch(value);
-    if (value.length >= 2) {
-      const results = await searchMembers(value);
-      setMemberResults(results);
-    } else {
-      setMemberResults([]);
-    }
-  };
-
+  // 选择会员
   const selectMember = (member: Member) => {
     setSelectedMember(member);
     setMemberSearch('');
@@ -123,10 +121,18 @@ export default function MobilePOSPage() {
     setStep('services');
   };
 
+  // 切换分类展开/折叠
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId],
+    }));
+  };
+
+  // 添加到购物车
   const addToCart = (serviceItem: ServiceItem) => {
     const defaultStaff = staff[0];
     if (!defaultStaff) {
-      alert('请先添加员工');
       return;
     }
 
@@ -140,16 +146,17 @@ export default function MobilePOSPage() {
     const subtotal = unitPrice * quantity;
     const finalPrice = Math.floor(subtotal * discountRate);
 
-    if (existingIndex >= 0) {
-      const newCart = [...cart];
-      newCart[existingIndex].quantity += 1;
-      newCart[existingIndex].subtotal = newCart[existingIndex].unitPrice * newCart[existingIndex].quantity;
-      newCart[existingIndex].finalPrice = Math.floor(newCart[existingIndex].subtotal * discountRate);
-      setCart(newCart);
-    } else {
-      setCart([
-        ...cart,
-        {
+    setCart(prev => {
+      const newCart = [...prev];
+      if (existingIndex >= 0) {
+        newCart[existingIndex] = {
+          ...newCart[existingIndex],
+          quantity: newCart[existingIndex].quantity + 1,
+          subtotal: newCart[existingIndex].unitPrice * (newCart[existingIndex].quantity + 1),
+          finalPrice: Math.floor(newCart[existingIndex].unitPrice * (newCart[existingIndex].quantity + 1) * discountRate),
+        };
+      } else {
+        newCart.push({
           serviceItemId: serviceItem.id,
           staffId: defaultStaff.id,
           quantity,
@@ -161,41 +168,44 @@ export default function MobilePOSPage() {
           subtotal,
           discountRate,
           finalPrice,
-        },
-      ]);
-    }
+        });
+      }
+      return newCart;
+    });
   };
 
+  // 更新购物车项目的员工
   const updateCartItemStaff = (index: number, staffId: string) => {
     const newStaff = staff.find((s) => s.id === staffId);
     if (!newStaff) return;
 
-    const newCart = [...cart];
-    newCart[index].staffId = staffId;
-    newCart[index].staff = newStaff;
-    newCart[index].staffName = newStaff.name;
-    setCart(newCart);
+    setCart(prev => prev.map((item, i) =>
+      i === index ? { ...item, staffId, staff: newStaff, staffName: newStaff.name } : item
+    ));
   };
 
+  // 更新购物车项目数量
   const updateCartItemQuantity = (index: number, delta: number) => {
-    const newCart = [...cart];
-    const newQuantity = newCart[index].quantity + delta;
-    if (newQuantity <= 0) {
-      newCart.splice(index, 1);
-    } else {
-      newCart[index].quantity = newQuantity;
-      newCart[index].subtotal = newCart[index].unitPrice * newQuantity;
+    setCart(prev => prev.map((item, i) => {
+      if (i !== index) return item;
+      const newQuantity = item.quantity + delta;
+      if (newQuantity <= 0) return null;
       const discountRate = selectedMember?.memberLevel?.discount ?? 1;
-      newCart[index].finalPrice = Math.floor(newCart[index].subtotal * discountRate);
-    }
-    setCart(newCart);
+      return {
+        ...item,
+        quantity: newQuantity,
+        subtotal: item.unitPrice * newQuantity,
+        finalPrice: Math.floor(item.unitPrice * newQuantity * discountRate),
+      };
+    }).filter(Boolean) as CartItem[]);
   };
 
+  // 从购物车移除
   const removeFromCart = (index: number) => {
-    setCart(cart.filter((_, i) => i !== index));
-    setSelectedCoupon(null);
+    setCart(prev => prev.filter((_, i) => i !== index));
   };
 
+  // 创建订单
   const handleCreateOrder = async (status: 'PENDING' | 'SETTLED') => {
     setLoading(true);
     try {
@@ -210,12 +220,7 @@ export default function MobilePOSPage() {
         status,
       });
 
-      const orderMessage = `订单创建成功\n订单号: ${order.orderNo}`;
-      if (selectedCoupon) {
-        alert(`${orderMessage}\n\n注意: 优惠券需要在结算时选择支付方式为"优惠券"并输入优惠券ID: ${selectedCoupon.id}`);
-      } else {
-        alert(orderMessage);
-      }
+      alert(`订单创建成功\n订单号: ${order.orderNo}`);
       router.push('/m');
     } catch (error: unknown) {
       alert(`创建订单失败: ${error instanceof Error ? error.message : '未知错误'}`);
@@ -224,52 +229,144 @@ export default function MobilePOSPage() {
     }
   };
 
-  const baseAmount = cart.reduce((sum, item) => sum + item.finalPrice, 0);
-  const couponDiscount = selectedCoupon?.discount || 0;
-  const payableAmount = Math.max(0, baseAmount - couponDiscount);
+  const payableAmount = cart.reduce((sum, item) => sum + item.finalPrice, 0);
+  const originalAmount = cart.reduce((sum, item) => sum + item.subtotal, 0);
+  const currentStepIndex = STEPS.findIndex(s => s.value === step);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-safe-bottom">
+      {/* 步骤进度条 */}
+      <div className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 z-50">
+        <div className="flex items-center justify-between px-4 py-3">
+          {STEPS.map((s, i) => (
+            <div key={s.value} className="flex-1 flex items-center">
+              <div className="flex flex-col items-center flex-1">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-medium transition-all ${
+                    i <= currentStepIndex
+                      ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+                      : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500'
+                  }`}
+                >
+                  {i < currentStepIndex ? '✓' : s.icon}
+                </div>
+                <span
+                  className={`text-xs mt-1 font-medium ${
+                    i <= currentStepIndex
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-slate-400 dark:text-slate-500'
+                  }`}
+                >
+                  {s.label}
+                </span>
+              </div>
+              {i < STEPS.length - 1 && (
+                <div
+                  className={`flex-1 h-0.5 mx-1 transition-colors ${
+                    i < currentStepIndex ? 'bg-blue-500' : 'bg-slate-200 dark:bg-slate-700'
+                  }`}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {step === 'member' && (
-        <div className="p-4">
-          <h1 className="text-xl font-bold mb-4">选择会员</h1>
+        <div className="p-4 max-w-2xl mx-auto">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+              选择会员
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">
+              搜索姓名、手机号或卡号来选择会员
+            </p>
+          </div>
 
-          <input
-            type="text"
-            value={memberSearch}
-            onChange={(e) => handleMemberSearch(e.target.value)}
-            placeholder="搜索姓名/手机号/卡号"
-            className="w-full px-4 py-3 border rounded-lg text-lg mb-4"
-            autoFocus
-          />
-
-          <div className="space-y-2">
-            {memberResults.map((member) => (
+          <div className="relative mb-4">
+            <input
+              type="text"
+              value={memberSearch}
+              onChange={(e) => handleMemberSearch(e.target.value)}
+              placeholder="搜索会员..."
+              className="w-full px-4 py-4 pl-12 text-lg bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all dark:text-white"
+              autoFocus
+            />
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl">🔍</span>
+            {memberSearch && (
               <button
-                key={member.id}
                 type="button"
-                onClick={() => selectMember(member)}
-                className="w-full p-4 bg-card border rounded-lg text-left"
+                onClick={() => {
+                  setMemberSearch('');
+                  setMemberResults([]);
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500"
               >
-                <div className="flex items-center gap-3">
-                  {member.avatar && (
-                    <img src={member.avatar} alt={member.name} className="w-12 h-12 rounded-full" />
-                  )}
-                  <div className="flex-1">
-                    <div className="font-medium text-lg">{member.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {member.cardNo} · {member.phone}
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* 常用会员快捷入口 */}
+          {!memberSearch && (
+            <div className="mb-4">
+              <p className="text-xs text-slate-400 dark:text-slate-500 mb-2 font-medium uppercase tracking-wider">
+                最近服务
+              </p>
+              <div className="text-sm text-slate-500 dark:text-slate-400 py-4 text-center bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+                输入关键词搜索会员
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {isSearching ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (
+              memberResults.map((member) => (
+                <button
+                  key={member.id}
+                  type="button"
+                  onClick={() => selectMember(member)}
+                  className="w-full p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 text-left active:scale-[0.98] transition-all hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xl font-bold shadow-md">
+                      {member.avatar ? (
+                        <img src={member.avatar} alt={member.name} className="w-full h-full rounded-full object-cover" />
+                      ) : (
+                        member.name[0]
+                      )}
                     </div>
-                    <div className="text-sm text-primary mt-1">
-                      {member.memberLevel.name} · {member.memberLevel.discount * 10}折
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-lg text-slate-900 dark:text-white truncate">
+                        {member.name}
+                      </div>
+                      <div className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                        {member.cardNo} · {member.phone}
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">
+                          {member.memberLevel.name}
+                        </span>
+                        <span className="text-xs text-slate-400 dark:text-slate-500">
+                          {Math.round(member.memberLevel.discount * 10)}折
+                        </span>
+                      </div>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                      →
                     </div>
                   </div>
-                </div>
-              </button>
-            ))}
-            {memberResults.length === 0 && memberSearch.length >= 2 && (
-              <div className="text-center text-muted-foreground py-8">
-                未找到匹配的会员
+                </button>
+              ))
+            )}
+            {memberResults.length === 0 && memberSearch.length >= 2 && !isSearching && (
+              <div className="text-center py-12">
+                <span className="text-4xl mb-3 block">📭</span>
+                <p className="text-slate-500 dark:text-slate-400">未找到匹配的会员</p>
               </div>
             )}
           </div>
@@ -278,313 +375,285 @@ export default function MobilePOSPage() {
 
       {step === 'services' && (
         <div>
-          <div className="sticky top-0 bg-background border-b p-4 z-10">
-            <div className="flex items-center gap-2 mb-3">
-              <button type="button" onClick={() => setStep('member')} className="text-2xl">
+          {/* 顶部导航栏 */}
+          <div className="sticky top-[68px] bg-white/95 dark:bg-slate-800/95 backdrop-blur border-b border-slate-200 dark:border-slate-700 z-40">
+            <div className="flex items-center px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setStep('member')}
+                className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-600 transition-colors"
+              >
                 ←
               </button>
-              <h1 className="text-lg font-bold">选择服务</h1>
-              <span className="ml-auto text-sm text-muted-foreground">{cart.length} 项</span>
-            </div>
-
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              <button
-                type="button"
-                onClick={() => setSelectedCategory(null)}
-                className={`px-4 py-2 rounded-full text-sm whitespace-nowrap ${
-                  selectedCategory === null ? 'bg-primary text-primary-foreground' : 'bg-accent'
-                }`}
-              >
-                全部
-              </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-4 py-2 rounded-full text-sm whitespace-nowrap ${
-                    selectedCategory === cat.id ? 'bg-primary text-primary-foreground' : 'bg-accent'
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="p-4 grid grid-cols-2 gap-4 pb-32">
-            {services.map((service) => (
-              <button
-                key={service.id}
-                type="button"
-                onClick={() => addToCart(service)}
-                className="bg-card border rounded-lg p-4 text-left"
-              >
-                {service.image && (
-                  <img src={service.image} alt={service.name} className="w-full h-28 object-cover rounded mb-3" />
-                )}
-                <div className="font-medium">{service.name}</div>
-                <div className="text-sm text-muted-foreground mt-1">{service.duration}分钟</div>
-                <div className="text-lg font-bold text-primary mt-2">
-                  ¥{(service.price / 100).toFixed(2)}
+              <div className="flex-1 ml-3">
+                <h1 className="text-lg font-bold text-slate-900 dark:text-white">选择服务</h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{selectedMember?.name}</p>
+              </div>
+              {cart.length > 0 && (
+                <div className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  {cart.reduce((sum, i) => sum + i.quantity, 0)}
                 </div>
-              </button>
-            ))}
+              )}
+            </div>
+
+            {/* 分类标签 */}
+            <div className="px-4 pb-3">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4">
+                <button
+                  type="button"
+                  onClick={() => setExpandedCategories(prev => {
+                    const newExpanded = {};
+                    categories.forEach(cat => newExpanded[cat.id] = true);
+                    return newExpanded;
+                  })}
+                  className="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap bg-blue-500 text-white shadow-md shadow-blue-500/30"
+                >
+                  全部展开
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExpandedCategories({})}
+                  className="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                >
+                  全部折叠
+                </button>
+              </div>
+            </div>
           </div>
 
+          {/* 服务项目列表 */}
+          <div className="p-4 pb-40 max-w-2xl mx-auto">
+            {categories.map((category) => {
+              const categoryServices = servicesByCategory.get(category.id) || [];
+              if (categoryServices.length === 0) return null;
+
+              const isExpanded = expandedCategories[category.id];
+
+              return (
+                <div key={category.id} className="mb-4">
+                  <button
+                    type="button"
+                    onClick={() => toggleCategory(category.id)}
+                    className="w-full p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between active:bg-slate-50 dark:active:bg-slate-750 transition-colors shadow-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold shadow-md">
+                        {category.name[0]}
+                      </div>
+                      <span className="font-bold text-slate-900 dark:text-white">{category.name}</span>
+                      <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">
+                        {categoryServices.length}
+                      </span>
+                    </div>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform ${isExpanded ? 'rotate-180 bg-blue-100 dark:bg-blue-900/30' : 'bg-slate-100 dark:bg-slate-700'}`}>
+                      ▼
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                      {categoryServices.map((service) => (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => addToCart(service)}
+                          className="bg-white dark:bg-slate-800 rounded-2xl p-4 text-left border border-slate-200 dark:border-slate-700 active:scale-[0.98] transition-all hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg group"
+                        >
+                          {service.image && (
+                            <div className="w-full h-32 rounded-xl overflow-hidden mb-3 bg-slate-100 dark:bg-slate-700">
+                              <img
+                                src={service.image}
+                                alt={service.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            </div>
+                          )}
+                          <div className="font-bold text-slate-900 dark:text-white mb-1">{service.name}</div>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-sm text-slate-500 dark:text-slate-400">
+                              ⏱ {service.duration}分钟
+                            </span>
+                            <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                              ¥{(service.price / 100).toFixed(2)}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 底部购物车栏 */}
           {cart.length > 0 && (
-            <div className="fixed bottom-0 left-0 right-0 bg-card border-t p-4">
-              <button
-                type="button"
-                onClick={() => setStep('confirm')}
-                className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-bold text-lg"
-              >
-                下一步 · ¥{(payableAmount / 100).toFixed(2)}
-              </button>
+            <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-4 pb-safe-bottom shadow-2xl z-50">
+              <div className="max-w-2xl mx-auto">
+                <button
+                  type="button"
+                  onClick={() => setStep('confirm')}
+                  className="w-full py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl font-bold text-lg shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                >
+                  <span>下一步</span>
+                  <span className="bg-white/20 px-3 py-1 rounded-full text-sm">
+                    ¥{(payableAmount / 100).toFixed(2)}
+                  </span>
+                </button>
+              </div>
             </div>
           )}
         </div>
       )}
 
       {step === 'confirm' && (
-        <div className="p-4 pb-32">
-          <div className="flex items-center gap-2 mb-6">
-            <button type="button" onClick={() => setStep('services')} className="text-2xl">
+        <div className="p-4 pb-40 max-w-2xl mx-auto">
+          {/* 顶部导航栏 */}
+          <div className="flex items-center gap-3 mb-6">
+            <button
+              type="button"
+              onClick={() => setStep('services')}
+              className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-600 transition-colors"
+            >
               ←
             </button>
-            <h1 className="text-lg font-bold">确认订单</h1>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">确认订单</h1>
           </div>
 
+          {/* 会员信息卡片 */}
           {selectedMember && (
-            <div className="bg-card border rounded-lg p-4 mb-4">
-              <div className="flex items-center gap-3">
-                {selectedMember.avatar && (
-                  <img src={selectedMember.avatar} alt={selectedMember.name} className="w-12 h-12 rounded-full" />
-                )}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl p-4 mb-6 text-white shadow-lg shadow-blue-500/20">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold backdrop-blur">
+                  {selectedMember.avatar ? (
+                    <img src={selectedMember.avatar} alt={selectedMember.name} className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    selectedMember.name[0]
+                  )}
+                </div>
                 <div className="flex-1">
-                  <div className="font-medium">{selectedMember.name}</div>
-                  <div className="text-sm text-muted-foreground">{selectedMember.cardNo}</div>
-                  <div className="text-sm text-primary">
-                    {selectedMember.memberLevel.name} · {selectedMember.memberLevel.discount * 10}折
+                  <div className="font-bold text-lg">{selectedMember.name}</div>
+                  <div className="text-white/80 text-sm">{selectedMember.cardNo}</div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-white/20 rounded-full">
+                      {selectedMember.memberLevel.name}
+                    </span>
+                    <span className="text-sm text-white/80">{Math.round(selectedMember.memberLevel.discount * 10)}折</span>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="bg-card border rounded-lg p-4 mb-4">
-            <h2 className="font-semibold mb-3">服务项目</h2>
-            <div className="space-y-3">
+          {/* 服务项目列表 */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 mb-4 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <h2 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-sm">💇</span>
+              服务项目
+            </h2>
+            <div className="space-y-4">
               {cart.map((item, index) => (
-                <div key={`${item.serviceItemId}-${item.staffId}`} className="border-b pb-3 last:border-0">
-                  <div className="flex justify-between mb-2">
-                    <span className="font-medium">{item.serviceName}</span>
+                <div key={`${item.serviceItemId}-${item.staffId}`} className="border-b border-slate-100 dark:border-slate-700 pb-4 last:border-0 last:pb-0">
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="font-bold text-slate-900 dark:text-white">{item.serviceName}</span>
                     <button
                       type="button"
                       onClick={() => removeFromCart(index)}
-                      className="text-destructive text-sm"
+                      className="text-red-500 text-sm px-3 py-1 rounded-full bg-red-50 dark:bg-red-900/20 active:bg-red-100 dark:active:bg-red-900/40 transition-colors"
                     >
                       删除
                     </button>
                   </div>
 
-                  <select
-                    value={item.staffId}
-                    onChange={(e) => updateCartItemStaff(index, e.target.value)}
-                    className="w-full px-3 py-2 border rounded-md text-sm mb-2"
-                  >
-                    {staff.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({s.role})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="mb-3">
+                    <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">服务员工</label>
+                    <select
+                      value={item.staffId}
+                      onChange={(e) => updateCartItemStaff(index, e.target.value)}
+                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-white"
+                    >
+                      {staff.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.role})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
                   <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => updateCartItemQuantity(index, -1)}
-                        className="w-8 h-8 rounded-full bg-accent font-bold"
+                        className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-lg active:bg-slate-200 dark:active:bg-slate-600 transition-colors"
                       >
-                        -
+                        −
                       </button>
-                      <span>{item.quantity}</span>
+                      <span className="w-8 text-center font-bold text-slate-900 dark:text-white">{item.quantity}</span>
                       <button
                         type="button"
                         onClick={() => updateCartItemQuantity(index, 1)}
-                        className="w-8 h-8 rounded-full bg-accent font-bold"
+                        className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white font-bold text-lg active:bg-blue-600 transition-colors"
                       >
                         +
                       </button>
                     </div>
-                    <div className="font-bold">¥{(item.finalPrice / 100).toFixed(2)}</div>
+                    <div className="font-bold text-lg text-blue-600 dark:text-blue-400">
+                      ¥{(item.finalPrice / 100).toFixed(2)}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="bg-card border rounded-lg p-4 mb-4">
+          {/* 备注输入 */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 mb-4 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <label className="text-xs text-slate-500 dark:text-slate-400 mb-2 block">订单备注</label>
             <textarea
               value={remark}
               onChange={(e) => setRemark(e.target.value)}
-              placeholder="订单备注"
-              className="w-full px-3 py-2 border rounded-md resize-none"
+              placeholder="如有特殊需求请在此说明..."
+              className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl resize-none focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-white"
               rows={3}
             />
           </div>
 
-          <div className="bg-card border rounded-lg p-4 mb-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold">优惠券</h2>
-              {availableCoupons.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setShowCouponSelector(true)}
-                  className="text-sm text-primary hover:underline"
-                >
-                  选择优惠券
-                </button>
-              )}
-            </div>
-
-            {selectedCoupon ? (
-              <div className="flex items-center justify-between bg-primary/5 rounded-lg p-3">
-                <div>
-                  <div className="font-medium">{selectedCoupon.template?.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {selectedCoupon.template?.type === 'FIXED'
-                      ? `满¥${(selectedCoupon.template.threshold / 100).toFixed(2)} 减¥${(selectedCoupon.template.discount / 100).toFixed(2)}`
-                      : `满¥${(selectedCoupon.template.threshold / 100).toFixed(2)} ${selectedCoupon.template.discount / 10}折`}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedCoupon(null)}
-                  className="text-destructive text-sm"
-                >
-                  取消使用
-                </button>
-              </div>
-            ) : availableCoupons.length > 0 ? (
-              <p className="text-sm text-muted-foreground">
-                可使用 {availableCoupons.length} 张优惠券
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground">无可用优惠券</p>
-            )}
-          </div>
-
-          <div className="bg-card border rounded-lg p-4 mb-4">
-            <div className="space-y-2">
+          {/* 金额明细 */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 mb-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="space-y-3">
               <div className="flex justify-between text-sm">
-                <span>原价</span>
-                <span>¥{(cart.reduce((sum, item) => sum + item.subtotal, 0) / 100).toFixed(2)}</span>
+                <span className="text-slate-600 dark:text-slate-400">原价</span>
+                <span className="text-slate-900 dark:text-white">¥{(originalAmount / 100).toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm text-primary">
+              <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
                 <span>会员折扣</span>
-                <span>
-                  -¥{(cart.reduce((sum, item) => sum + item.subtotal, 0) - baseAmount) / 100}
-                </span>
+                <span>-¥{((originalAmount - payableAmount) / 100).toFixed(2)}</span>
               </div>
-              {selectedCoupon && (
-                <div className="flex justify-between text-sm text-primary">
-                  <span>优惠券</span>
-                  <span>-¥{(couponDiscount / 100).toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between font-bold text-lg pt-2 border-t">
-                <span>应付金额</span>
-                <span>¥{(payableAmount / 100).toFixed(2)}</span>
+              <div className="flex justify-between font-bold text-lg pt-3 border-t border-slate-200 dark:border-slate-700">
+                <span className="text-slate-900 dark:text-white">应付金额</span>
+                <span className="text-blue-600 dark:text-blue-400">¥{(payableAmount / 100).toFixed(2)}</span>
               </div>
             </div>
           </div>
 
+          {/* 操作按钮 */}
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => handleCreateOrder('PENDING')}
               disabled={loading || cart.length === 0}
-              className="py-3 bg-accent rounded-lg font-medium disabled:opacity-50"
+              className="py-4 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed active:bg-slate-200 dark:active:bg-slate-600 transition-colors"
             >
-              挂单
+              {loading ? '处理中...' : '挂单'}
             </button>
             <button
               type="button"
               onClick={() => handleCreateOrder('SETTLED')}
               disabled={loading || cart.length === 0}
-              className="py-3 bg-primary text-primary-foreground rounded-lg font-bold disabled:opacity-50"
+              className="py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl font-bold text-lg shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
             >
               {loading ? '处理中...' : '结算'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showCouponSelector && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-background">
-          <div className="flex items-center justify-between p-4 border-b">
-            <button
-              type="button"
-              onClick={() => setShowCouponSelector(false)}
-              className="text-2xl"
-            >
-              ←
-            </button>
-            <h1 className="text-lg font-bold">选择优惠券</h1>
-            <div className="w-8" />
-          </div>
-
-          <div className="flex-1 overflow-auto p-4 space-y-3">
-            {availableCoupons.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">无可用优惠券</div>
-            ) : (
-              availableCoupons.map((coupon) => (
-                <button
-                  key={coupon.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedCoupon(coupon);
-                    setShowCouponSelector(false);
-                  }}
-                  className={`w-full p-4 border rounded-lg text-left ${
-                    selectedCoupon?.id === coupon.id
-                      ? 'border-primary bg-primary/5'
-                      : 'bg-card'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="font-bold text-lg text-primary">
-                      {coupon.template?.type === 'FIXED'
-                        ? `-¥${(coupon.template.discount / 100).toFixed(2)}`
-                        : `${coupon.template.discount / 10}折`}
-                    </div>
-                    {selectedCoupon?.id === coupon.id && (
-                      <span className="text-primary">✓</span>
-                    )}
-                  </div>
-                  <div className="font-medium mb-1">{coupon.template?.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {coupon.template?.type === 'FIXED'
-                      ? `满¥${(coupon.template.threshold / 100).toFixed(2)}可用`
-                      : `满¥${(coupon.template.threshold / 100).toFixed(2)}打${coupon.template.discount / 10}折`}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-2">
-                    有效期至 {new Date(coupon.expiresAt).toLocaleDateString('zh-CN')}
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-
-          <div className="p-4 border-t bg-card">
-            <button
-              type="button"
-              onClick={() => setShowCouponSelector(false)}
-              className="w-full py-3 border rounded-lg"
-            >
-              不使用优惠券
             </button>
           </div>
         </div>
