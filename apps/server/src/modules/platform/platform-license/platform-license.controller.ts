@@ -55,6 +55,14 @@ export class PlatformLicenseController {
   }
 
   /**
+   * Get shops with expiring licenses (within 15 days or recently expired)
+   */
+  @Get('expiring/list')
+  async getExpiringShops() {
+    return this.platformLicenseService.getExpiringShops();
+  }
+
+  /**
    * Create and issue a new license for a shop
    * Requires ADMIN or SUPER_ADMIN role
    */
@@ -79,14 +87,6 @@ export class PlatformLicenseController {
   @Patch(':id/renew')
   async renew(@Param('id') id: string, @Body() data: RenewLicenseDto) {
     return this.platformLicenseService.renew(id, data);
-  }
-
-  /**
-   * Get shops with expiring licenses (within 15 days or recently expired)
-   */
-  @Get('expiring/list')
-  async getExpiringShops() {
-    return this.platformLicenseService.getExpiringShops();
   }
 
   /**
