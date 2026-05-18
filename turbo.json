@@ -14,6 +14,13 @@
     },
     "type-check": {
       "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": ["test-results/**", "playwright-report/**"]
+    },
+    "test:install": {
+      "cache": false
     }
   }
 }

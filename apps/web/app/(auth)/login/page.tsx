@@ -94,6 +94,7 @@ export default function LoginPage() {
             <label htmlFor="phone" className="text-sm font-medium text-gray-700">手机号</label>
             <input
               id="phone" type="tel" value={phone}
+              data-testid={`${loginType}-phone-input`}
               onChange={(e) => setPhone(e.target.value)}
               className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               placeholder="请输入手机号" required
@@ -103,6 +104,7 @@ export default function LoginPage() {
             <label htmlFor="password" className="text-sm font-medium text-gray-700">密码</label>
             <input
               id="password" type="password" value={password}
+              data-testid={`${loginType}-password-input`}
               onChange={(e) => setPassword(e.target.value)}
               className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               placeholder="请输入密码" required
@@ -110,6 +112,7 @@ export default function LoginPage() {
           </div>
           <button
             type="submit" disabled={loading}
+            data-testid={`${loginType}-login-button`}
             className="inline-flex w-full items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? '登录中...' : '登录'}

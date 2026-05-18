@@ -1,0 +1,25 @@
+{
+  "name": "@haircut-ms/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:headed": "playwright test --headed",
+    "test:report": "playwright show-report",
+    "test:install": "playwright install --with-deps",
+    "setup": "tsx setup-test-data.ts",
+    "setup:clean": "tsx setup-test-data.ts"
+  },
+  "dependencies": {
+    "@haircut-ms/server": "workspace:*",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/bcryptjs": "^2.4.6",
+    "tsx": "^4.19.2"
+  }
+}
