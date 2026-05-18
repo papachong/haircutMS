@@ -70,6 +70,66 @@ export async function getActiveRechargePlans(): Promise<RechargePlan[]> {
   ).then((res) => res.data);
 }
 
+export async function getAllRechargePlans(): Promise<RechargePlan[]> {
+  return apiFetch<{ code: number; data: RechargePlan[]; message: string }>(
+    '/recharge-plans',
+  ).then((res) => res.data);
+}
+
+export async function createRechargePlan(data: {
+  name: string;
+  amount: number;
+  giftAmount?: number;
+  type?: RechargePlan['type'];
+  startsAt?: string;
+  endsAt?: string;
+  sortOrder?: number;
+}): Promise<RechargePlan> {
+  return apiFetch<{ code: number; data: RechargePlan; message: string }>(
+    '/recharge-plans',
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    },
+  ).then((res) => res.data);
+}
+
+export async function updateRechargePlan(
+  id: string,
+  data: {
+    name?: string;
+    amount?: number;
+    giftAmount?: number;
+    type?: RechargePlan['type'];
+    startsAt?: string | null;
+    endsAt?: string | null;
+    sortOrder?: number;
+  },
+): Promise<RechargePlan> {
+  return apiFetch<{ code: number; data: RechargePlan; message: string }>(
+    `/recharge-plans/${id}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    },
+  ).then((res) => res.data);
+}
+
+export async function toggleRechargePlan(id: string): Promise<RechargePlan> {
+  return apiFetch<{ code: number; data: RechargePlan; message: string }>(
+    `/recharge-plans/${id}/toggle`,
+    {
+      method: 'PATCH',
+    },
+  ).then((res) => res.data);
+}
+
+export async function deleteRechargePlan(id: string): Promise<void> {
+  await apiFetch<{ code: number; message: string }>(`/recharge-plans/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function rechargeMember(
   memberId: string,
   data: {

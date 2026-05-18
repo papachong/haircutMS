@@ -83,4 +83,19 @@ export class RechargePlanService {
       data: { isActive: false },
     });
   }
+
+  async toggle(id: string, shopId: string) {
+    const existing = await this.prisma.rechargePlan.findFirst({
+      where: { id, shopId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException(`Recharge plan ${id} not found`);
+    }
+
+    return this.prisma.rechargePlan.update({
+      where: { id },
+      data: { isActive: !existing.isActive },
+    });
+  }
 }
