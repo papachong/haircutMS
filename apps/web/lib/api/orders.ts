@@ -87,14 +87,20 @@ export interface Order {
   status: string;
   originalAmount: number;
   discountAmount: number;
+  couponAmount: number;
   payableAmount: number;
   paidAmount: number;
   remark?: string;
   createdAt: string;
+  settledAt?: string | null;
+  cancelledAt?: string | null;
+  cancelReason?: string | null;
   member: {
     id: string;
     name: string;
     cardNo: string;
+    phone: string;
+    avatar?: string | null;
     memberLevel: {
       name: string;
       discount: number;
@@ -109,6 +115,26 @@ export interface Order {
     subtotal: number;
     discountRate: number;
     finalPrice: number;
+    serviceItem: {
+      id: string;
+      name: string;
+      price: number;
+      duration: number;
+      image?: string | null;
+    };
+    staff: {
+      id: string;
+      name: string;
+      role: string;
+      avatar?: string | null;
+    };
+  }>;
+  payments: Array<{
+    id: string;
+    method: 'BALANCE' | 'PASS_CARD' | 'OFFLINE' | 'COUPON';
+    amount: number;
+    detail?: string | null;
+    createdAt: string;
   }>;
 }
 
@@ -266,6 +292,19 @@ export async function settleOrder(orderId: string, payments: PaymentInput[]): Pr
   const res = await apiFetch<{ code: number; data: Order }>(`/orders/${orderId}/settle`, {
     method: 'POST',
     body: JSON.stringify({ payments }),
+  });
+  return res.data;
+}
+
+export async function getOrderById(orderId: string): Promise<Order> {
+  const res = await apiFetch<{ code: number; data: Order }>(`/orders/${orderId}`);
+  return res.data;
+}
+
+export async function cancelOrder(orderId: string, reason?: string): Promise<Order> {
+  const res = await apiFetch<{ code: number; data: Order }>(`/orders/${orderId}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
   });
   return res.data;
 }
