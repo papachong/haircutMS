@@ -54,6 +54,14 @@ export class ServiceController {
     return this.categoryService.remove(id, shopId);
   }
 
+  @Post('service-categories/reorder')
+  async reorderCategories(
+    @CurrentShop() shopId: string,
+    @Body() body: { ids: string[] },
+  ) {
+    return this.categoryService.reorder(shopId, body.ids);
+  }
+
   // --- Items ---
 
   @Get('service-items')
@@ -106,5 +114,13 @@ export class ServiceController {
     @CurrentShop() shopId: string,
   ) {
     return this.itemService.toggle(id, shopId);
+  }
+
+  @Post('service-items/reorder')
+  async reorderItems(
+    @CurrentShop() shopId: string,
+    @Body() body: { categoryId: string; ids: string[] },
+  ) {
+    return this.itemService.reorder(shopId, body.categoryId, body.ids);
   }
 }

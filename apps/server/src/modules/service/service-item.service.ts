@@ -103,4 +103,16 @@ export class ServiceItemService {
       data: { isActive: !existing.isActive },
     });
   }
+
+  async reorder(shopId: string, categoryId: string, ids: string[]) {
+    await this.prisma.$transaction(
+      ids.map((id, index) =>
+        this.prisma.serviceItem.updateMany({
+          where: { id, categoryId },
+          data: { sortOrder: index },
+        })
+      )
+    );
+    return { success: true };
+  }
 }

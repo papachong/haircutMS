@@ -5,15 +5,10 @@ import { useRouter } from 'next/navigation';
 import {
   getServiceItems,
   getServiceCategories,
-  getStaff,
-  searchMembers,
-  createOrder,
   type ServiceItem,
   type ServiceCategory,
-  type Staff,
-  type Member,
-  type OrderItemInput,
-} from '../../../lib/api/orders';
+} from '@/lib/api/service';
+import { getStaff, searchMembers, createOrder, type Staff, type Member, type OrderItemInput } from '../../../lib/api/orders';
 
 interface CartItem extends OrderItemInput {
   serviceItem: ServiceItem;
@@ -32,10 +27,11 @@ type Step = typeof STEPS[number];
 export default function MobilePOSPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>('member');
-  const [categories, setCategories] = useState<ServiceCategory[]>([]);
+  const [categories, setCategories] = useState<(ServiceCategory & { services: ServiceItem[] })[]>([]);
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [memberSearch, setMemberSearch] = useState('');
@@ -59,22 +55,44 @@ export default function MobilePOSPage() {
   }, [step, selectedCategory]);
 
   const loadData = async () => {
-    const [cats, staffData] = await Promise.all([
+    const [cats, staffData, allServices] = await Promise.all([
       getServiceCategories(),
       getStaff(),
+      getServiceItems({ activeOnly: true }),
     ]);
-    setCategories(cats);
     setStaff(staffData);
+
+    // Group services by category
+    const categoriesWithServices = cats.map(cat => ({
+      ...cat,
+      services: allServices.filter(s => s.categoryId === cat.id),
+    }));
+    setCategories(categoriesWithServices);
+
+    // Expand first category by default
+    if (categoriesWithServices.length > 0) {
+      setExpandedCategories(new Set([categoriesWithServices[0].id]));
+    }
   };
 
   const loadServices = async () => {
     if (selectedCategory) {
-      const data = await getServiceItems(selectedCategory);
+      const data = await getServiceItems({ categoryId: selectedCategory, activeOnly: true });
       setServices(data);
     } else {
-      const data = await getServiceItems();
+      const data = await getServiceItems({ activeOnly: true });
       setServices(data);
     }
+  };
+
+  const toggleCategory = (categoryId: string) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(categoryId)) {
+      newExpanded.delete(categoryId);
+    } else {
+      newExpanded.add(categoryId);
+    }
+    setExpandedCategories(newExpanded);
   };
 
   const handleMemberSearch = async (value: string) => {
@@ -249,50 +267,60 @@ export default function MobilePOSPage() {
               <h1 className="text-lg font-bold">选择服务</h1>
               <span className="ml-auto text-sm text-muted-foreground">{cart.length} 项</span>
             </div>
-
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              <button
-                type="button"
-                onClick={() => setSelectedCategory(null)}
-                className={`px-4 py-2 rounded-full text-sm whitespace-nowrap ${
-                  selectedCategory === null ? 'bg-primary text-primary-foreground' : 'bg-accent'
-                }`}
-              >
-                全部
-              </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-4 py-2 rounded-full text-sm whitespace-nowrap ${
-                    selectedCategory === cat.id ? 'bg-primary text-primary-foreground' : 'bg-accent'
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
           </div>
 
-          <div className="p-4 grid grid-cols-2 gap-4 pb-32">
-            {services.map((service) => (
-              <button
-                key={service.id}
+          <div className="pb-32">
+            {categories.map((category) => (
+              <div key={category.id} className="border-b last:border-0">
+                <button
+                  type="button"
+                  onClick={() => toggleCategory(category.id)}
+                  className="w-full flex items-center justify-between p-4 bg-accent/50 hover:bg-accent"
+                >
+                  <span className="font-medium">{category.name}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {expandedCategories.has(category.id) ? '▼' : '▶'}
+                  </span>
+                </button>
+
+                {expandedCategories.has(category.id) && (
+                  <div className="p-4 grid grid-cols-2 gap-4">
+                    {category.services.map((service) => (
+                      <button
+                        key={service.id}
+                        type="button"
+                        onClick={() => addToCart(service)}
+                        className="bg-card border rounded-lg p-4 text-left"
+                      >
                 type="button"
                 onClick={() => addToCart(service)}
                 className="bg-card border rounded-lg p-4 text-left"
               >
-                {service.image && (
-                  <img src={service.image} alt={service.name} className="w-full h-28 object-cover rounded mb-3" />
+                      {service.image && (
+                        <img src={service.image} alt={service.name} className="w-full h-28 object-cover rounded mb-3" />
+                      )}
+                      <div className="font-medium">{service.name}</div>
+                      <div className="text-sm text-muted-foreground mt-1">{service.duration}分钟</div>
+                      <div className="text-lg font-bold text-primary mt-2">
+                        ¥{(service.price / 100).toFixed(2)}
+                      </div>
+                    </button>
+                    ))}
+                    {category.services.length === 0 && (
+                      <div className="col-span-2 text-center text-muted-foreground py-4">
+                        该分类下暂无服务项目
+                      </div>
+                    )}
+                  </div>
                 )}
-                <div className="font-medium">{service.name}</div>
-                <div className="text-sm text-muted-foreground mt-1">{service.duration}分钟</div>
-                <div className="text-lg font-bold text-primary mt-2">
-                  ¥{(service.price / 100).toFixed(2)}
-                </div>
-              </button>
+              </div>
             ))}
+
+            {categories.length === 0 && (
+              <div className="text-center text-muted-foreground py-8">
+                暂无服务分类，请联系管理员创建
+              </div>
+            )}
           </div>
 
           {cart.length > 0 && (
