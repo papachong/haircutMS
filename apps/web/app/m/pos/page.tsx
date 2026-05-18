@@ -14,6 +14,10 @@ import {
   type Member,
   type OrderItemInput,
 } from '../../../lib/api/orders';
+import {
+  getAvailableCoupons,
+  type CouponInstance,
+} from '../../../lib/api/coupon';
 
 interface CartItem extends OrderItemInput {
   serviceItem: ServiceItem;
@@ -42,6 +46,13 @@ export default function MobilePOSPage() {
   const [memberResults, setMemberResults] = useState<Member[]>([]);
   const [remark, setRemark] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedCoupon, setSelectedCoupon] = useState<CouponInstance | null>(null);
+  const [availableCoupons, setAvailableCoupons] = useState<Array<CouponInstance & {
+    canUse: boolean;
+    discount: number;
+    finalAmount: number;
+  }>>([]);
+  const [showCouponSelector, setShowCouponSelector] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -57,6 +68,12 @@ export default function MobilePOSPage() {
       loadServices();
     }
   }, [step, selectedCategory]);
+
+  useEffect(() => {
+    if (selectedMember && step === 'confirm') {
+      loadAvailableCoupons();
+    }
+  }, [selectedMember, cart, step]);
 
   const loadData = async () => {
     const [cats, staffData] = await Promise.all([
@@ -74,6 +91,18 @@ export default function MobilePOSPage() {
     } else {
       const data = await getServiceItems();
       setServices(data);
+    }
+  };
+
+  const loadAvailableCoupons = async () => {
+    if (!selectedMember) return;
+    try {
+      const amount = cart.reduce((sum, item) => sum + item.finalPrice, 0);
+      const coupons = await getAvailableCoupons(selectedMember.id, amount);
+      setAvailableCoupons(coupons.filter(c => c.canUse));
+    } catch (e: unknown) {
+      console.error('Failed to load coupons:', e);
+      setAvailableCoupons([]);
     }
   };
 
@@ -164,6 +193,7 @@ export default function MobilePOSPage() {
 
   const removeFromCart = (index: number) => {
     setCart(cart.filter((_, i) => i !== index));
+    setSelectedCoupon(null);
   };
 
   const handleCreateOrder = async (status: 'PENDING' | 'SETTLED') => {
@@ -180,7 +210,12 @@ export default function MobilePOSPage() {
         status,
       });
 
-      alert(`订单创建成功\n订单号: ${order.orderNo}`);
+      const orderMessage = `订单创建成功\n订单号: ${order.orderNo}`;
+      if (selectedCoupon) {
+        alert(`${orderMessage}\n\n注意: 优惠券需要在结算时选择支付方式为"优惠券"并输入优惠券ID: ${selectedCoupon.id}`);
+      } else {
+        alert(orderMessage);
+      }
       router.push('/m');
     } catch (error: unknown) {
       alert(`创建订单失败: ${error instanceof Error ? error.message : '未知错误'}`);
@@ -189,7 +224,9 @@ export default function MobilePOSPage() {
     }
   };
 
-  const payableAmount = cart.reduce((sum, item) => sum + item.finalPrice, 0);
+  const baseAmount = cart.reduce((sum, item) => sum + item.finalPrice, 0);
+  const couponDiscount = selectedCoupon?.discount || 0;
+  const payableAmount = Math.max(0, baseAmount - couponDiscount);
 
   return (
     <div className="min-h-screen bg-background">
@@ -399,6 +436,47 @@ export default function MobilePOSPage() {
           </div>
 
           <div className="bg-card border rounded-lg p-4 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold">优惠券</h2>
+              {availableCoupons.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowCouponSelector(true)}
+                  className="text-sm text-primary hover:underline"
+                >
+                  选择优惠券
+                </button>
+              )}
+            </div>
+
+            {selectedCoupon ? (
+              <div className="flex items-center justify-between bg-primary/5 rounded-lg p-3">
+                <div>
+                  <div className="font-medium">{selectedCoupon.template?.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {selectedCoupon.template?.type === 'FIXED'
+                      ? `满¥${(selectedCoupon.template.threshold / 100).toFixed(2)} 减¥${(selectedCoupon.template.discount / 100).toFixed(2)}`
+                      : `满¥${(selectedCoupon.template.threshold / 100).toFixed(2)} ${selectedCoupon.template.discount / 10}折`}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCoupon(null)}
+                  className="text-destructive text-sm"
+                >
+                  取消使用
+                </button>
+              </div>
+            ) : availableCoupons.length > 0 ? (
+              <p className="text-sm text-muted-foreground">
+                可使用 {availableCoupons.length} 张优惠券
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">无可用优惠券</p>
+            )}
+          </div>
+
+          <div className="bg-card border rounded-lg p-4 mb-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>原价</span>
@@ -407,9 +485,15 @@ export default function MobilePOSPage() {
               <div className="flex justify-between text-sm text-primary">
                 <span>会员折扣</span>
                 <span>
-                  -¥{(cart.reduce((sum, item) => sum + item.subtotal, 0) - payableAmount) / 100}
+                  -¥{(cart.reduce((sum, item) => sum + item.subtotal, 0) - baseAmount) / 100}
                 </span>
               </div>
+              {selectedCoupon && (
+                <div className="flex justify-between text-sm text-primary">
+                  <span>优惠券</span>
+                  <span>-¥{(couponDiscount / 100).toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between font-bold text-lg pt-2 border-t">
                 <span>应付金额</span>
                 <span>¥{(payableAmount / 100).toFixed(2)}</span>
@@ -433,6 +517,74 @@ export default function MobilePOSPage() {
               className="py-3 bg-primary text-primary-foreground rounded-lg font-bold disabled:opacity-50"
             >
               {loading ? '处理中...' : '结算'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showCouponSelector && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-background">
+          <div className="flex items-center justify-between p-4 border-b">
+            <button
+              type="button"
+              onClick={() => setShowCouponSelector(false)}
+              className="text-2xl"
+            >
+              ←
+            </button>
+            <h1 className="text-lg font-bold">选择优惠券</h1>
+            <div className="w-8" />
+          </div>
+
+          <div className="flex-1 overflow-auto p-4 space-y-3">
+            {availableCoupons.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">无可用优惠券</div>
+            ) : (
+              availableCoupons.map((coupon) => (
+                <button
+                  key={coupon.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCoupon(coupon);
+                    setShowCouponSelector(false);
+                  }}
+                  className={`w-full p-4 border rounded-lg text-left ${
+                    selectedCoupon?.id === coupon.id
+                      ? 'border-primary bg-primary/5'
+                      : 'bg-card'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="font-bold text-lg text-primary">
+                      {coupon.template?.type === 'FIXED'
+                        ? `-¥${(coupon.template.discount / 100).toFixed(2)}`
+                        : `${coupon.template.discount / 10}折`}
+                    </div>
+                    {selectedCoupon?.id === coupon.id && (
+                      <span className="text-primary">✓</span>
+                    )}
+                  </div>
+                  <div className="font-medium mb-1">{coupon.template?.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {coupon.template?.type === 'FIXED'
+                      ? `满¥${(coupon.template.threshold / 100).toFixed(2)}可用`
+                      : `满¥${(coupon.template.threshold / 100).toFixed(2)}打${coupon.template.discount / 10}折`}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    有效期至 {new Date(coupon.expiresAt).toLocaleDateString('zh-CN')}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+
+          <div className="p-4 border-t bg-card">
+            <button
+              type="button"
+              onClick={() => setShowCouponSelector(false)}
+              className="w-full py-3 border rounded-lg"
+            >
+              不使用优惠券
             </button>
           </div>
         </div>
