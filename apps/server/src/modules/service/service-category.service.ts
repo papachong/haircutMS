@@ -70,4 +70,16 @@ export class ServiceCategoryService {
     await this.prisma.serviceCategory.delete({ where: { id } });
     return { id };
   }
+
+  async reorder(shopId: string, ids: string[]) {
+    await this.prisma.$transaction(
+      ids.map((id, index) =>
+        this.prisma.serviceCategory.updateMany({
+          where: { id, shopId },
+          data: { sortOrder: index },
+        })
+      )
+    );
+    return { success: true };
+  }
 }

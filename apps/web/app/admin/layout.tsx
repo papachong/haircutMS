@@ -25,7 +25,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/orders', label: '订单', icon: '📋' },
     { href: '/admin/members', label: '会员', icon: '👥' },
     { href: '/admin/members/analytics', label: '会员分析', icon: '📈' },
-    { href: '/admin/services', label: '服务', icon: '✂️' },
+    { href: '/admin/settings/services', label: '服务', icon: '✂️' },
     { href: '/admin/staff', label: '员工', icon: '👤' },
     { href: '/admin/staff-stats', label: '员工统计', icon: '📈' },
     { href: '/admin/settings/recharge', label: '充值方案', icon: '💳' },
