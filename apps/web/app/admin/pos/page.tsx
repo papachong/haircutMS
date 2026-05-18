@@ -7,12 +7,15 @@ import {
   getStaff,
   searchMembers,
   createOrder,
+  getPassCards,
   type ServiceItem,
   type ServiceCategory,
   type Staff,
   type Member,
   type OrderItemInput,
+  type PassCard,
 } from '../../../lib/api/orders';
+import SettlementDialog, { SettlementProps } from '../../../components/SettlementDialog';
 
 interface CartItem extends OrderItemInput {
   serviceItem: ServiceItem;
@@ -36,6 +39,9 @@ export default function POSPage() {
   const [memberResults, setMemberResults] = useState<Member[]>([]);
   const [remark, setRemark] = useState('');
   const [loading, setLoading] = useState(false);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  const [showSettlementDialog, setShowSettlementDialog] = useState(false);
+  const [memberPassCards, setMemberPassCards] = useState<PassCard[]>([]);
 
   useEffect(() => {
     loadData();
@@ -69,10 +75,23 @@ export default function POSPage() {
     }
   };
 
-  const selectMember = (member: Member) => {
+  const loadMemberPassCards = async (memberId: string) => {
+    try {
+      const data = await getPassCards({
+        memberId,
+        availableOnly: true,
+      });
+      setMemberPassCards(data.items);
+    } catch (error) {
+      console.error('加载次卡失败:', error);
+    }
+  };
+
+  const selectMember = async (member: Member) => {
     setSelectedMember(member);
     setMemberSearch('');
     setMemberResults([]);
+    await loadMemberPassCards(member.id);
   };
 
   const addToCart = (serviceItem: ServiceItem) => {
@@ -176,8 +195,13 @@ export default function POSPage() {
         status,
       });
 
-      alert(`订单创建成功\n订单号: ${order.orderNo}`);
-      clearCart();
+      if (status === 'PENDING') {
+        alert(`订单创建成功\n订单号: ${order.orderNo}`);
+        clearCart();
+      } else {
+        setCreatedOrderId(order.id);
+        setShowSettlementDialog(true);
+      }
     } catch (error: unknown) {
       alert(`创建订单失败: ${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
@@ -185,12 +209,33 @@ export default function POSPage() {
     }
   };
 
+  const handleSettleSuccess = () => {
+    clearCart();
+    setShowSettlementDialog(false);
+    alert('结算成功！');
+  };
+
   const originalAmount = cart.reduce((sum, item) => sum + item.subtotal, 0);
   const discountAmount = originalAmount - cart.reduce((sum, item) => sum + item.finalPrice, 0);
   const payableAmount = cart.reduce((sum, item) => sum + item.finalPrice, 0);
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
+    <>
+      <div className="flex h-[calc(100vh-4rem)]">
+        {/* Settlement Dialog */}
+        {createdOrderId && (
+          <SettlementDialog
+            isOpen={showSettlementDialog}
+            onClose={() => setShowSettlementDialog(false)}
+            orderId={createdOrderId}
+            originalAmount={originalAmount}
+            discountAmount={discountAmount}
+            payableAmount={payableAmount}
+            member={selectedMember}
+            memberPassCards={memberPassCards}
+            onSettleSuccess={handleSettleSuccess}
+          />
+        )}
       <aside className="w-80 border-r flex flex-col bg-card">
         <div className="p-4 border-b">
           <h2 className="font-semibold mb-3">选择会员</h2>
@@ -443,5 +488,6 @@ export default function POSPage() {
         </div>
       </aside>
     </div>
+    </>
   );
 }
