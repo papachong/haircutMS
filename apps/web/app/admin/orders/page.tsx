@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Calendar, Filter, ChevronDown, Eye, CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react';
+import { Search, Calendar, Filter, ChevronDown, Eye, CheckCircle, XCircle, Clock, DollarSign, Download } from 'lucide-react';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -16,6 +16,7 @@ export default function OrdersPage() {
   const [pageSize, setPageSize] = useState(20);
   const [hasMore, setHasMore] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const statusOptions = [
     { value: 'ALL', label: '全部状态', icon: Filter },
@@ -108,6 +109,62 @@ export default function OrdersPage() {
     setCurrentPage(1);
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+
+      if (searchKeyword.trim()) {
+        params.append('keyword', searchKeyword.trim());
+      }
+
+      if (selectedStatus !== 'ALL') {
+        params.append('status', selectedStatus);
+      }
+
+      if (selectedMemberId) {
+        params.append('memberId', selectedMemberId);
+      }
+
+      if (dateRange.start) {
+        params.append('startDate', dateRange.start);
+      }
+
+      if (dateRange.end) {
+        params.append('endDate', dateRange.end);
+      }
+
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(`/api/v1/orders/export?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('导出失败');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      a.download = `orders_${dateStr}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      console.error('Export failed:', errorMessage);
+      alert(`导出失败: ${errorMessage}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const totalPages = Math.ceil(total / pageSize);
 
   const getStatusInfo = (status: string) => {
@@ -140,6 +197,15 @@ export default function OrdersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">订单管理</h1>
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={exporting || loading || orders.length === 0}
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <Download className="h-4 w-4" />
+          <span>{exporting ? '导出中...' : '导出Excel'}</span>
+        </button>
       </div>
 
       {/* Search Bar */}

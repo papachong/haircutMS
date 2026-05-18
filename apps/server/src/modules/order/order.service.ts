@@ -699,7 +699,104 @@ export class OrderService {
       const lastSeq = parseInt(lastOrder.orderNo.slice(-4), 10);
       seq = lastSeq + 1;
     }
+  }
 
-    return `${seqPrefix}${String(seq).padStart(4, '0')}`;
+  async exportOrders(shopId: string, query: {
+    memberId?: string;
+    status?: OrderStatus;
+    keyword?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    const where: Record<string, unknown> = { shopId };
+
+    if (query.memberId) {
+      where.memberId = query.memberId;
+    }
+
+    if (query.status) {
+      where.status = query.status;
+    }
+
+    if (query.keyword) {
+      where.OR = [
+        { orderNo: { contains: query.keyword, mode: 'insensitive' } },
+        { member: { name: { contains: query.keyword, mode: 'insensitive' } } },
+      ];
+    }
+
+    const dateFilter: Record<string, unknown> = {};
+    if (query.startDate) {
+      dateFilter.gte = new Date(query.startDate);
+    }
+    if (query.endDate) {
+      const endDate = new Date(query.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      dateFilter.lte = endDate;
+    }
+    if (query.startDate || query.endDate) {
+      where.createdAt = dateFilter;
+    }
+
+    const orders = await this.prisma.order.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        member: {
+          select: {
+            id: true,
+            name: true,
+            cardNo: true,
+            phone: true,
+            memberLevel: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+        items: {
+          include: {
+            serviceItem: {
+              select: {
+                name: true,
+              },
+            },
+            staff: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+        payments: {
+          select: {
+            method: true,
+            amount: true,
+          },
+        },
+      },
+    });
+
+    return orders.map((order) => ({
+      orderNo: order.orderNo,
+      memberName: order.member.name,
+      memberCardNo: order.member.cardNo,
+      memberPhone: order.member.phone,
+      memberLevel: order.member.memberLevel?.name || '',
+      status: order.status,
+      originalAmount: Number(order.originalAmount) / 100,
+      discountAmount: Number(order.discountAmount) / 100,
+      payableAmount: Number(order.payableAmount) / 100,
+      paidAmount: Number(order.paidAmount) / 100,
+      services: order.items.map((item) =>
+        `${item.serviceItem.name} (${item.staffName}) x${item.quantity}`,
+      ).join('; '),
+      paymentMethods: order.payments.map((p) => `${p.method}: ¥${Number(p.amount) / 100}`).join(', '),
+      remark: order.remark || '',
+      createdAt: order.createdAt.toISOString(),
+      settledAt: order.settledAt?.toISOString() || '',
+      cancelledAt: order.cancelledAt?.toISOString() || '',
+    }));
   }
 }
