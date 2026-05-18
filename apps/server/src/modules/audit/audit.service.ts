@@ -82,6 +82,15 @@ export class AuditService {
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
+        include: {
+          staff: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+            },
+          },
+        },
       }),
       this.prisma.auditLog.count({ where }),
     ]);

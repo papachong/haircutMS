@@ -4,7 +4,11 @@ export interface AuditLog {
   id: string;
   shopId: string;
   staffId?: string | null;
-  staffName?: string;
+  staff?: {
+    id: string;
+    name: string;
+    phone: string;
+  } | null;
   action: string;
   targetType?: string | null;
   targetId?: string | null;

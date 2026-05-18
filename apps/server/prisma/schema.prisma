@@ -72,6 +72,7 @@ model Staff {
   shop            Shop     @relation(fields: [shopId], references: [id])
   orderItems      OrderItem[]
   rechargeRecords RechargeRecord[]
+  auditLogs       AuditLog[]
 
   @@unique([shopId, phone])
   @@map("staff")
@@ -446,6 +447,7 @@ model AuditLog {
   createdAt   DateTime @default(now())
 
   shop        Shop     @relation(fields: [shopId], references: [id])
+  staff       Staff?   @relation(fields: [staffId], references: [id])
 
   @@index([shopId, createdAt])
   @@index([action])
