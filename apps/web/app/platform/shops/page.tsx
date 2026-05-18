@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { apiFetch } from '../../../lib/api/client';
 
 interface ShopListItem {
@@ -141,12 +142,12 @@ export default function ShopListPage() {
           <option value="SUSPENDED">已暂停</option>
           <option value="ARCHIVED">已归档</option>
         </select>
-        <a
+        <Link
           href="/platform/shops/create"
           className="flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white transition-colors hover:bg-blue-700"
         >
           <span>+</span> 创建店铺
-        </a>
+        </Link>
       </div>
 
       {/* Table - Desktop */}
@@ -229,12 +230,12 @@ export default function ShopListPage() {
                   </td>
                   <td className="px-4 sm:px-6 py-4">
                     <div className="flex gap-2">
-                      <a
+                      <Link
                         href={`/platform/shops/${shop.id}`}
                         className="text-sm text-blue-600 hover:text-blue-800"
                       >
                         查看
-                      </a>
+                      </Link>
                       {shop.status === 'ACTIVE' ? (
                         <>
                           <button
@@ -342,12 +343,12 @@ export default function ShopListPage() {
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t">
-                <a
+                <Link
                   href={`/platform/shops/${shop.id}`}
                   className="text-sm text-blue-600 hover:text-blue-800"
                 >
                   查看详情
-                </a>
+                </Link>
                 <div className="flex gap-2">
                   {shop.status === 'ACTIVE' && (
                     <button

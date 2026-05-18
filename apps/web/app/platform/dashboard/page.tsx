@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function PlatformDashboard() {
   return (
     <div className="space-y-6">
@@ -48,27 +50,27 @@ export default function PlatformDashboard() {
       <div className="bg-white rounded-lg border border-slate-200 p-6">
         <h2 className="text-lg font-semibold text-slate-900 mb-4">快速操作</h2>
         <div className="grid gap-4 md:grid-cols-3">
-          <a
+          <Link
             href="/platform/overview"
             className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
           >
             <span className="text-2xl">📊</span>
             <span className="font-medium text-slate-900">平台数据总览</span>
-          </a>
-          <a
+          </Link>
+          <Link
             href="/platform/shops"
             className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
           >
             <span className="text-2xl">➕</span>
             <span className="font-medium text-slate-900">新增店铺</span>
-          </a>
-          <a
+          </Link>
+          <Link
             href="/platform/admins"
             className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
           >
             <span className="text-2xl">👤</span>
             <span className="font-medium text-slate-900">管理管理员</span>
-          </a>
+          </Link>
         </div>
       </div>
     </div>
