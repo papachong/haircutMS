@@ -9,3 +9,7 @@ export function fenToYuan(fen: number): number {
 export function formatPrice(fen: number): string {
   return `¥${(fen / 100).toFixed(2)}`;
 }
+
+export function formatCurrency(fen: number): string {
+  return `¥${(fen / 100).toFixed(2)}`;
+}
