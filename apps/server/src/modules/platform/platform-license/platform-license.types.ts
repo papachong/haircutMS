@@ -50,6 +50,11 @@ export interface LicenseListItem {
   createdAt: Date;
 }
 
+export interface LicenseUsage {
+  currentStaffCount: number;
+  currentMembersCount: number;
+}
+
 export interface LicenseDetail extends LicenseListItem {
   shop: {
     id: string;
@@ -60,6 +65,7 @@ export interface LicenseDetail extends LicenseListItem {
   signature: string;
   features: Record<string, unknown>;
   updatedAt: Date;
+  usage: LicenseUsage;
 }
 
 export interface ExpiringShopItem {

@@ -22,6 +22,11 @@ import {
 import { PlatformJwtAuthGuard } from '../auth/guards/platform-jwt-auth.guard';
 import { PlatformRolesGuard } from '../auth/guards/platform-roles.guard';
 import { PlatformAdminRole } from '@prisma/client';
+import {
+  PLAN_DEFAULTS,
+  LicensePlanType,
+  LicenseModuleId,
+} from '../../license/license.types';
 
 @Controller('platform/licenses')
 @UseGuards(PlatformJwtAuthGuard, PlatformRolesGuard)
@@ -29,6 +34,25 @@ export class PlatformLicenseController {
   constructor(
     private readonly platformLicenseService: PlatformLicenseService,
   ) {}
+
+  /**
+   * Get plan defaults and available modules
+   */
+  @Get('plan-defaults')
+  getPlanDefaults() {
+    return {
+      plans: Object.entries(PLAN_DEFAULTS).map(([key, value]) => ({
+        plan: key,
+        staffLimit: value.staffLimit,
+        membersLimit: value.membersLimit,
+        modules: value.modules,
+      })),
+      availableModules: Object.entries(LicenseModuleId).map(([key, value]) => ({
+        id: value,
+        name: key,
+      })),
+    };
+  }
 
   /**
    * Get all licenses with expiry status
