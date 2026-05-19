@@ -95,6 +95,11 @@ export interface PlatformOverview {
   revenueThisMonth: number;
   ordersThisMonth: number;
   activeShopsThisMonth: number;
+  // Month-over-month growth rates
+  shopGrowthRate: number;
+  activeShopGrowthRate: number;
+  revenueGrowthRate: number;
+  memberGrowthRate: number;
 }
 
 export interface ShopRevenue {
@@ -162,4 +167,19 @@ export async function getRevenueTrend(
   days: number = 30,
 ): Promise<{ code: number; data: RevenueTrend[]; message: string }> {
   return platformApiFetch(`/overview/trend/revenue?days=${days}`);
+}
+
+export interface ExpiringLicense {
+  shopId: string;
+  shopName: string;
+  shopPhone: string | null;
+  licensePlan: string;
+  expiresAt: string;
+  daysUntilExpiry: number;
+}
+
+export async function getExpiringLicenses(
+  days: number = 15,
+): Promise<{ code: number; data: ExpiringLicense[]; message: string }> {
+  return platformApiFetch(`/overview/expiring-licenses?days=${days}`);
 }

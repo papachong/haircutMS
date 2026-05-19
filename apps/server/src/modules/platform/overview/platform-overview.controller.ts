@@ -80,4 +80,19 @@ export class PlatformOverviewController {
       message: 'Success',
     };
   }
+
+  /**
+   * Get licenses expiring within 15 days
+   */
+  @Get('expiring-licenses')
+  async getExpiringLicenses(@Query('days') days: string = '15') {
+    const data = await this.platformOverviewService.getExpiringLicenses(
+      parseInt(days, 10) || 15,
+    );
+    return {
+      code: 0,
+      data,
+      message: 'Success',
+    };
+  }
 }

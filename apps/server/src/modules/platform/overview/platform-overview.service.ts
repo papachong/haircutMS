@@ -12,6 +12,11 @@ export interface PlatformOverview {
   revenueThisMonth: number;
   ordersThisMonth: number;
   activeShopsThisMonth: number;
+  // Month-over-month growth rates
+  shopGrowthRate: number;
+  activeShopGrowthRate: number;
+  revenueGrowthRate: number;
+  memberGrowthRate: number;
 }
 
 export interface ShopRevenue {
@@ -41,16 +46,26 @@ export interface NewShopsTrend {
   count: number;
 }
 
+export interface ExpiringLicense {
+  shopId: string;
+  shopName: string;
+  shopPhone: string | null;
+  licensePlan: string;
+  expiresAt: Date;
+  daysUntilExpiry: number;
+}
+
 @Injectable()
 export class PlatformOverviewService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Get platform-wide overview statistics
+   * Get platform-wide overview statistics with month-over-month growth rates
    */
   async getOverview(): Promise<PlatformOverview> {
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const firstDayOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
     // Get basic shop counts
     const [totalShops, activeShops, suspendedShops, archivedShops] =
@@ -100,6 +115,49 @@ export class PlatformOverviewService {
       },
     }).then((groups) => groups.length);
 
+    // Calculate last month's stats for growth rates
+    const [
+      shopsLastMonth,
+      activeShopsLastMonth,
+      revenueLastMonthResult,
+      membersLastMonthResult,
+    ] = await Promise.all([
+      // Shops created before this month
+      this.prisma.shop.count({
+        where: { createdAt: { lt: firstDayOfMonth } },
+      }),
+      // Active shops last month (shops with orders last month)
+      this.prisma.order.groupBy({
+        by: ['shopId'],
+        where: {
+          createdAt: { gte: firstDayOfLastMonth, lt: firstDayOfMonth },
+        },
+      }).then((groups) => groups.length),
+      // Revenue last month
+      this.prisma.order.aggregate({
+        where: {
+          status: 'SETTLED',
+          createdAt: { gte: firstDayOfLastMonth, lt: firstDayOfMonth },
+        },
+        _sum: { paidAmount: true },
+      }),
+      // Members active before this month (approximation: total minus new this month)
+      this.prisma.member.count({
+        where: {
+          isActive: true,
+          createdAt: { lt: firstDayOfMonth },
+        },
+      }),
+    ]);
+
+    const revenueLastMonth = revenueLastMonthResult._sum.paidAmount || 0;
+    const membersLastMonth = membersLastMonthResult;
+
+    const calcGrowth = (current: number, previous: number): number => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return Math.round(((current - previous) / previous) * 10000) / 100;
+    };
+
     return {
       totalShops,
       activeShops,
@@ -111,6 +169,10 @@ export class PlatformOverviewService {
       revenueThisMonth,
       ordersThisMonth,
       activeShopsThisMonth,
+      shopGrowthRate: calcGrowth(totalShops, shopsLastMonth),
+      activeShopGrowthRate: calcGrowth(activeShopsThisMonth, activeShopsLastMonth),
+      revenueGrowthRate: calcGrowth(revenueThisMonth, revenueLastMonth),
+      memberGrowthRate: calcGrowth(totalMembers, membersLastMonth),
     };
   }
 
@@ -305,5 +367,44 @@ export class PlatformOverviewService {
     }
 
     return trends;
+  }
+
+  /**
+   * Get licenses expiring within 15 days
+   */
+  async getExpiringLicenses(days: number = 15): Promise<ExpiringLicense[]> {
+    const now = new Date();
+    const warningDate = new Date(now);
+    warningDate.setDate(warningDate.getDate() + days);
+
+    const licenses = await this.prisma.license.findMany({
+      where: {
+        expiresAt: {
+          gt: now,
+          lte: warningDate,
+        },
+      },
+      include: {
+        shop: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+          },
+        },
+      },
+      orderBy: { expiresAt: 'asc' },
+    });
+
+    return licenses.map((license) => ({
+      shopId: license.shopId,
+      shopName: license.shop.name,
+      shopPhone: license.shop.phone,
+      licensePlan: license.plan,
+      expiresAt: license.expiresAt,
+      daysUntilExpiry: Math.ceil(
+        (new Date(license.expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      ),
+    }));
   }
 }
