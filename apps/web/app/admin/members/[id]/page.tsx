@@ -19,6 +19,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
+  BarChart3,
+  Lightbulb,
+  PieChart as PieChartIcon,
 } from 'lucide-react';
 import { apiFetch } from '../../../../lib/api/client';
 import {
@@ -30,6 +33,17 @@ import {
   type RechargePlan,
   type RechargeRecord,
 } from '../../../../lib/api/recharge';
+import {
+  getMemberProfile,
+  getMemberRecommendations,
+  getMemberConsumptionChart,
+  type MemberProfileData,
+  type Recommendation as RecommendationData,
+  type ConsumptionChartData,
+} from '../../../../lib/api/member-profile';
+import MemberProfileCard from '../../../../components/member/member-profile-card';
+import MemberConsumptionChart from '../../../../components/member/member-consumption-chart';
+import MemberRecommendations from '../../../../components/member/member-recommendations';
 
 interface Member {
   id: string;
@@ -92,7 +106,7 @@ interface Member {
   }>;
 }
 
-type TabType = 'info' | 'orders' | 'recharge' | 'passcards';
+type TabType = 'info' | 'orders' | 'recharge' | 'passcards' | 'profile';
 
 const PAY_METHOD_OPTIONS: Array<{ value: PayMethod; label: string; color: string }> = [
   { value: PayMethod.CASH, label: '现金', color: 'bg-green-50 border-green-200 text-green-700' },
@@ -116,6 +130,12 @@ export default function MemberDetailPage() {
   const [rechargeHistoryTotal, setRechargeHistoryTotal] = useState(0);
   const [rechargeHistoryPage, setRechargeHistoryPage] = useState(1);
   const [rechargeHistoryLoading, setRechargeHistoryLoading] = useState(false);
+
+  // Profile data state
+  const [profileData, setProfileData] = useState<MemberProfileData | null>(null);
+  const [chartData, setChartData] = useState<ConsumptionChartData | null>(null);
+  const [recommendations, setRecommendations] = useState<RecommendationData[]>([]);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const loadMember = useCallback(async () => {
     setLoading(true);
@@ -144,6 +164,25 @@ export default function MemberDetailPage() {
     }
   }, [params.id]);
 
+  const loadProfileData = useCallback(async () => {
+    if (!params.id) return;
+    setProfileLoading(true);
+    try {
+      const [profile, chart, recs] = await Promise.all([
+        getMemberProfile(params.id as string),
+        getMemberConsumptionChart(params.id as string),
+        getMemberRecommendations(params.id as string),
+      ]);
+      setProfileData(profile);
+      setChartData(chart);
+      setRecommendations(recs);
+    } catch (error) {
+      console.error('Failed to load member profile:', error);
+    } finally {
+      setProfileLoading(false);
+    }
+  }, [params.id]);
+
   useEffect(() => {
     loadMember();
   }, [loadMember]);
@@ -153,6 +192,12 @@ export default function MemberDetailPage() {
       loadRechargeHistory(1);
     }
   }, [activeTab, loadRechargeHistory]);
+
+  useEffect(() => {
+    if (activeTab === 'profile') {
+      loadProfileData();
+    }
+  }, [activeTab, loadProfileData]);
 
   const handleRechargeSuccess = () => {
     setShowRechargeDialog(false);
@@ -177,6 +222,7 @@ export default function MemberDetailPage() {
 
   const tabs = [
     { id: 'info' as TabType, label: '基本信息', icon: User },
+    { id: 'profile' as TabType, label: '消费画像', icon: BarChart3 },
     { id: 'orders' as TabType, label: '消费记录', icon: ShoppingCart },
     { id: 'recharge' as TabType, label: '充值记录', icon: RefreshCw },
     { id: 'passcards' as TabType, label: '次卡', icon: CreditCard },
@@ -497,6 +543,51 @@ export default function MemberDetailPage() {
                   <CreditCard className="h-12 w-12 mx-auto opacity-20" />
                 </div>
                 <p>暂无次卡</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'profile' && (
+          <div>
+            {profileLoading ? (
+              <div className="text-center py-8 text-muted-foreground">加载画像数据...</div>
+            ) : profileData ? (
+              <div className="space-y-6">
+                {/* Profile Overview */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <PieChartIcon className="h-5 w-5 text-primary" />
+                    <h3 className="font-medium">消费画像</h3>
+                  </div>
+                  <MemberProfileCard profile={profileData} />
+                </div>
+
+                {/* Consumption Charts */}
+                {chartData && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <BarChart3 className="h-5 w-5 text-primary" />
+                      <h3 className="font-medium">消费图表</h3>
+                    </div>
+                    <MemberConsumptionChart data={chartData} />
+                  </div>
+                )}
+
+                {/* Smart Recommendations */}
+                {recommendations.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Lightbulb className="h-5 w-5 text-amber-500" />
+                      <h3 className="font-medium">智能推荐</h3>
+                    </div>
+                    <MemberRecommendations recommendations={recommendations} />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                暂无画像数据
               </div>
             )}
           </div>
