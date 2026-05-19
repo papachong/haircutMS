@@ -31,6 +31,12 @@ export interface DashboardTrends {
   totalVisitors: number;
 }
 
+interface ApiResponse<T> {
+  code: number;
+  data: T;
+  message: string;
+}
+
 export async function getDashboardMetrics(
   timeRange: TimeRange = TimeRange.TODAY,
   startDate?: string,
@@ -40,7 +46,10 @@ export async function getDashboardMetrics(
   if (startDate) params.append('startDate', startDate);
   if (endDate) params.append('endDate', endDate);
 
-  return apiFetch(`/dashboard/metrics?${params.toString()}`);
+  const res = await apiFetch<ApiResponse<DashboardMetrics>>(
+    `/dashboard/metrics?${params.toString()}`,
+  );
+  return res.data;
 }
 
 export async function getDashboardTrends(
@@ -52,5 +61,8 @@ export async function getDashboardTrends(
   if (startDate) params.append('startDate', startDate);
   if (endDate) params.append('endDate', endDate);
 
-  return apiFetch(`/dashboard/trends?${params.toString()}`);
+  const res = await apiFetch<ApiResponse<DashboardTrends>>(
+    `/dashboard/trends?${params.toString()}`,
+  );
+  return res.data;
 }

@@ -7,6 +7,8 @@ import {
   MemberLevelDistribution,
   MemberConsumptionTrendsResponse,
   DormantMembersStats,
+  DormantMembersDetail,
+  DailyConsumptionResponse,
   RevenueBreakdown,
   ServiceItemRanking,
 } from './dashboard.service';
@@ -125,6 +127,25 @@ export class DashboardController {
     const { dormantDays } = query;
     const days = dormantDays ? parseInt(dormantDays, 10) : 90;
     return this.dashboardService.getDormantMembersStats(shopId, days);
+  }
+
+  @Get('members/dormant-detail')
+  async getDormantMembersDetail(
+    @CurrentShop() shopId: string,
+    @Query() query: QueryMemberAnalyticsDto,
+  ): Promise<DormantMembersDetail> {
+    const { dormantDays } = query;
+    const days = dormantDays ? parseInt(dormantDays, 10) : 90;
+    return this.dashboardService.getDormantMembersDetail(shopId, days);
+  }
+
+  @Get('members/daily-consumption')
+  async getDailyConsumptionTrends(
+    @CurrentShop() shopId: string,
+    @Query('days') days?: string,
+  ): Promise<DailyConsumptionResponse> {
+    const parsedDays = days ? parseInt(days, 10) : 30;
+    return this.dashboardService.getDailyConsumptionTrends(shopId, parsedDays);
   }
 
   @Get('revenue-breakdown')

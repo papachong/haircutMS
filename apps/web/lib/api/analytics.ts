@@ -2,16 +2,16 @@ import { apiFetch } from './client';
 import { TimeRange } from './dashboard';
 
 export interface RevenueComposition {
-  offline: number; // 线下支付
-  balance: number; // 余额支付
-  recharge: number; // 充值收入
-  passCard: number; // 次卡收入
+  offline: number;
+  balance: number;
+  recharge: number;
+  passCard: number;
 }
 
 export interface RevenueBreakdown {
   composition: RevenueComposition;
-  rechargeIncome: number; // 当期充值
-  consumeIncome: number; // 当期消费
+  rechargeIncome: number;
+  consumeIncome: number;
 }
 
 export interface ServiceItemRanking {
@@ -20,6 +20,12 @@ export interface ServiceItemRanking {
   count: number;
   amount: number;
   averagePrice: number;
+}
+
+interface ApiResponse<T> {
+  code: number;
+  data: T;
+  message: string;
 }
 
 export async function getRevenueBreakdown(
@@ -31,7 +37,10 @@ export async function getRevenueBreakdown(
   if (startDate) params.append('startDate', startDate);
   if (endDate) params.append('endDate', endDate);
 
-  return apiFetch(`/dashboard/revenue-breakdown?${params.toString()}`);
+  const res = await apiFetch<ApiResponse<RevenueBreakdown>>(
+    `/dashboard/revenue-breakdown?${params.toString()}`,
+  );
+  return res.data;
 }
 
 export async function getServiceRanking(
@@ -45,5 +54,8 @@ export async function getServiceRanking(
   if (endDate) params.append('endDate', endDate);
   if (limit) params.append('limit', limit.toString());
 
-  return apiFetch(`/dashboard/service-ranking?${params.toString()}`);
+  const res = await apiFetch<ApiResponse<ServiceItemRanking[]>>(
+    `/dashboard/service-ranking?${params.toString()}`,
+  );
+  return res.data;
 }
