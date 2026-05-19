@@ -31,7 +31,9 @@ import {
   Trophy,
   ArrowUpDown,
   TrendingUp,
+  Download,
 } from 'lucide-react';
+import { exportRevenueReport } from '@/lib/api/export';
 
 const PAYMENT_COLORS: Record<string, string> = {
   offline: '#3b82f6',
@@ -90,6 +92,7 @@ export default function RevenueAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>('amount');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [exporting, setExporting] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -189,6 +192,20 @@ export default function RevenueAnalyticsPage() {
     );
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const effectiveStart = timeRange === TimeRange.CUSTOM ? customStart : undefined;
+      const effectiveEnd = timeRange === TimeRange.CUSTOM ? customEnd : undefined;
+      await exportRevenueReport('xlsx', effectiveStart, effectiveEnd);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      alert(`导出失败: ${errorMessage}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6 p-4 sm:p-6">
       {/* Header */}
@@ -200,6 +217,14 @@ export default function RevenueAnalyticsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleExport}
+            disabled={exporting || loading}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 border rounded-md hover:bg-accent transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download className="h-4 w-4" />
+            <span>{exporting ? '导出中...' : '导出报表'}</span>
+          </button>
           <div className="flex gap-1 rounded-lg bg-muted p-1">
             {timeRangeOptions.map((option) => (
               <button

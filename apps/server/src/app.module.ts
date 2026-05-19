@@ -19,6 +19,7 @@ import { PassCardModule } from './modules/pass-card/pass-card.module';
 import { StaffStatsModule } from './modules/staff-stats/staff-stats.module';
 import { PlatformOverviewModule } from './modules/platform/overview/platform-overview.module';
 import { PlatformLicenseModule } from './modules/platform/platform-license/platform-license.module';
+import { ExportModule } from './modules/export/export.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -47,6 +48,7 @@ import { AppService } from './app.service';
     StaffStatsModule,
     PlatformOverviewModule,
     PlatformLicenseModule,
+    ExportModule,
   ],
   controllers: [AppController],
   providers: [
