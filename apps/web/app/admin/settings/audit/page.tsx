@@ -146,10 +146,10 @@ export default function AdminAuditLogsPage() {
   const showingEnd = Math.min(page * pageSize, total);
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">操作日志</h1>
+          <h1 className="text-xl sm:text-2xl font-bold">操作日志</h1>
           <p className="text-sm text-muted-foreground mt-1">查看和管理店铺操作记录</p>
         </div>
       </div>
@@ -242,8 +242,10 @@ export default function AdminAuditLogsPage() {
         </div>
       ) : (
         <>
-          <div className="rounded-xl border bg-card overflow-hidden">
-            <table className="w-full text-sm">
+          {/* Desktop Table */}
+          <div className="hidden lg:block rounded-xl border bg-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[800px] text-sm">
               <thead>
                 <tr className="border-b bg-secondary/50">
                   <th className="px-6 py-3 text-left font-medium text-muted-foreground">时间</th>
@@ -303,13 +305,52 @@ export default function AdminAuditLogsPage() {
               </tbody>
             </table>
           </div>
+        </div>
+
+          {/* Mobile Cards */}
+          <div className="lg:hidden rounded-xl border bg-card divide-y">
+            {logs.map(log => (
+              <div key={log.id} className="p-4 space-y-2">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm">
+                      {log.staff ? log.staff.name : '系统'}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {formatTimestamp(log.createdAt)}
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary shrink-0 ml-2">
+                    {ACTION_LABELS[log.action] || log.action}
+                  </span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {log.targetType || '-'}
+                  {log.targetId && <span className="opacity-60"> #{log.targetId.slice(-6)}</span>}
+                </div>
+                <div className="text-xs text-muted-foreground truncate">
+                  {formatDetail(log.detail as Record<string, unknown> | null | undefined)}
+                </div>
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-xs text-muted-foreground font-mono">{log.ip || '-'}</span>
+                  <button
+                    onClick={() => setSelectedLog(log)}
+                    className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs hover:bg-accent transition-colors min-h-[44px]"
+                  >
+                    <Eye className="h-3 w-3" />
+                    详情
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="text-sm text-muted-foreground">
                 显示 {showingStart} - {showingEnd} 条，共 {total} 条记录
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap justify-center">
                 <select
                   value={pageSize}
                   onChange={e => {

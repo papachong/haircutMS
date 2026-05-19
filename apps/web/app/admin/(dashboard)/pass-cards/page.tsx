@@ -130,10 +130,10 @@ export default function PassCardsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">次卡管理</h1>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold">次卡管理</h1>
         <button
           type="button"
           onClick={() => setShowPurchaseDialog(true)}

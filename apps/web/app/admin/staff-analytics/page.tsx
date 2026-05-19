@@ -190,11 +190,11 @@ export default function StaffAnalyticsPage() {
   })) || [];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">员工服务记录</h1>
+          <h1 className="text-xl sm:text-2xl font-bold">员工服务记录</h1>
           <p className="text-sm text-muted-foreground mt-1">
             查看员工的服务记录、业绩统计和趋势分析
           </p>
@@ -253,8 +253,8 @@ export default function StaffAnalyticsPage() {
           </div>
 
           {/* Time Range Filter */}
-          <div className="rounded-xl border bg-card p-4">
-            <div className="flex items-center gap-4 flex-wrap">
+          <div className="rounded-xl border bg-card p-3 sm:p-4">
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">时间范围:</span>
@@ -264,7 +264,7 @@ export default function StaffAnalyticsPage() {
                   <button
                     key={option.value}
                     onClick={() => handleTimeRangeChange(option.value)}
-                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                    className={`rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition-colors min-h-[44px] ${
                       timeRange === option.value && !startDate && !endDate
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
@@ -274,25 +274,25 @@ export default function StaffAnalyticsPage() {
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-2 border-l pl-4">
+              <div className="flex items-center gap-2 border-l pl-3 sm:pl-4 flex-wrap">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="rounded-lg border bg-background px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
                 <span className="text-muted-foreground">-</span>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="rounded-lg border bg-background px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
                 <button
                   onClick={handleCustomDateRange}
                   disabled={!startDate || !endDate}
-                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  className="rounded-lg bg-primary px-3 sm:px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 min-h-[44px]"
                 >
                   应用
                 </button>
@@ -307,51 +307,51 @@ export default function StaffAnalyticsPage() {
           ) : (
             <>
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="rounded-xl border bg-card p-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                <div className="rounded-xl border bg-card p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <Scissors className="h-5 w-5 text-blue-600" />
                     <span className="text-xs text-muted-foreground">服务次数</span>
                   </div>
-                  <p className="mt-4 text-3xl font-bold text-blue-600">
+                  <p className="mt-3 sm:mt-4 text-2xl sm:text-3xl font-bold text-blue-600">
                     {stats?.totalServices || 0}
                   </p>
-                  <p className="mt-2 text-sm text-muted-foreground">次</p>
+                  <p className="mt-1 sm:mt-2 text-sm text-muted-foreground">次</p>
                 </div>
 
-                <div className="rounded-xl border bg-card p-6">
+                <div className="rounded-xl border bg-card p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <DollarSign className="h-5 w-5 text-green-600" />
                     <span className="text-xs text-muted-foreground">总营收</span>
                   </div>
-                  <p className="mt-4 text-3xl font-bold text-green-600">
+                  <p className="mt-3 sm:mt-4 text-2xl sm:text-3xl font-bold text-green-600">
                     {formatCurrency(stats?.totalRevenue || 0)}
                   </p>
-                  <p className="mt-2 text-sm text-muted-foreground">元</p>
+                  <p className="mt-1 sm:mt-2 text-sm text-muted-foreground">元</p>
                 </div>
 
-                <div className="rounded-xl border bg-card p-6">
+                <div className="rounded-xl border bg-card p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <TrendingUp className="h-5 w-5 text-purple-600" />
                     <span className="text-xs text-muted-foreground">客单价</span>
                   </div>
-                  <p className="mt-4 text-3xl font-bold text-purple-600">
+                  <p className="mt-3 sm:mt-4 text-2xl sm:text-3xl font-bold text-purple-600">
                     {stats?.totalServices
                       ? formatCurrency((stats.totalRevenue / 100) / stats.totalServices)
                       : '0.00'}
                   </p>
-                  <p className="mt-2 text-sm text-muted-foreground">元</p>
+                  <p className="mt-1 sm:mt-2 text-sm text-muted-foreground">元</p>
                 </div>
 
-                <div className="rounded-xl border bg-card p-6">
+                <div className="rounded-xl border bg-card p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <Users className="h-5 w-5 text-amber-600" />
                     <span className="text-xs text-muted-foreground">服务类型</span>
                   </div>
-                  <p className="mt-4 text-3xl font-bold text-amber-600">
+                  <p className="mt-3 sm:mt-4 text-2xl sm:text-3xl font-bold text-amber-600">
                     {stats?.serviceTypeDistribution.length || 0}
                   </p>
-                  <p className="mt-2 text-sm text-muted-foreground">种</p>
+                  <p className="mt-1 sm:mt-2 text-sm text-muted-foreground">种</p>
                 </div>
               </div>
 
@@ -398,7 +398,7 @@ export default function StaffAnalyticsPage() {
                   </p>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full min-w-[600px] text-sm">
                     <thead>
                       <tr className="border-b bg-muted/50">
                         <th className="py-4 px-6 text-left font-medium">订单号</th>

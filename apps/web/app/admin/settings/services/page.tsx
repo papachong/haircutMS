@@ -256,9 +256,9 @@ export default function ServiceItemsPage() {
           ))}
         </div>
 
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
           <div>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-xl sm:text-2xl font-bold">
               {selectedCategory ? selectedCategory.name : "服务项目"}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
@@ -330,33 +330,35 @@ export default function ServiceItemsPage() {
                 onDragStart={(e) => handleDragStart(e, item.id)}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, item.id)}
-                className={`flex items-center gap-4 p-4 bg-card border rounded-lg transition-colors group ${
+                className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 bg-card border rounded-lg transition-colors group ${
                   !item.isActive ? "opacity-60" : "hover:border-primary/50"
                 }`}
               >
-                <GripVertical className="h-5 w-5 text-muted-foreground cursor-move shrink-0" />
-                {item.image ? (
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-14 h-14 md:w-16 md:h-16 object-cover rounded-md shrink-0"
-                  />
-                ) : (
-                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-md bg-accent flex items-center justify-center text-muted-foreground text-xs shrink-0">
-                    暂无图
-                  </div>
-                )}
-                <div className="flex-1">
-                  <div className="font-medium">{item.name}</div>
-                  <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                    <span>时长: {item.duration}分钟</span>
-                    <span>价格: ¥{(item.price / 100).toFixed(2)}</span>
-                    {!item.isActive && (
-                      <span className="text-destructive">已下架</span>
-                    )}
+                <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                  <GripVertical className="h-5 w-5 text-muted-foreground cursor-move shrink-0 hidden sm:block" />
+                  {item.image ? (
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 object-cover rounded-md shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-md bg-accent flex items-center justify-center text-muted-foreground text-xs shrink-0">
+                      暂无图
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{item.name}</div>
+                    <div className="flex items-center gap-3 sm:gap-4 mt-1 text-sm text-muted-foreground">
+                      <span>时长: {item.duration}分钟</span>
+                      <span>价格: ¥{(item.price / 100).toFixed(2)}</span>
+                      {!item.isActive && (
+                        <span className="text-destructive">已下架</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 sm:shrink-0 self-end sm:self-center">
                   <button
                     type="button"
                     onClick={() => handleToggle(item.id)}
@@ -397,8 +399,8 @@ export default function ServiceItemsPage() {
 
         {/* Create/Edit Dialog */}
         {showCreateDialog && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-card p-6 rounded-lg shadow-lg w-full max-w-md">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-card p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
               <h2 className="text-lg font-bold mb-4">
                 {editingId ? "编辑服务项目" : "新增服务项目"}
               </h2>

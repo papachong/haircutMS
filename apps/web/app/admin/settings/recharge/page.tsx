@@ -233,10 +233,10 @@ export default function RechargePlansPage() {
   });
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">充值方案管理</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold">充值方案管理</h1>
           <p className="text-sm text-muted-foreground mt-1">
             管理充值方案、充赠活动和限时优惠
           </p>
@@ -289,8 +289,10 @@ export default function RechargePlansPage() {
         {loading ? (
           <div className="p-8 text-center text-muted-foreground">加载中...</div>
         ) : filteredPlans.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <>
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full min-w-[640px]">
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-3 px-4 font-medium">方案名称</th>
@@ -400,6 +402,86 @@ export default function RechargePlansPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden divide-y">
+            {filteredPlans.map((plan) => {
+              const status = getPlanStatus(plan);
+              return (
+                <div
+                  key={plan.id}
+                  className={`p-4 space-y-3 ${!plan.isActive ? 'opacity-60' : ''}`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{plan.name}</div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          {plan.type === 'TIMED' && <Clock className="h-3 w-3" />}
+                          {plan.type === 'GIFT' && <Gift className="h-3 w-3" />}
+                          {RECHARGE_PLAN_TYPE_LABELS[plan.type]}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusBgColor(status.variant)}`}>
+                          {status.label}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground text-xs">充值金额</span>
+                      <div>{formatCurrency(plan.amount)}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">赠送金额</span>
+                      <div>
+                        {plan.giftAmount > 0 ? (
+                          <span className="text-orange-600 dark:text-orange-400 font-medium">
+                            +{formatCurrency(plan.giftAmount)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <span className="text-xs text-muted-foreground">
+                      {plan.startsAt || plan.endsAt
+                        ? `${new Date(plan.startsAt).toLocaleDateString('zh-CN')} - ${new Date(plan.endsAt).toLocaleDateString('zh-CN')}`
+                        : '永久有效'}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleToggle(plan.id)}
+                        disabled={togglingId === plan.id}
+                        className="p-2 rounded-md hover:bg-accent min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        title={plan.isActive ? '下架' : '上架'}
+                      >
+                        {plan.isActive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                      </button>
+                      <button
+                        onClick={() => openModal(plan)}
+                        className="p-2 rounded-md hover:bg-accent min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        title="编辑"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(plan.id)}
+                        disabled={deletingId === plan.id}
+                        className="p-2 rounded-md hover:bg-destructive/10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        title="删除"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
         ) : (
           <div className="p-8 text-center text-muted-foreground">
             {filter === 'inactive' ? '暂无已下架的方案' : '暂无充值方案，点击上方按钮创建'}
@@ -410,7 +492,7 @@ export default function RechargePlansPage() {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-lg p-6 max-w-lg w-full shadow-lg">
+          <div className="bg-card rounded-lg p-4 sm:p-6 max-w-lg w-full shadow-lg max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold">
                 {editingPlan ? '编辑充值方案' : '新增充值方案'}

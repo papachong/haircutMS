@@ -250,9 +250,10 @@ export default function StaffStatsPage() {
             )}
           </div>
 
-          {/* Staff ranking table */}
-          <div className="overflow-hidden rounded-xl border bg-card">
-            <table className="w-full">
+          {/* Staff ranking table - Desktop */}
+          <div className="hidden md:block overflow-hidden rounded-xl border bg-card">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[600px]">
               <thead className="bg-muted/50">
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-medium">排名</th>
@@ -318,6 +319,66 @@ export default function StaffStatsPage() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+
+          {/* Staff ranking cards - Mobile */}
+          <div className="md:hidden rounded-xl border bg-card divide-y">
+            {stats.length === 0 ? (
+              <div className="py-12 text-center text-sm text-muted-foreground">暂无统计数据</div>
+            ) : (
+              stats.map((staff, i) => {
+                const averageTicket =
+                  staff.totalServices > 0
+                    ? staff.totalRevenue / staff.totalServices / 100
+                    : 0;
+                return (
+                  <button
+                    key={staff.staffId}
+                    type="button"
+                    onClick={() => openStaffDetail(staff)}
+                    className="w-full p-4 text-left hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                            i === 0
+                              ? 'bg-yellow-500 text-white'
+                              : i === 1
+                              ? 'bg-gray-400 text-white'
+                              : i === 2
+                              ? 'bg-orange-400 text-white'
+                              : 'bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          {i + 1}
+                        </span>
+                        <span className="font-medium text-sm">{staff.staffName}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {roleLabels[staff.staffRole] || staff.staffRole}
+                        </span>
+                      </div>
+                      <span className="text-xs text-primary">详情</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-sm">
+                      <div>
+                        <span className="text-xs text-muted-foreground">服务次数</span>
+                        <div className="font-medium">{staff.totalServices}</div>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">营收</span>
+                        <div className="font-medium">¥{formatCurrency(staff.totalRevenue)}</div>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">客单价</span>
+                        <div className="font-medium">¥{averageTicket.toFixed(2)}</div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            )}
           </div>
         </>
       )}

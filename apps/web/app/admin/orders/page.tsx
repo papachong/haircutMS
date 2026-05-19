@@ -196,12 +196,12 @@ export default function OrdersPage() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">订单管理</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">订单管理</h1>
         <button
           type="button"
           onClick={handleExport}
           disabled={exporting || loading || orders.length === 0}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px]"
         >
           <Download className="h-4 w-4" />
           <span>{exporting ? '导出中...' : '导出Excel'}</span>
@@ -209,8 +209,8 @@ export default function OrdersPage() {
       </div>
 
       {/* Search Bar */}
-      <div className="flex gap-3">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-wrap gap-2 sm:gap-3">
+        <div className="relative flex-1 min-w-[160px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
@@ -223,17 +223,17 @@ export default function OrdersPage() {
         <button
           type="button"
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-accent transition-colors"
+          className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 border rounded-md hover:bg-accent transition-colors min-h-[44px]"
         >
           <Filter className="h-4 w-4" />
-          <span>筛选</span>
+          <span className="hidden sm:inline">筛选</span>
           <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
         </button>
         {hasActiveFilters() && (
           <button
             type="button"
             onClick={clearFilters}
-            className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="px-3 sm:px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
           >
             清除筛选
           </button>
@@ -293,26 +293,26 @@ export default function OrdersPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-card border rounded-lg p-4">
-          <div className="text-sm text-muted-foreground">订单总数</div>
-          <div className="text-2xl font-bold mt-1">{total}</div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-card border rounded-lg p-3 sm:p-4">
+          <div className="text-xs sm:text-sm text-muted-foreground">订单总数</div>
+          <div className="text-xl sm:text-2xl font-bold mt-1">{total}</div>
         </div>
-        <div className="bg-card border rounded-lg p-4">
-          <div className="text-sm text-muted-foreground">今日订单</div>
-          <div className="text-2xl font-bold mt-1">
+        <div className="bg-card border rounded-lg p-3 sm:p-4">
+          <div className="text-xs sm:text-sm text-muted-foreground">今日订单</div>
+          <div className="text-xl sm:text-2xl font-bold mt-1">
             {getTodayOrderCount()}
           </div>
         </div>
-        <div className="bg-card border rounded-lg p-4">
-          <div className="text-sm text-muted-foreground">待结算</div>
-          <div className="text-2xl font-bold mt-1 text-amber-600">
+        <div className="bg-card border rounded-lg p-3 sm:p-4">
+          <div className="text-xs sm:text-sm text-muted-foreground">待结算</div>
+          <div className="text-xl sm:text-2xl font-bold mt-1 text-amber-600">
             {orders.filter((o) => o.status === 'PENDING').length}
           </div>
         </div>
-        <div className="bg-card border rounded-lg p-4">
-          <div className="text-sm text-muted-foreground">今日营收</div>
-          <div className="text-2xl font-bold mt-1 text-green-600">
+        <div className="bg-card border rounded-lg p-3 sm:p-4">
+          <div className="text-xs sm:text-sm text-muted-foreground">今日营收</div>
+          <div className="text-xl sm:text-2xl font-bold mt-1 text-green-600">
             {formatCurrency(getTodayRevenue())}
           </div>
         </div>
