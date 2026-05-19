@@ -45,6 +45,11 @@ export class RechargePlanController {
     return this.rechargePlanService.update(id, shopId, dto);
   }
 
+  @Patch(':id/toggle')
+  async toggle(@Param('id') id: string, @CurrentShop() shopId: string) {
+    return this.rechargePlanService.toggle(id, shopId);
+  }
+
   @Delete(':id')
   async remove(@Param('id') id: string, @CurrentShop() shopId: string) {
     return this.rechargePlanService.remove(id, shopId);
