@@ -172,16 +172,33 @@ export async function createOrder(order: OrderInput): Promise<Order> {
 export async function getOrders(params?: {
   memberId?: string;
   status?: string;
+  keyword?: string;
+  startDate?: string;
+  endDate?: string;
   page?: number;
   pageSize?: number;
 }): Promise<{ items: Order[]; pagination: { total: number; page: number; pageSize: number; hasMore: boolean } }> {
   const query = new URLSearchParams();
   if (params?.memberId) query.append('memberId', params.memberId);
   if (params?.status) query.append('status', params.status);
+  if (params?.keyword) query.append('keyword', params.keyword);
+  if (params?.startDate) query.append('startDate', params.startDate);
+  if (params?.endDate) query.append('endDate', params.endDate);
   if (params?.page) query.append('page', String(params.page));
   if (params?.pageSize) query.append('pageSize', String(params.pageSize));
   const path = `/orders${query.toString() ? `?${query.toString()}` : ''}`;
   const res = await apiFetch<{ code: number; data: { items: Order[]; pagination: { total: number; page: number; pageSize: number; hasMore: boolean } } }>(path);
+  return res.data;
+}
+
+export interface OrderStats {
+  todayOrderCount: number;
+  todayRevenue: number;
+  pendingCount: number;
+}
+
+export async function getOrderStats(): Promise<OrderStats> {
+  const res = await apiFetch<{ code: number; data: OrderStats }>('/orders/stats');
   return res.data;
 }
 

@@ -18,56 +18,14 @@ export class OrderController {
     return this.orderService.findAll(shopId, query);
   }
 
+  @Get('stats')
+  async getStats(@CurrentShop() shopId: string) {
+    return this.orderService.getStats(shopId);
+  }
+
   @Get('pending')
   async getPendingOrders(@CurrentShop() shopId: string) {
     return this.orderService.getPendingOrders(shopId);
-  }
-
-  @Get(':id')
-  async findById(
-    @Param('id') id: string,
-    @CurrentShop() shopId: string,
-  ) {
-    return this.orderService.findById(id, shopId);
-  }
-
-  @Post()
-  async create(
-    @CurrentShop() shopId: string,
-    @Body() body: CreateOrderDto,
-  ) {
-    return this.orderService.create(shopId, body);
-  }
-
-  @Post(':id/settle')
-  async settle(
-    @Param('id') id: string,
-    @CurrentShop() shopId: string,
-    @CurrentUser('staffId') operatorId: string,
-    @Req() req: Request,
-    @Body() body: SettleOrderDto,
-  ) {
-    return this.orderService.settle(id, shopId, body, operatorId, req.ip);
-  }
-
-  @Post(':id/cancel')
-  async cancel(
-    @Param('id') id: string,
-    @CurrentShop() shopId: string,
-    @CurrentUser('staffId') operatorId: string,
-    @Req() req: Request,
-    @Body() body?: { reason?: string },
-  ) {
-    return this.orderService.cancel(id, shopId, body?.reason, operatorId, req.ip);
-  }
-
-  @Patch(':id')
-  async update(
-    @Param('id') id: string,
-    @CurrentShop() shopId: string,
-    @Body() body: UpdateOrderDto,
-  ) {
-    return this.orderService.update(id, shopId, body);
   }
 
   @Get('export')
@@ -120,5 +78,52 @@ export class OrderController {
     res.setHeader('Content-Length', buffer.length);
 
     res.status(HttpStatus.OK).send(buffer);
+  }
+
+  @Get(':id')
+  async findById(
+    @Param('id') id: string,
+    @CurrentShop() shopId: string,
+  ) {
+    return this.orderService.findById(id, shopId);
+  }
+
+  @Post()
+  async create(
+    @CurrentShop() shopId: string,
+    @Body() body: CreateOrderDto,
+  ) {
+    return this.orderService.create(shopId, body);
+  }
+
+  @Post(':id/settle')
+  async settle(
+    @Param('id') id: string,
+    @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
+    @Body() body: SettleOrderDto,
+  ) {
+    return this.orderService.settle(id, shopId, body, operatorId, req.ip);
+  }
+
+  @Post(':id/cancel')
+  async cancel(
+    @Param('id') id: string,
+    @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
+    @Body() body?: { reason?: string },
+  ) {
+    return this.orderService.cancel(id, shopId, body?.reason, operatorId, req.ip);
+  }
+
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @CurrentShop() shopId: string,
+    @Body() body: UpdateOrderDto,
+  ) {
+    return this.orderService.update(id, shopId, body);
   }
 }
