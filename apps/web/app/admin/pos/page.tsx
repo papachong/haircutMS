@@ -1189,7 +1189,7 @@ function PendingOrdersPanel({
       <div className="flex-1 bg-black/30" onClick={onClose} />
 
       {/* Panel */}
-      <div className="w-96 bg-card border-l flex flex-col shadow-xl">
+      <div className="w-full sm:w-96 bg-card border-l flex flex-col shadow-xl">
         <div className="p-4 border-b flex items-center justify-between">
           <h2 className="font-semibold text-sm">挂单列表</h2>
           <div className="flex items-center gap-2">

@@ -4,45 +4,45 @@ export default function PlatformDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">平台仪表盘</h1>
-        <p className="text-slate-600 mt-1">欢迎回到平台管理系统</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900">平台仪表盘</h1>
+        <p className="text-xs sm:text-sm text-slate-600 mt-1">欢迎回到平台管理系统</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
+      <div className="grid gap-3 sm:gap-6 grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
+        <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600">总店铺数</p>
-              <p className="text-2xl font-bold text-slate-900 mt-2">0</p>
+              <p className="text-xs sm:text-sm font-medium text-slate-600">总店铺数</p>
+              <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-2">0</p>
             </div>
-            <div className="text-3xl">🏪</div>
+            <div className="text-2xl sm:text-3xl">🏪</div>
           </div>
         </div>
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
+        <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600">活跃店铺</p>
-              <p className="text-2xl font-bold text-slate-900 mt-2">0</p>
+              <p className="text-xs sm:text-sm font-medium text-slate-600">活跃店铺</p>
+              <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-2">0</p>
             </div>
-            <div className="text-3xl">✅</div>
+            <div className="text-2xl sm:text-3xl">✅</div>
           </div>
         </div>
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
+        <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600">总会员数</p>
-              <p className="text-2xl font-bold text-slate-900 mt-2">0</p>
+              <p className="text-xs sm:text-sm font-medium text-slate-600">总会员数</p>
+              <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-2">0</p>
             </div>
-            <div className="text-3xl">👥</div>
+            <div className="text-2xl sm:text-3xl">👥</div>
           </div>
         </div>
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
+        <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600">总订单数</p>
-              <p className="text-2xl font-bold text-slate-900 mt-2">0</p>
+              <p className="text-xs sm:text-sm font-medium text-slate-600">总订单数</p>
+              <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-2">0</p>
             </div>
-            <div className="text-3xl">📋</div>
+            <div className="text-2xl sm:text-3xl">📋</div>
           </div>
         </div>
       </div>

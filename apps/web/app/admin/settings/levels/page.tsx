@@ -179,10 +179,10 @@ export default function MemberLevelsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">会员等级管理</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold">会员等级管理</h1>
           <p className="text-sm text-muted-foreground mt-1">
             管理会员等级、折扣比例和排序。拖拽行可调整顺序，排序第一的等级为新会员默认等级。
           </p>
@@ -207,8 +207,10 @@ export default function MemberLevelsPage() {
         {loading ? (
           <div className="p-8 text-center text-muted-foreground">加载中...</div>
         ) : levels.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <>
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
               <thead>
                 <tr className="border-b">
                   <th className="py-3 px-2 w-10"></th>
@@ -290,6 +292,60 @@ export default function MemberLevelsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden divide-y">
+            {levels.map((level, index) => (
+              <div
+                key={level.id}
+                className={`p-4 space-y-3 ${index === 0 ? 'bg-primary/5' : ''}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{level.name}</span>
+                    {index === 0 && (
+                      <span className="px-1.5 py-0.5 text-xs rounded bg-primary/10 text-primary font-medium">
+                        默认
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => openModal(level)}
+                      className="p-2 rounded-md hover:bg-accent min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      title="编辑"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(level)}
+                      disabled={deletingId === level.id}
+                      className="p-2 rounded-md hover:bg-destructive/10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      title="删除"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground text-xs">折扣</span>
+                    <div className={level.discount < 1.0 ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-muted-foreground'}>
+                      {formatDiscount(Number(level.discount))}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">关联会员</span>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Users className="h-3.5 w-3.5" />
+                      <span>{level.memberCount}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
         ) : (
           <div className="p-8 text-center text-muted-foreground">
             暂无会员等级，点击上方按钮创建第一个等级

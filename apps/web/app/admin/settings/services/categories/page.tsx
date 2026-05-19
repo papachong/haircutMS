@@ -124,10 +124,10 @@ export default function ServiceCategoriesPage() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
         <div>
-          <h1 className="text-2xl font-bold">服务分类</h1>
+          <h1 className="text-xl sm:text-2xl font-bold">服务分类</h1>
           <p className="text-sm text-muted-foreground mt-1">
             管理服务项目分类，支持拖拽排序
           </p>
@@ -166,15 +166,15 @@ export default function ServiceCategoriesPage() {
               onDragStart={(e) => handleDragStart(e, category.id)}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, category.id)}
-              className="flex items-center gap-3 p-4 bg-card border rounded-lg hover:border-primary/50 transition-colors group"
+              className="flex items-center gap-3 p-3 sm:p-4 bg-card border rounded-lg hover:border-primary/50 transition-colors group"
             >
-              <GripVertical className="h-5 w-5 text-muted-foreground cursor-move" />
-              <span className="text-sm text-muted-foreground w-6">
+              <GripVertical className="h-5 w-5 text-muted-foreground cursor-move hidden sm:block" />
+              <span className="text-sm text-muted-foreground w-6 hidden sm:inline">
                 #{category.sortOrder + 1}
               </span>
 
               {editingId === category.id ? (
-                <div className="flex-1 flex items-center gap-2">
+                <div className="flex-1 flex flex-wrap items-center gap-2">
                   <input
                     type="text"
                     value={editingName}
@@ -182,7 +182,7 @@ export default function ServiceCategoriesPage() {
                     onKeyDown={(e) =>
                       e.key === "Enter" && handleEdit(category.id)
                     }
-                    className="flex-1 px-3 py-2 border rounded-md"
+                    className="flex-1 min-w-[120px] px-3 py-2 border rounded-md"
                     autoFocus
                   />
                   <button
@@ -202,8 +202,8 @@ export default function ServiceCategoriesPage() {
                 </div>
               ) : (
                 <>
-                  <span className="flex-1 font-medium">{category.name}</span>
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="flex-1 font-medium truncate">{category.name}</span>
+                  <div className="flex items-center gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       type="button"
                       onClick={() => startEdit(category)}
@@ -229,8 +229,8 @@ export default function ServiceCategoriesPage() {
       )}
 
       {showCreateDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card p-6 rounded-lg shadow-lg w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-md">
             <h2 className="text-lg font-bold mb-4">新增服务分类</h2>
             <input
               type="text"

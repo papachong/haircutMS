@@ -156,9 +156,9 @@ export default function CouponTemplatesPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">优惠券管理</h1>
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold">优惠券管理</h1>
         <button
           onClick={() => {
             setSelectedTemplate(null);
@@ -171,7 +171,7 @@ export default function CouponTemplatesPage() {
         </button>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4">
         <select
           value={filters.type || ''}
           onChange={(e) => updateFilter('type', e.target.value || undefined)}
@@ -324,8 +324,8 @@ export default function CouponTemplatesPage() {
 
       {/* Create/Edit Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-lg">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-card p-4 sm:p-6 shadow-lg max-h-[90vh] overflow-y-auto">
             <h2 className="mb-4 text-lg font-semibold">
               {selectedTemplate ? '编辑优惠券' : '创建优惠券'}
             </h2>
@@ -568,8 +568,8 @@ function IssueCouponModal({ template, onClose, onSuccess }: IssueCouponModalProp
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-lg rounded-xl bg-card p-6 shadow-lg max-h-[85vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-lg rounded-xl bg-card p-4 sm:p-6 shadow-lg max-h-[85vh] overflow-y-auto">
         <h2 className="mb-4 text-lg font-semibold">发放优惠券</h2>
 
         {/* Template summary */}

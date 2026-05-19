@@ -285,7 +285,7 @@ export default function SettlementDialog({
                 type="number"
                 value={(payments.balanceAmount / 100).toFixed(2)}
                 onChange={(e) => handleBalanceChange(Math.round(Number(e.target.value) * 100))}
-                className="w-24 px-2 py-1 border rounded text-right"
+                className="w-20 sm:w-24 px-2 py-1.5 border rounded text-right min-h-[44px]"
                 step={0.01}
                 min={0}
                 max={totalBalance / 100}
