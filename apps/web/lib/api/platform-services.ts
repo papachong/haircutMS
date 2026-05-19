@@ -88,6 +88,19 @@ export async function getPlatformProfile() {
 export type LicensePlan = 'FREE' | 'PRO' | 'ENTERPRISE';
 export type LicenseStatus = 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED';
 
+export interface PlanDefaults {
+  plans: Array<{
+    plan: string;
+    staffLimit: number;
+    membersLimit: number;
+    modules: string[];
+  }>;
+  availableModules: Array<{
+    id: string;
+    name: string;
+  }>;
+}
+
 export interface LicenseListItem {
   id: string;
   shopId: string;
@@ -106,6 +119,11 @@ export interface LicenseListItem {
   createdAt: string;
 }
 
+export interface LicenseUsage {
+  currentStaffCount: number;
+  currentMembersCount: number;
+}
+
 export interface LicenseDetail extends LicenseListItem {
   shop: {
     id: string;
@@ -116,6 +134,7 @@ export interface LicenseDetail extends LicenseListItem {
   signature: string;
   features: Record<string, unknown>;
   updatedAt: string;
+  usage: LicenseUsage;
 }
 
 export interface CreateLicenseDto {
@@ -195,6 +214,11 @@ export async function renewLicense(id: string, data: RenewLicenseDto): Promise<L
 
 export async function getExpiringShops(): Promise<ExpiringShopItem[]> {
   const result = await platformApiFetch<ExpiringShopItem[]>('/licenses/expiring/list');
+  return result.data;
+}
+
+export async function getPlanDefaults(): Promise<PlanDefaults> {
+  const result = await platformApiFetch<PlanDefaults>('/licenses/plan-defaults');
   return result.data;
 }
 

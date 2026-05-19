@@ -145,6 +145,12 @@ export class PlatformLicenseService {
       status = 'EXPIRING_SOON';
     }
 
+    // Fetch usage stats for this shop
+    const [currentStaffCount, currentMembersCount] = await Promise.all([
+      this.prisma.staff.count({ where: { shopId: license.shopId, isActive: true } }),
+      this.prisma.member.count({ where: { shopId: license.shopId, isActive: true } }),
+    ]);
+
     return {
       id: license.id,
       shopId: license.shopId,
@@ -165,6 +171,10 @@ export class PlatformLicenseService {
       signature: license.signature,
       features: license.features as Record<string, unknown>,
       updatedAt: license.updatedAt,
+      usage: {
+        currentStaffCount,
+        currentMembersCount,
+      },
     };
   }
 
