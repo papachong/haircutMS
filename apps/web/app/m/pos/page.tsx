@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   getServiceItems,
@@ -18,6 +18,7 @@ import {
   type PassCard,
 } from '../../../lib/api/orders';
 import SettlementDialog from '../../../components/SettlementDialog';
+import { useDebounce } from '../../../hooks/use-debounce';
 
 interface CartItem extends OrderItemInput {
   serviceItem: ServiceItem;
@@ -41,6 +42,12 @@ const STEPS: Array<{ value: Step; label: string; icon: string }> = [
   { value: 'services', label: '项目', icon: '2' },
   { value: 'confirm', label: '确认', icon: '3' },
 ];
+
+function haptic(pattern: number | number[] = 10) {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    navigator.vibrate(pattern);
+  }
+}
 
 export default function MobilePOSPage() {
   const router = useRouter();
@@ -67,6 +74,9 @@ export default function MobilePOSPage() {
   // Resume order from holds
   const resumeOrderId = searchParams.get('resume');
 
+  // Debounced member search
+  const debouncedSearch = useDebounce(memberSearch, 300);
+
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (!token) {
@@ -75,6 +85,15 @@ export default function MobilePOSPage() {
     }
     loadData();
   }, [router]);
+
+  // Perform search when debounced value changes
+  useEffect(() => {
+    if (debouncedSearch.length >= 2) {
+      performMemberSearch(debouncedSearch);
+    } else {
+      setMemberResults([]);
+    }
+  }, [debouncedSearch]);
 
   // Resume order if coming from holds page
   useEffect(() => {
@@ -121,6 +140,16 @@ export default function MobilePOSPage() {
     }
   };
 
+  const performMemberSearch = async (value: string) => {
+    setIsSearching(true);
+    try {
+      const results = await searchMembers(value);
+      setMemberResults(results);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const resumeOrder = async (orderId: string) => {
     try {
       const order = await getOrderById(orderId);
@@ -130,7 +159,6 @@ export default function MobilePOSPage() {
         return;
       }
 
-      // Reconstruct member
       const member: Member = {
         id: order.member.id,
         name: order.member.name,
@@ -147,7 +175,6 @@ export default function MobilePOSPage() {
       setSelectedMember(member);
       await loadMemberPassCards(member.id);
 
-      // Reconstruct cart from order items
       const newCart: CartItem[] = order.items.map((item) => ({
         serviceItemId: item.serviceItem.id,
         staffId: item.staff.id,
@@ -187,22 +214,12 @@ export default function MobilePOSPage() {
     }
   };
 
-  const handleMemberSearch = useCallback(async (value: string) => {
+  const handleMemberSearch = useCallback((value: string) => {
     setMemberSearch(value);
-    if (value.length >= 2) {
-      setIsSearching(true);
-      try {
-        const results = await searchMembers(value);
-        setMemberResults(results);
-      } finally {
-        setIsSearching(false);
-      }
-    } else {
-      setMemberResults([]);
-    }
   }, []);
 
   const selectMember = async (member: Member) => {
+    haptic(15);
     setSelectedMember(member);
     setMemberSearch('');
     setMemberResults([]);
@@ -211,6 +228,7 @@ export default function MobilePOSPage() {
   };
 
   const toggleCategory = (categoryId: string) => {
+    haptic(5);
     setExpandedCategories((prev) => ({
       ...prev,
       [categoryId]: !prev[categoryId],
@@ -218,6 +236,7 @@ export default function MobilePOSPage() {
   };
 
   const addToCart = (serviceItem: ServiceItem) => {
+    haptic(10);
     const defaultStaff = staff[0];
     if (!defaultStaff) {
       return;
@@ -264,6 +283,7 @@ export default function MobilePOSPage() {
   };
 
   const updateCartItemStaff = (index: number, staffId: string) => {
+    haptic(5);
     const newStaff = staff.find((s) => s.id === staffId);
     if (!newStaff) return;
 
@@ -275,6 +295,7 @@ export default function MobilePOSPage() {
   };
 
   const updateCartItemQuantity = (index: number, delta: number) => {
+    haptic(5);
     setCart(
       (prev) =>
         prev
@@ -295,6 +316,7 @@ export default function MobilePOSPage() {
   };
 
   const removeFromCart = (index: number) => {
+    haptic([10, 30, 10]);
     setCart((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -330,13 +352,16 @@ export default function MobilePOSPage() {
       });
 
       if (status === 'PENDING') {
+        haptic([10, 50, 20]);
         alert(`挂单成功\n订单号: ${order.orderNo}`);
         clearCart();
       } else {
+        haptic([10, 50, 20]);
         setCreatedOrderId(order.id);
         setShowSettlementDialog(true);
       }
     } catch (error: unknown) {
+      haptic([50, 30, 50]);
       alert(`创建订单失败: ${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
       setLoading(false);
@@ -344,6 +369,7 @@ export default function MobilePOSPage() {
   };
 
   const handleSettleSuccess = () => {
+    haptic([10, 50, 20]);
     clearCart();
     setShowSettlementDialog(false);
     alert('结算成功！');
@@ -355,6 +381,12 @@ export default function MobilePOSPage() {
   const currentStepIndex = STEPS.findIndex((s) => s.value === step);
   const cartItemCount = cart.reduce((sum, i) => sum + i.quantity, 0);
 
+  // Compute frequently-used services (top 4 by cart frequency)
+  const frequentServices = useMemo(() => {
+    if (services.length === 0) return [];
+    return services.slice(0, 6);
+  }, [services]);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-safe-bottom">
       {/* Step indicator */}
@@ -363,8 +395,12 @@ export default function MobilePOSPage() {
           {/* Holds link */}
           <button
             type="button"
-            onClick={() => router.push('/m/pos-holds')}
-            className="relative w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300"
+            onClick={() => {
+              haptic(5);
+              router.push('/m/pos-holds');
+            }}
+            className="relative w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95 transition-transform"
+            aria-label="View held orders"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8" />
@@ -406,7 +442,7 @@ export default function MobilePOSPage() {
           </div>
 
           {/* Cart badge */}
-          <div className="relative w-9 h-9 flex items-center justify-center">
+          <div className="relative w-10 h-10 flex items-center justify-center">
             {cartItemCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
                 {cartItemCount}
@@ -462,7 +498,7 @@ export default function MobilePOSPage() {
               value={memberSearch}
               onChange={(e) => handleMemberSearch(e.target.value)}
               placeholder="搜索会员..."
-              className="w-full px-4 py-3.5 pl-12 text-base bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all dark:text-white"
+              className="w-full px-4 py-3.5 pl-12 text-base bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all dark:text-white min-h-[48px]"
               autoFocus
             />
             {memberSearch && (
@@ -472,12 +508,17 @@ export default function MobilePOSPage() {
                   setMemberSearch('');
                   setMemberResults([]);
                 }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500"
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 active:scale-90 transition-transform"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
+            )}
+            {isSearching && memberSearch.length >= 2 && (
+              <div className="absolute right-12 top-1/2 -translate-y-1/2">
+                <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              </div>
             )}
           </div>
 
@@ -508,7 +549,7 @@ export default function MobilePOSPage() {
                   key={member.id}
                   type="button"
                   onClick={() => selectMember(member)}
-                  className="w-full p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 text-left active:scale-[0.98] transition-all hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg"
+                  className="w-full p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 text-left active:scale-[0.98] transition-all hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg min-h-[44px]"
                 >
                   <div className="flex items-center gap-3 sm:gap-4">
                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-lg sm:text-xl font-bold shadow-md shrink-0">
@@ -541,7 +582,7 @@ export default function MobilePOSPage() {
                         </span>
                       </div>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-500 shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-500 shrink-0">
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                       </svg>
@@ -570,8 +611,12 @@ export default function MobilePOSPage() {
             <div className="flex items-center px-4 py-3">
               <button
                 type="button"
-                onClick={() => setStep('member')}
-                className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-600 transition-colors"
+                onClick={() => {
+                  haptic(5);
+                  setStep('member');
+                }}
+                className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95 transition-transform"
+                aria-label="Go back to member selection"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -590,12 +635,45 @@ export default function MobilePOSPage() {
               </div>
               {cart.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  <span className="bg-blue-500 text-white px-3 py-1.5 rounded-full text-sm font-medium">
                     {cartItemCount}项
                   </span>
                 </div>
               )}
             </div>
+
+            {/* Quick-add frequently used services */}
+            {frequentServices.length > 0 && (
+              <div className="px-4 pb-2">
+                <p className="text-xs text-slate-400 dark:text-slate-500 mb-1.5 font-medium">快速添加</p>
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
+                  {frequentServices.map((service) => {
+                    const qty = cart
+                      .filter((c) => c.serviceItemId === service.id)
+                      .reduce((s, c) => s + c.quantity, 0);
+                    return (
+                      <button
+                        key={service.id}
+                        type="button"
+                        onClick={() => addToCart(service)}
+                        className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap active:scale-95 transition-all min-h-[40px] ${
+                          qty > 0
+                            ? 'bg-blue-500 text-white shadow-md shadow-blue-500/20'
+                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                        }`}
+                      >
+                        {service.name}
+                        {qty > 0 && (
+                          <span className="ml-1.5 bg-white/20 px-1.5 py-0.5 rounded-md text-xs">
+                            x{qty}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Category toggle buttons */}
             <div className="px-4 pb-3">
@@ -603,20 +681,24 @@ export default function MobilePOSPage() {
                 <button
                   type="button"
                   onClick={() => {
+                    haptic(5);
                     const expanded: ExpandedCategories = {};
                     categories.forEach((cat) => {
                       expanded[cat.id] = true;
                     });
                     setExpandedCategories(expanded);
                   }}
-                  className="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap bg-blue-500 text-white shadow-md shadow-blue-500/30"
+                  className="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap bg-blue-500 text-white shadow-md shadow-blue-500/30 min-h-[40px] active:scale-95 transition-all"
                 >
                   全部展开
                 </button>
                 <button
                   type="button"
-                  onClick={() => setExpandedCategories({})}
-                  className="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                  onClick={() => {
+                    haptic(5);
+                    setExpandedCategories({});
+                  }}
+                  className="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 min-h-[40px] active:scale-95 transition-all"
                 >
                   全部折叠
                 </button>
@@ -640,7 +722,7 @@ export default function MobilePOSPage() {
                   <button
                     type="button"
                     onClick={() => toggleCategory(category.id)}
-                    className="w-full p-3 sm:p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between active:bg-slate-50 dark:active:bg-slate-750 transition-colors shadow-sm"
+                    className="w-full p-3 sm:p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between active:bg-slate-50 dark:active:bg-slate-750 transition-colors shadow-sm min-h-[44px]"
                   >
                     <div className="flex items-center gap-2 sm:gap-3">
                       <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold shadow-md shrink-0">
@@ -682,7 +764,7 @@ export default function MobilePOSPage() {
                             key={service.id}
                             type="button"
                             onClick={() => addToCart(service)}
-                            className="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-4 text-left border border-slate-200 dark:border-slate-700 active:scale-[0.98] transition-all hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg group relative overflow-hidden"
+                            className="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-4 text-left border border-slate-200 dark:border-slate-700 active:scale-[0.98] transition-all hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg group relative overflow-hidden min-h-[44px]"
                           >
                             {qty > 0 && (
                               <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
@@ -733,8 +815,11 @@ export default function MobilePOSPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setStep('confirm')}
-                  className="flex-1 py-3.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl font-bold text-base shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  onClick={() => {
+                    haptic(10);
+                    setStep('confirm');
+                  }}
+                  className="flex-1 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl font-bold text-base shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 min-h-[48px]"
                 >
                   下一步
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -754,8 +839,12 @@ export default function MobilePOSPage() {
           <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
             <button
               type="button"
-              onClick={() => setStep('services')}
-              className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-600 transition-colors"
+              onClick={() => {
+                haptic(5);
+                setStep('services');
+              }}
+              className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95 transition-transform"
+              aria-label="Go back to services"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -816,7 +905,7 @@ export default function MobilePOSPage() {
                     <button
                       type="button"
                       onClick={() => removeFromCart(index)}
-                      className="text-red-500 text-xs px-2 py-1 rounded-full bg-red-50 dark:bg-red-900/20 active:bg-red-100 dark:active:bg-red-900/40 transition-colors shrink-0"
+                      className="text-red-500 text-xs px-3 py-1.5 rounded-full bg-red-50 dark:bg-red-900/20 active:bg-red-100 dark:active:bg-red-900/40 transition-colors shrink-0 min-h-[32px]"
                     >
                       删除
                     </button>
@@ -829,7 +918,7 @@ export default function MobilePOSPage() {
                     <select
                       value={item.staffId}
                       onChange={(e) => updateCartItemStaff(index, e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-white"
+                      className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-white min-h-[44px]"
                     >
                       {staff.map((s) => (
                         <option key={s.id} value={s.id}>
@@ -844,7 +933,7 @@ export default function MobilePOSPage() {
                       <button
                         type="button"
                         onClick={() => updateCartItemQuantity(index, -1)}
-                        className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-lg active:bg-slate-200 dark:active:bg-slate-600 transition-colors"
+                        className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-lg active:bg-slate-200 dark:active:bg-slate-600 transition-colors"
                       >
                         -
                       </button>
@@ -854,7 +943,7 @@ export default function MobilePOSPage() {
                       <button
                         type="button"
                         onClick={() => updateCartItemQuantity(index, 1)}
-                        className="w-9 h-9 rounded-xl bg-blue-500 flex items-center justify-center text-white font-bold text-lg active:bg-blue-600 transition-colors"
+                        className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white font-bold text-lg active:bg-blue-600 transition-colors"
                       >
                         +
                       </button>
@@ -912,7 +1001,7 @@ export default function MobilePOSPage() {
               type="button"
               onClick={() => handleCreateOrder('PENDING')}
               disabled={loading || cart.length === 0 || !selectedMember}
-              className="py-3.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl font-bold text-base disabled:opacity-50 disabled:cursor-not-allowed active:bg-slate-200 dark:active:bg-slate-600 transition-colors"
+              className="py-4 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl font-bold text-base disabled:opacity-50 disabled:cursor-not-allowed active:bg-slate-200 dark:active:bg-slate-600 transition-colors min-h-[48px]"
             >
               {loading ? '处理中...' : '挂单'}
             </button>
@@ -920,7 +1009,7 @@ export default function MobilePOSPage() {
               type="button"
               onClick={() => handleCreateOrder('SETTLED')}
               disabled={loading || cart.length === 0 || !selectedMember}
-              className="py-3.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl font-bold text-base shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
+              className="py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl font-bold text-base shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all min-h-[48px]"
             >
               {loading ? '处理中...' : '结算'}
             </button>

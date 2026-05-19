@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import {
@@ -12,7 +12,6 @@ import {
   ShoppingCart,
   TrendingUp,
   Gift,
-  RefreshCw,
   Edit,
   Wallet,
   History,
@@ -22,67 +21,12 @@ import {
 } from 'lucide-react';
 import { getMemberById, type Member } from '../../../../lib/api/members';
 import { rechargeMember, PayMethod, PAY_METHOD_LABELS } from '../../../../lib/api/recharge';
+import { usePullRefresh } from '../../../../hooks/use-pull-refresh';
+import PullRefreshIndicator from '../../../../components/mobile/pull-refresh-indicator';
 
 type TabType = 'info' | 'orders' | 'recharge';
 
 const AMOUNT_PRESETS = [50, 100, 200, 500, 1000];
-
-// Custom hook for pull-to-refresh
-function usePullToRefresh(onRefresh: () => Promise<void>) {
-  const [pulling, setPulling] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const startY = useRef(0);
-  const currentY = useRef(0);
-  const threshold = 80;
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const handleTouchStart = useCallback((e: TouchEvent) => {
-    if (containerRef.current?.scrollTop === 0) {
-      startY.current = e.touches[0].clientY;
-    }
-  }, []);
-
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (containerRef.current?.scrollTop === 0 && startY.current) {
-      currentY.current = e.touches[0].clientY;
-      const diff = currentY.current - startY.current;
-      if (diff > 0 && diff < 200) {
-        setPulling(diff > threshold);
-      }
-    }
-  }, [threshold]);
-
-  const handleTouchEnd = useCallback(async () => {
-    if (pulling && !refreshing) {
-      setRefreshing(true);
-      try {
-        await onRefresh();
-      } finally {
-        setRefreshing(false);
-        setPulling(false);
-      }
-    }
-    startY.current = 0;
-    currentY.current = 0;
-  }, [pulling, refreshing, onRefresh]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchmove', handleTouchMove, { passive: true });
-    container.addEventListener('touchend', handleTouchEnd);
-
-    return () => {
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-      container.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
-
-  return { containerRef, pulling, refreshing };
-}
 
 export default function MemberDetailPage() {
   const params = useParams();
@@ -94,7 +38,7 @@ export default function MemberDetailPage() {
   const [rechargeLoading, setRechargeLoading] = useState(false);
 
   // Pull-to-refresh
-  const { containerRef, pulling, refreshing } = usePullToRefresh(async () => {
+  const { containerRef, pulling, refreshing, pullDistance } = usePullRefresh(async () => {
     await loadMember();
   });
 
@@ -180,25 +124,18 @@ export default function MemberDetailPage() {
         style={{ height: '100vh', maxHeight: '100vh' }}
       >
         {/* Pull-to-refresh indicator */}
-        <div
-          className={`flex items-center justify-center py-4 transition-all ${
-            pulling || refreshing ? 'opacity-100' : 'opacity-0'
-          }`}
-        >
-          <RefreshCw
-            className={`h-6 w-6 text-primary ${refreshing ? 'animate-spin' : ''}`}
-          />
-          <span className="ml-2 text-sm text-muted-foreground">
-            {refreshing ? '刷新中...' : '下拉刷新'}
-          </span>
-        </div>
+        <PullRefreshIndicator
+          pulling={pulling}
+          refreshing={refreshing}
+          pullDistance={pullDistance}
+        />
 
         {/* Header */}
         <div className="sticky top-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 z-40">
           <div className="flex items-center px-4 py-3">
             <Link
               href="/m/members"
-              className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-600 transition-colors"
+              className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:bg-slate-200 dark:active:bg-slate-600 transition-colors active:scale-95"
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
@@ -208,7 +145,7 @@ export default function MemberDetailPage() {
             <button
               type="button"
               onClick={() => setShowRechargeDialog(true)}
-              className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-medium shadow-md shadow-green-500/30 active:scale-95 transition-all"
+              className="px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-medium shadow-md shadow-green-500/30 active:scale-95 transition-all min-h-[44px]"
             >
               充值
             </button>
