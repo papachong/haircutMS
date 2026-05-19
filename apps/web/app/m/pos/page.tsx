@@ -18,6 +18,7 @@ import {
   type PassCard,
 } from '../../../lib/api/orders';
 import SettlementDialog from '../../../components/SettlementDialog';
+import CouponSelector, { type SelectedCoupon } from '../../../components/coupon/coupon-selector';
 
 interface CartItem extends OrderItemInput {
   serviceItem: ServiceItem;
@@ -63,6 +64,9 @@ export default function MobilePOSPage() {
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
   const [showSettlementDialog, setShowSettlementDialog] = useState(false);
   const [memberPassCards, setMemberPassCards] = useState<PassCard[]>([]);
+
+  // Coupon pre-selection
+  const [preselectedCoupon, setPreselectedCoupon] = useState<SelectedCoupon | null>(null);
 
   // Resume order from holds
   const resumeOrderId = searchParams.get('resume');
@@ -303,6 +307,7 @@ export default function MobilePOSPage() {
     setSelectedMember(null);
     setRemark('');
     setMemberPassCards([]);
+    setPreselectedCoupon(null);
     setStep('member');
   };
 
@@ -352,6 +357,8 @@ export default function MobilePOSPage() {
   const payableAmount = cart.reduce((sum, item) => sum + item.finalPrice, 0);
   const originalAmount = cart.reduce((sum, item) => sum + item.subtotal, 0);
   const discountAmount = originalAmount - payableAmount;
+  const couponDiscount = preselectedCoupon?.discount ?? 0;
+  const finalPayableAmount = Math.max(0, payableAmount - couponDiscount);
   const currentStepIndex = STEPS.findIndex((s) => s.value === step);
   const cartItemCount = cart.reduce((sum, i) => sum + i.quantity, 0);
 
@@ -882,6 +889,18 @@ export default function MobilePOSPage() {
             />
           </div>
 
+          {/* Coupon selection */}
+          {selectedMember && cart.length > 0 && (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 mb-4 border border-slate-200 dark:border-slate-700 shadow-sm">
+              <CouponSelector
+                memberId={selectedMember.id}
+                orderAmount={payableAmount}
+                selectedCoupon={preselectedCoupon}
+                onSelect={setPreselectedCoupon}
+              />
+            </div>
+          )}
+
           {/* Amount summary */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 mb-6 border border-slate-200 dark:border-slate-700 shadow-sm">
             <div className="space-y-2">
@@ -897,10 +916,16 @@ export default function MobilePOSPage() {
                   <span>-{(discountAmount / 100).toFixed(2)}元</span>
                 </div>
               )}
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-sm text-orange-500">
+                  <span>优惠券抵扣</span>
+                  <span>-{(couponDiscount / 100).toFixed(2)}元</span>
+                </div>
+              )}
               <div className="flex justify-between font-bold text-lg pt-2 border-t border-slate-200 dark:border-slate-700">
                 <span className="text-slate-900 dark:text-white">应付金额</span>
                 <span className="text-blue-600 dark:text-blue-400">
-                  {(payableAmount / 100).toFixed(2)}元
+                  {(finalPayableAmount / 100).toFixed(2)}元
                 </span>
               </div>
             </div>
@@ -922,7 +947,7 @@ export default function MobilePOSPage() {
               disabled={loading || cart.length === 0 || !selectedMember}
               className="py-3.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl font-bold text-base shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
             >
-              {loading ? '处理中...' : '结算'}
+              {loading ? '处理中...' : `结算 ¥${(finalPayableAmount / 100).toFixed(2)}`}
             </button>
           </div>
         </div>
@@ -936,9 +961,10 @@ export default function MobilePOSPage() {
           orderId={createdOrderId}
           originalAmount={originalAmount}
           discountAmount={discountAmount}
-          payableAmount={payableAmount}
+          payableAmount={finalPayableAmount}
           member={selectedMember}
           memberPassCards={memberPassCards}
+          preselectedCoupon={preselectedCoupon}
           onSettleSuccess={handleSettleSuccess}
         />
       )}
