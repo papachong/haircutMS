@@ -12,8 +12,8 @@ interface ShopListItem {
   staffCount: number;
   memberCount: number;
   licenseStatus: 'FREE' | 'PAID' | 'EXPIRED';
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface ShopListResponse {
@@ -268,9 +268,7 @@ export default function ShopListPage() {
               shops.map((shop) => (
                 <tr key={shop.id} className="hover:bg-gray-50">
                   <td className="px-4 sm:px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">
-                      {shop.name}
-                    </div>
+                    <div className="text-sm font-medium text-gray-900">{shop.name}</div>
                   </td>
                   <td className="px-4 sm:px-6 py-4 text-sm text-gray-500">
                     {shop.phone || '-'}
@@ -363,7 +361,9 @@ export default function ShopListPage() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <div className="text-xs text-gray-500">License</div>
-                  <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium mt-1 ${licenseColors[shop.licenseStatus]}`}>
+                  <span
+                    className={`inline-flex rounded-full px-2 py-1 text-xs font-medium mt-1 ${licenseColors[shop.licenseStatus]}`}
+                  >
                     {licenseLabels[shop.licenseStatus]}
                   </span>
                 </div>
@@ -377,7 +377,9 @@ export default function ShopListPage() {
                 </div>
                 <div>
                   <div className="text-xs text-gray-500">创建时间</div>
-                  <div className="font-medium text-sm">{new Date(shop.createdAt).toLocaleDateString('zh-CN')}</div>
+                  <div className="font-medium text-sm">
+                    {new Date(shop.createdAt).toLocaleDateString('zh-CN')}
+                  </div>
                 </div>
               </div>
 

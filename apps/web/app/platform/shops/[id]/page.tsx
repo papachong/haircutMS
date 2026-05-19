@@ -59,7 +59,7 @@ export default function ShopDetailPage() {
     setLoading(true);
     try {
       const res = await apiFetch<{ code: number; data: ShopDetail; message: string }>(
-        `/platform/shops/${params.id}`,
+        \`/platform/shops/\${params.id}\`,
       );
       if (res.code === 0) {
         const detail = res.data;
@@ -88,7 +88,7 @@ export default function ShopDetailPage() {
     setEditError('');
     try {
       const res = await apiFetch<{ code: number; data: ShopDetail; message: string }>(
-        `/platform/shops/${shop.id}`,
+        \`/platform/shops/\${shop.id}\`,
         {
           method: 'PATCH',
           body: JSON.stringify({
@@ -117,7 +117,7 @@ export default function ShopDetailPage() {
     if (!confirm('确定要暂停该店铺吗？暂停后该店所有员工将无法登录。')) return;
     try {
       const res = await apiFetch<{ code: number; data: ShopDetail; message: string }>(
-        `/platform/shops/${shop.id}/suspend`,
+        \`/platform/shops/\${shop.id}/suspend\`,
         { method: 'PATCH' },
       );
       if (res.code === 0) {
@@ -133,7 +133,7 @@ export default function ShopDetailPage() {
     if (!confirm('确定要激活该店铺吗？')) return;
     try {
       const res = await apiFetch<{ code: number; data: ShopDetail; message: string }>(
-        `/platform/shops/${shop.id}/activate`,
+        \`/platform/shops/\${shop.id}/activate\`,
         { method: 'PATCH' },
       );
       if (res.code === 0) {
@@ -149,7 +149,7 @@ export default function ShopDetailPage() {
     if (!confirm('确定要归档该店铺吗？归档后不可恢复。')) return;
     try {
       const res = await apiFetch<{ code: number; data: ShopDetail; message: string }>(
-        `/platform/shops/${shop.id}/archive`,
+        \`/platform/shops/\${shop.id}/archive\`,
         { method: 'PATCH' },
       );
       if (res.code === 0) {
@@ -246,7 +246,7 @@ export default function ShopDetailPage() {
       </div>
 
       {/* Status Banner */}
-      <div className={`mb-6 rounded-lg border p-4 ${statusColors[shop.status]}`}>
+      <div className={\`mb-6 rounded-lg border p-4 \${statusColors[shop.status]}\`}>
         <div>
           <span className="font-semibold">{statusLabels[shop.status]}</span>
           {shop.status === 'SUSPENDED' && (
@@ -424,13 +424,13 @@ export default function ShopDetailPage() {
               <dt className="text-sm text-gray-500">店铺状态</dt>
               <dd>
                 <span
-                  className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                  className={\`inline-flex rounded-full px-2.5 py-1 text-xs font-medium \${
                     shop.status === 'ACTIVE'
                       ? 'bg-green-100 text-green-800'
                       : shop.status === 'SUSPENDED'
                         ? 'bg-yellow-100 text-yellow-800'
                         : 'bg-gray-100 text-gray-800'
-                  }`}
+                  }\`}
                 >
                   {statusLabels[shop.status]}
                 </span>
@@ -444,13 +444,13 @@ export default function ShopDetailPage() {
           <h2 className="mb-4 text-lg font-semibold text-gray-900">License 信息</h2>
           <div className="mb-4">
             <span
-              className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${
+              className={\`inline-flex rounded-full px-3 py-1 text-sm font-medium \${
                 shop.license.isExpired
                   ? 'bg-red-100 text-red-800'
                   : shop.licenseStatus === 'FREE'
                     ? 'bg-gray-100 text-gray-700'
                     : 'bg-blue-100 text-blue-800'
-              }`}
+              }\`}
             >
               {licenseLabels[shop.license.plan] || shop.license.plan}
               {shop.license.isExpired ? ' (已过期)' : ''}
@@ -487,11 +487,11 @@ export default function ShopDetailPage() {
               <dt className="text-sm text-gray-500">License 状态</dt>
               <dd>
                 <span
-                  className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                  className={\`inline-flex rounded-full px-2 py-1 text-xs font-medium \${
                     shop.license.isExpired
                       ? 'bg-red-100 text-red-800'
                       : 'bg-green-100 text-green-800'
-                  }`}
+                  }\`}
                 >
                   {shop.license.isExpired ? '已过期' : '正常'}
                 </span>
@@ -516,11 +516,11 @@ export default function ShopDetailPage() {
               <dt className="text-sm text-gray-500">账号状态</dt>
               <dd>
                 <span
-                  className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                  className={\`inline-flex rounded-full px-2 py-1 text-xs font-medium \${
                     shop.owner.isActive && shop.status !== 'SUSPENDED'
                       ? 'bg-green-100 text-green-800'
                       : 'bg-red-100 text-red-800'
-                  }`}
+                  }\`}
                 >
                   {shop.status === 'SUSPENDED'
                     ? '无法登录（店铺已暂停）'
