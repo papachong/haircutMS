@@ -1,10 +1,17 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { getDashboardMetrics, getDashboardTrends, TimeRange } from '@/lib/api/dashboard';
 import { getRevenueBreakdown, getServiceRanking } from '@/lib/api/analytics';
 import { LineChart } from '@/components/LineChart';
 import { BarChart } from '@/components/BarChart';
+import { useDashboardSocket } from '@/hooks/use-dashboard-socket';
+import {
+  NotificationToast,
+  LARGE_ORDER_THRESHOLD,
+} from '@/components/dashboard/notification-toast';
+import type { DashboardNotification } from '@/components/dashboard/notification-toast';
+import { ConnectionStatusIndicator } from '@/components/dashboard/connection-status';
 import {
   TrendingUp,
   TrendingDown,
@@ -26,11 +33,14 @@ interface MetricCardProps {
   icon: React.ReactNode;
   unit?: string;
   color?: string;
+  isAnimating?: boolean;
 }
 
-function MetricCard({ title, value, change, icon, unit = '', color = 'bg-primary/10' }: MetricCardProps) {
+function MetricCard({ title, value, change, icon, unit = '', color = 'bg-primary/10', isAnimating = false }: MetricCardProps) {
   return (
-    <div className="rounded-xl border bg-card p-4 sm:p-6 transition-shadow hover:shadow-md">
+    <div className={`rounded-xl border bg-card p-4 sm:p-6 transition-all duration-300 ${
+      isAnimating ? 'ring-2 ring-primary/40 shadow-lg scale-[1.02]' : 'hover:shadow-md'
+    }`}>
       <div className="flex items-center justify-between">
         <div className={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg ${color}`}>
           {icon}
@@ -82,6 +92,9 @@ export default function DashboardPage() {
   const [ranking, setRanking] = useState<ServiceRankingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [chartType, setChartType] = useState<'revenue' | 'visitors'>('revenue');
+  const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
+  const [animatingMetrics, setAnimatingMetrics] = useState(false);
+  const animatingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -109,6 +122,82 @@ export default function DashboardPage() {
   useEffect(() => {
     loadDashboard();
   }, [loadDashboard]);
+
+  const addNotification = useCallback((notification: Omit<DashboardNotification, 'id' | 'timestamp'>) => {
+    const fullNotification: DashboardNotification = {
+      ...notification,
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      timestamp: new Date(),
+    };
+    setNotifications((prev) => [...prev.slice(-4), fullNotification]);
+  }, []);
+
+  const dismissNotification = useCallback((id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  }, []);
+
+  const triggerMetricsAnimation = useCallback(() => {
+    setAnimatingMetrics(true);
+    if (animatingTimerRef.current) {
+      clearTimeout(animatingTimerRef.current);
+    }
+    animatingTimerRef.current = setTimeout(() => setAnimatingMetrics(false), 1500);
+  }, []);
+
+  const handleMetricsUpdate = useCallback(() => {
+    loadDashboard();
+    triggerMetricsAnimation();
+  }, [loadDashboard, triggerMetricsAnimation]);
+
+  const handleNewOrder = useCallback(
+    (data: { orderId: string; orderNo: string; timestamp: string }) => {
+      addNotification({
+        type: 'order-settled',
+        title: '新订单结算',
+        message: `订单 ${data.orderNo} 已完成结算`,
+      });
+    },
+    [addNotification],
+  );
+
+  const handleMemberRecharge = useCallback(
+    (data: { memberId: string; memberName: string; amount: number; timestamp: string }) => {
+      addNotification({
+        type: 'member-recharge',
+        title: '会员充值',
+        message: `${data.memberName} 充值 ¥${data.amount.toLocaleString()}`,
+        amount: data.amount,
+      });
+
+      if (data.amount >= LARGE_ORDER_THRESHOLD) {
+        addNotification({
+          type: 'large-order',
+          title: '大额充值提醒',
+          message: `${data.memberName} 充值 ¥${(data.amount / 100).toLocaleString()}`,
+          amount: data.amount,
+        });
+      }
+    },
+    [addNotification],
+  );
+
+  const { connectionStatus, reconnect } = useDashboardSocket({
+    onMetricsUpdate: handleMetricsUpdate,
+    onNewOrder: handleNewOrder,
+    onMemberRecharge: handleMemberRecharge,
+    enabled: true,
+  });
+
+  // Fallback: poll every 30 seconds when disconnected
+  useEffect(() => {
+    if (connectionStatus !== 'disconnected') return;
+
+    const interval = setInterval(() => {
+      loadDashboard();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [connectionStatus, loadDashboard]);
 
   const timeRangeOptions = [
     { value: TimeRange.TODAY as const, label: '今日' },
@@ -151,11 +240,17 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
-      {/* Header with time range selector */}
+      {/* Notification toasts */}
+      <NotificationToast notifications={notifications} onDismiss={dismissNotification} />
+
+      {/* Header with time range selector and connection status */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold">数据看板</h1>
-          <p className="text-sm text-muted-foreground mt-1 hidden sm:block">实时查看门店经营数据</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold">数据看板</h1>
+            <p className="text-sm text-muted-foreground mt-1 hidden sm:block">实时查看门店经营数据</p>
+          </div>
+          <ConnectionStatusIndicator status={connectionStatus} />
         </div>
         <div className="flex items-center gap-2">
           <div className="flex gap-1 rounded-lg bg-muted p-1">
@@ -219,7 +314,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {loading ? (
+      {loading && !metrics ? (
         <div className="flex h-64 sm:h-96 items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -237,6 +332,7 @@ export default function DashboardPage() {
               icon={<DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />}
               unit={revenueUnit}
               color="bg-blue-500/10"
+              isAnimating={animatingMetrics}
             />
             <MetricCard
               title="客流量"
@@ -244,6 +340,7 @@ export default function DashboardPage() {
               icon={<Users className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500" />}
               unit="人"
               color="bg-emerald-500/10"
+              isAnimating={animatingMetrics}
             />
             <MetricCard
               title="客单价"
@@ -251,6 +348,7 @@ export default function DashboardPage() {
               icon={<Receipt className="h-5 w-5 sm:h-6 sm:w-6 text-amber-500" />}
               unit="元"
               color="bg-amber-500/10"
+              isAnimating={animatingMetrics}
             />
             <MetricCard
               title="新增会员"
@@ -258,6 +356,7 @@ export default function DashboardPage() {
               icon={<UserPlus className="h-5 w-5 sm:h-6 sm:w-6 text-purple-500" />}
               unit="人"
               color="bg-purple-500/10"
+              isAnimating={animatingMetrics}
             />
           </div>
 

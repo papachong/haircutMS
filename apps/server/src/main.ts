@@ -11,7 +11,9 @@ async function bootstrap() {
     res.status(200).send('healthy');
   });
 
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api/v1', {
+    exclude: ['/health'],
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({

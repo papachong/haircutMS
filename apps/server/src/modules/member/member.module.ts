@@ -5,9 +5,10 @@ import { RechargeOperationService } from './recharge-operation.service';
 import { MemberLevelService } from './levels/member-level.service';
 import { TagModule } from './tags/tag.module';
 import { RechargeModule } from '../recharge/recharge.module';
+import { DashboardModule } from '../dashboard/dashboard.module';
 
 @Module({
-  imports: [TagModule, RechargeModule],
+  imports: [TagModule, RechargeModule, DashboardModule],
   controllers: [MemberController],
   providers: [MemberService, RechargeOperationService, MemberLevelService],
   exports: [MemberService],
