@@ -44,7 +44,7 @@ export default function StaffAnalyticsPage() {
   const [recordsLoading, setRecordsLoading] = useState(false);
 
   // Filters
-  const [timeRange, setTimeRange] = useState<TimeRange>(TimeRange.WEEK);
+  const [timeRange, setTimeRange] = useState<TimeRange>('week');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [recordsPage, setRecordsPage] = useState(1);
@@ -166,10 +166,10 @@ export default function StaffAnalyticsPage() {
     });
   }
 
-  const timeRangeOptions = [
-    { value: TimeRange.DAY as const, label: '今日' },
-    { value: TimeRange.WEEK as const, label: '本周' },
-    { value: TimeRange.MONTH as const, label: '本月' },
+  const timeRangeOptions: { value: TimeRange; label: string }[] = [
+    { value: 'day', label: '今日' },
+    { value: 'week', label: '本周' },
+    { value: 'month', label: '本月' },
   ];
 
   const trendData = trends.map((t) => ({

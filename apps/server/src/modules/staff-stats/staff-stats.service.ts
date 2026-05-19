@@ -43,9 +43,9 @@ export class StaffStatsService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * 获取店内所有员工统计数据（管理员用）
+   * 获取店内所有员工统计数据（管理员用，支持日期筛选）
    */
-  async getShopStaffStats(shopId: string) {
+  async getShopStaffStats(shopId: string, startDate?: string, endDate?: string) {
     const staffList = await this.prisma.staff.findMany({
       where: { shopId, isActive: true },
       select: {
@@ -55,6 +55,17 @@ export class StaffStatsService {
       },
     });
 
+    // Build date filter
+    const dateFilter: Record<string, Date> = {};
+    if (startDate) {
+      dateFilter.gte = new Date(startDate);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      dateFilter.lte = end;
+    }
+
     const stats = await Promise.all(
       staffList.map(async (staff) => {
         const orderItems = await this.prisma.orderItem.findMany({
@@ -63,6 +74,9 @@ export class StaffStatsService {
             order: {
               shopId,
               status: { in: ['SETTLED'] },
+              ...(Object.keys(dateFilter).length > 0 && {
+                settledAt: dateFilter,
+              }),
             },
           },
           include: {
@@ -200,7 +214,7 @@ export class StaffStatsService {
     const skip = (page - 1) * limit;
 
     // Build date filter
-    const dateFilter: any = {};
+    const dateFilter: Record<string, Date> = {};
     if (startDate) {
       dateFilter.gte = new Date(startDate);
     }
@@ -398,9 +412,9 @@ export class StaffStatsService {
   }
 
   /**
-   * 获取当前员工的个人统计摘要（发型师用）
+   * 获取当前员工的个人统计摘要（发型师用，支持日期筛选）
    */
-  async getPersonalStatsSummary(shopId: string, staffId: string) {
+  async getPersonalStatsSummary(shopId: string, staffId: string, startDate?: string, endDate?: string) {
     const staff = await this.prisma.staff.findFirst({
       where: { id: staffId, shopId },
       select: {
@@ -414,12 +428,26 @@ export class StaffStatsService {
       return null;
     }
 
+    // Build date filter
+    const dateFilter: Record<string, Date> = {};
+    if (startDate) {
+      dateFilter.gte = new Date(startDate);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      dateFilter.lte = end;
+    }
+
     const orderItems = await this.prisma.orderItem.findMany({
       where: {
         staffId,
         order: {
           shopId,
           status: { in: ['SETTLED'] },
+          ...(Object.keys(dateFilter).length > 0 && {
+            settledAt: dateFilter,
+          }),
         },
       },
       include: {
@@ -491,7 +519,7 @@ export class StaffStatsService {
     }
 
     // Build date filter
-    const dateFilter: any = {};
+    const dateFilter: Record<string, Date> = {};
     if (startDate) {
       dateFilter.gte = new Date(startDate);
     }

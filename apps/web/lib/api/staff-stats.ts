@@ -47,12 +47,31 @@ export interface ServiceTrend {
   revenue: number;
 }
 
-export async function getShopStaffStats(): Promise<StaffStats[]> {
-  return apiFetch('/staff-stats');
+interface ApiResponse<T> {
+  code: number;
+  data: T;
+  message: string;
+}
+
+export async function getShopStaffStats(
+  startDate?: string,
+  endDate?: string,
+): Promise<StaffStats[]> {
+  const params = new URLSearchParams();
+  if (startDate) params.set('startDate', startDate);
+  if (endDate) params.set('endDate', endDate);
+  const qs = params.toString();
+  const res = await apiFetch<ApiResponse<StaffStats[]>>(
+    `/staff-stats${qs ? '?' + qs : ''}`,
+  );
+  return res.data;
 }
 
 export async function getStaffDetailStats(staffId: string): Promise<StaffStats | null> {
-  return apiFetch(`/staff-stats/staff/${staffId}`);
+  const res = await apiFetch<ApiResponse<StaffStats | null>>(
+    `/staff-stats/staff/${staffId}`,
+  );
+  return res.data;
 }
 
 export async function getStaffDetailStatsWithDate(
@@ -64,7 +83,10 @@ export async function getStaffDetailStatsWithDate(
   if (startDate) params.set('startDate', startDate);
   if (endDate) params.set('endDate', endDate);
   const queryString = params.toString();
-  return apiFetch(`/staff-stats/staff/${staffId}/summary${queryString ? '?' + queryString : ''}`);
+  const res = await apiFetch<ApiResponse<StaffStats | null>>(
+    `/staff-stats/staff/${staffId}/summary${queryString ? '?' + queryString : ''}`,
+  );
+  return res.data;
 }
 
 export async function getStaffRecords(
@@ -80,7 +102,10 @@ export async function getStaffRecords(
   });
   if (startDate) params.set('startDate', startDate);
   if (endDate) params.set('endDate', endDate);
-  return apiFetch(`/staff-stats/staff/${staffId}/records?${params.toString()}`);
+  const res = await apiFetch<ApiResponse<PaginatedServiceRecords>>(
+    `/staff-stats/staff/${staffId}/records?${params.toString()}`,
+  );
+  return res.data;
 }
 
 export async function getStaffServiceTrends(
@@ -92,7 +117,10 @@ export async function getStaffServiceTrends(
   const params = new URLSearchParams({ timeRange });
   if (startDate) params.set('startDate', startDate);
   if (endDate) params.set('endDate', endDate);
-  return apiFetch(`/staff-stats/staff/${staffId}/trends?${params.toString()}`);
+  const res = await apiFetch<ApiResponse<ServiceTrend[]>>(
+    `/staff-stats/staff/${staffId}/trends?${params.toString()}`,
+  );
+  return res.data;
 }
 
 export async function getMyServiceRecords(
@@ -107,9 +135,36 @@ export async function getMyServiceRecords(
   });
   if (startDate) params.set('startDate', startDate);
   if (endDate) params.set('endDate', endDate);
-  return apiFetch(`/staff-stats/my/records?${params.toString()}`);
+  const res = await apiFetch<ApiResponse<PaginatedServiceRecords>>(
+    `/staff-stats/my/records?${params.toString()}`,
+  );
+  return res.data;
 }
 
-export async function getMyStatsSummary(): Promise<StaffStats | null> {
-  return apiFetch('/staff-stats/my/summary');
+export async function getMyStatsSummary(
+  startDate?: string,
+  endDate?: string,
+): Promise<StaffStats | null> {
+  const params = new URLSearchParams();
+  if (startDate) params.set('startDate', startDate);
+  if (endDate) params.set('endDate', endDate);
+  const qs = params.toString();
+  const res = await apiFetch<ApiResponse<StaffStats | null>>(
+    `/staff-stats/my/summary${qs ? '?' + qs : ''}`,
+  );
+  return res.data;
+}
+
+export async function getMyServiceTrends(
+  timeRange: TimeRange = 'week',
+  startDate?: string,
+  endDate?: string,
+): Promise<ServiceTrend[]> {
+  const params = new URLSearchParams({ timeRange });
+  if (startDate) params.set('startDate', startDate);
+  if (endDate) params.set('endDate', endDate);
+  const res = await apiFetch<ApiResponse<ServiceTrend[]>>(
+    `/staff-stats/my/trends?${params.toString()}`,
+  );
+  return res.data;
 }

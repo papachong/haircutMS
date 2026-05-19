@@ -305,3 +305,9 @@ export async function cancelOrder(orderId: string, reason?: string): Promise<Ord
   });
   return res.data;
 }
+
+export async function deleteOrder(orderId: string): Promise<void> {
+  await apiFetch(`/orders/${orderId}`, {
+    method: 'DELETE',
+  });
+}

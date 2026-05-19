@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import {
   getMyStatsSummary,
   getMyServiceRecords,
-  StaffStats,
-  PersonalServiceRecord,
+  type StaffStats,
+  type PersonalServiceRecord,
 } from '@/lib/api/staff-stats';
 import { Scissors, DollarSign, TrendingUp, Calendar, Clock } from 'lucide-react';
 
@@ -178,9 +178,17 @@ export default function MobileStatsPage() {
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
+                    <div className="flex justify-end">
+                      <span className="text-xs text-muted-foreground">
+                        营收: {(type.revenue / 100).toFixed(2)}元
+                      </span>
+                    </div>
                   </div>
                 );
               })}
+              {stats.serviceTypeDistribution.length === 0 && (
+                <p className="py-4 text-center text-sm text-muted-foreground">暂无数据</p>
+              )}
             </div>
           </div>
         </div>

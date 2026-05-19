@@ -8,11 +8,15 @@ export class StaffStatsController {
   constructor(private staffStatsService: StaffStatsService) {}
 
   /**
-   * 获取店内所有员工统计数据（管理员用）
+   * 获取店内所有员工统计数据（管理员用，支持日期筛选）
    */
   @Get()
-  async getShopStats(@CurrentShop() shopId: string): Promise<StaffStats[]> {
-    return this.staffStatsService.getShopStaffStats(shopId);
+  async getShopStats(
+    @CurrentShop() shopId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<StaffStats[]> {
+    return this.staffStatsService.getShopStaffStats(shopId, startDate, endDate);
   }
 
   /**
@@ -71,14 +75,30 @@ export class StaffStatsController {
   }
 
   /**
-   * 获取当前员工的统计摘要（发型师用）
+   * 获取当前员工的统计摘要（发型师用，支持日期筛选）
    */
   @Get('my/summary')
   async getMySummary(
     @CurrentShop() shopId: string,
     @CurrentUser('staffId') staffId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ): Promise<StaffStats | null> {
-    return this.staffStatsService.getPersonalStatsSummary(shopId, staffId);
+    return this.staffStatsService.getPersonalStatsSummary(shopId, staffId, startDate, endDate);
+  }
+
+  /**
+   * 获取当前员工的服务趋势（发型师用）
+   */
+  @Get('my/trends')
+  async getMyTrends(
+    @CurrentShop() shopId: string,
+    @CurrentUser('staffId') staffId: string,
+    @Query('timeRange') timeRange: 'day' | 'week' | 'month' = 'week',
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<ServiceTrend[]> {
+    return this.staffStatsService.getStaffServiceTrends(shopId, staffId, timeRange, startDate, endDate);
   }
 
   /**
