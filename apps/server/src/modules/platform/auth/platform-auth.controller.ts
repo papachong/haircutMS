@@ -1,4 +1,5 @@
 import { Controller, Post, Body, Get, UseGuards, Request } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { PlatformAuthService } from './platform-auth.service';
 import { PlatformAuthGuard } from './guards/platform-auth.guard';
 
@@ -14,6 +15,7 @@ interface PlatformRequest extends Request {
 export class PlatformAuthController {
   constructor(private platformAuthService: PlatformAuthService) {}
 
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('login')
   async login(@Body() body: { phone: string; password: string }) {
     const result = await this.platformAuthService.login(body.phone, body.password);
@@ -24,6 +26,7 @@ export class PlatformAuthController {
     };
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('refresh')
   async refresh(@Body() body: { refreshToken: string }) {
     const result = await this.platformAuthService.refresh(body.refreshToken);
