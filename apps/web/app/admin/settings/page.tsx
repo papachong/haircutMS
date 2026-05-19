@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 export default function AdminSettingsPage() {
   const settingsItems = [
+    { href: '/admin/settings/levels', title: '会员等级', description: '管理会员等级、折扣比例和排序', icon: '🏷️' },
     { href: '/admin/settings/audit', title: '操作日志', description: '查看店铺操作记录和审计日志', icon: '📋' },
     { href: '/admin/settings/recharge', title: '充值方案', description: '管理充值方案、充赠活动和限时优惠', icon: '💰' },
   ];

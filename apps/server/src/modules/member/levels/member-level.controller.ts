@@ -1,41 +1,48 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param } from '@nestjs/common';
 import { MemberLevelService } from './member-level.service';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-
-interface JwtUser {
-  staffId: string;
-  shopId: string;
-  role: string;
-}
+import { CurrentShop } from '../../../common/decorators/current-shop.decorator';
+import {
+  CreateMemberLevelDto,
+  UpdateMemberLevelDto,
+  BatchSortDto,
+} from './dto/member-level.dto';
 
 @Controller('api/v1/member-levels')
 export class MemberLevelController {
-  constructor(private memberLevelService: MemberLevelService) {}
+  constructor(private readonly memberLevelService: MemberLevelService) {}
 
   @Get()
-  async findAll(@CurrentUser() user: JwtUser) {
-    return this.memberLevelService.findAll(user.shopId);
+  async findAll(@CurrentShop() shopId: string) {
+    return this.memberLevelService.findAll(shopId);
   }
 
   @Post()
   async create(
-    @CurrentUser() user: JwtUser,
-    @Body() body: { name: string; discount: number; sortOrder?: number; remark?: string },
+    @CurrentShop() shopId: string,
+    @Body() dto: CreateMemberLevelDto,
   ) {
-    return this.memberLevelService.create(user.shopId, body);
+    return this.memberLevelService.create(shopId, dto);
+  }
+
+  @Patch('sort')
+  async batchSort(
+    @CurrentShop() shopId: string,
+    @Body() dto: BatchSortDto,
+  ) {
+    return this.memberLevelService.batchSort(shopId, dto.items);
   }
 
   @Patch(':id')
   async update(
     @Param('id') id: string,
-    @CurrentUser() user: JwtUser,
-    @Body() body: { name?: string; discount?: number; sortOrder?: number; remark?: string },
+    @CurrentShop() shopId: string,
+    @Body() dto: UpdateMemberLevelDto,
   ) {
-    return this.memberLevelService.update(id, user.shopId, body);
+    return this.memberLevelService.update(id, shopId, dto);
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string, @CurrentUser() user: JwtUser) {
-    return this.memberLevelService.remove(id, user.shopId);
+  async remove(@Param('id') id: string, @CurrentShop() shopId: string) {
+    return this.memberLevelService.remove(id, shopId);
   }
 }

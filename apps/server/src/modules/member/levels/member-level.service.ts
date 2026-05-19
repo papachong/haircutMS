@@ -1,32 +1,27 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-
-interface CreateMemberLevelData {
-  name: string;
-  discount: number;
-  sortOrder?: number;
-  remark?: string;
-}
-
-interface UpdateMemberLevelData {
-  name?: string;
-  discount?: number;
-  sortOrder?: number;
-  remark?: string;
-}
+import { CreateMemberLevelDto, UpdateMemberLevelDto, BatchSortDto } from './dto/member-level.dto';
 
 @Injectable()
 export class MemberLevelService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(shopId: string) {
-    return this.prisma.memberLevel.findMany({
+    const levels = await this.prisma.memberLevel.findMany({
       where: { shopId },
       orderBy: { sortOrder: 'asc' },
+      include: {
+        _count: { select: { members: true } },
+      },
     });
+
+    return levels.map(({ _count, ...level }) => ({
+      ...level,
+      memberCount: _count.members,
+    }));
   }
 
-  async create(shopId: string, data: CreateMemberLevelData) {
+  async create(shopId: string, data: CreateMemberLevelDto) {
     if (data.discount < 0.1 || data.discount > 1.0) {
       throw new BadRequestException('Discount must be between 0.10 and 1.00');
     }
@@ -42,7 +37,7 @@ export class MemberLevelService {
     });
   }
 
-  async update(id: string, shopId: string, data: UpdateMemberLevelData) {
+  async update(id: string, shopId: string, data: UpdateMemberLevelDto) {
     const existing = await this.prisma.memberLevel.findFirst({
       where: { id, shopId },
     });
@@ -78,11 +73,35 @@ export class MemberLevelService {
 
     if (existing._count.members > 0) {
       throw new BadRequestException(
-        'Cannot delete member level that is in use by members',
+        `该等级下有 ${existing._count.members} 位关联会员，无法删除。请先将会员迁移到其他等级。`,
       );
     }
 
     await this.prisma.memberLevel.delete({ where: { id } });
     return { id };
+  }
+
+  async batchSort(shopId: string, items: BatchSortDto['items']) {
+    // Verify all items belong to this shop
+    const levelIds = items.map((item) => item.id);
+    const levels = await this.prisma.memberLevel.findMany({
+      where: { id: { in: levelIds }, shopId },
+      select: { id: true },
+    });
+
+    if (levels.length !== levelIds.length) {
+      throw new NotFoundException('One or more member levels not found');
+    }
+
+    await this.prisma.$transaction(
+      items.map((item) =>
+        this.prisma.memberLevel.update({
+          where: { id: item.id },
+          data: { sortOrder: item.sortOrder },
+        }),
+      ),
+    );
+
+    return this.findAll(shopId);
   }
 }
