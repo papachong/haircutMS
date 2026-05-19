@@ -685,6 +685,40 @@ export class OrderService {
     return cancelledOrder;
   }
 
+  async getStats(shopId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [todayOrders, todayRevenue, pendingCount] = await Promise.all([
+      this.prisma.order.count({
+        where: {
+          shopId,
+          createdAt: { gte: today },
+        },
+      }),
+      this.prisma.order.aggregate({
+        _sum: { paidAmount: true },
+        where: {
+          shopId,
+          status: OrderStatus.SETTLED,
+          settledAt: { gte: today },
+        },
+      }),
+      this.prisma.order.count({
+        where: {
+          shopId,
+          status: OrderStatus.PENDING,
+        },
+      }),
+    ]);
+
+    return {
+      todayOrderCount: todayOrders,
+      todayRevenue: todayRevenue._sum.paidAmount ?? 0,
+      pendingCount,
+    };
+  }
+
   async getPendingOrders(shopId: string) {
     return this.prisma.order.findMany({
       where: {
