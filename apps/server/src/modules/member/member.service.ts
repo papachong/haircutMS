@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService, AuditActions } from '../audit/audit.service';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class MemberService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService,
+  ) {}
 
   async findAll(shopId: string, query: { keyword?: string; page?: number; pageSize?: number }) {
     const page = query.page ?? 1;
@@ -129,7 +133,7 @@ export class MemberService {
     birthday?: string;
     memberLevelId?: string;
     remark?: string;
-  }) {
+  }, operatorId?: string, ip?: string) {
     const existing = await this.prisma.member.findFirst({
       where: { shopId, phone: data.phone, isActive: true },
     });
@@ -149,7 +153,7 @@ export class MemberService {
 
     const cardNo = await this.generateCardNo(shopId);
 
-    return this.prisma.member.create({
+    const member = await this.prisma.member.create({
       data: {
         shopId,
         cardNo,
@@ -162,6 +166,23 @@ export class MemberService {
       },
       include: { memberLevel: true },
     });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.MEMBER_CREATE,
+      targetType: 'Member',
+      targetId: member.id,
+      detail: {
+        cardNo: member.cardNo,
+        name: member.name,
+        phone: member.phone,
+        memberLevel: member.memberLevel.name,
+      },
+      ip,
+    });
+
+    return member;
   }
 
   async update(id: string, shopId: string, data: {
@@ -171,9 +192,10 @@ export class MemberService {
     birthday?: string;
     memberLevelId?: string;
     remark?: string;
-  }) {
+  }, operatorId?: string, ip?: string) {
     const existing = await this.prisma.member.findFirst({
       where: { id, shopId },
+      include: { memberLevel: true },
     });
 
     if (!existing) {
@@ -189,7 +211,7 @@ export class MemberService {
       }
     }
 
-    return this.prisma.member.update({
+    const member = await this.prisma.member.update({
       where: { id },
       data: {
         ...(data.name !== undefined && { name: data.name }),
@@ -201,6 +223,25 @@ export class MemberService {
       },
       include: { memberLevel: true },
     });
+
+    if (data.memberLevelId && data.memberLevelId !== existing.memberLevelId) {
+      await this.auditService.log({
+        shopId,
+        staffId: operatorId,
+        action: AuditActions.MEMBER_LEVEL_CHANGE,
+        targetType: 'Member',
+        targetId: id,
+        detail: {
+          memberName: member.name,
+          cardNo: member.cardNo,
+          fromLevel: existing.memberLevel.name,
+          toLevel: member.memberLevel.name,
+        },
+        ip,
+      });
+    }
+
+    return member;
   }
 
   private async generateCardNo(shopId: string): Promise<string> {

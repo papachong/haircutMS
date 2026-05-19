@@ -7,6 +7,8 @@ import {
   MemberLevelDistribution,
   MemberConsumptionTrendsResponse,
   DormantMembersStats,
+  RevenueBreakdown,
+  ServiceItemRanking,
 } from './dashboard.service';
 import { CurrentShop } from '../../common/decorators/current-shop.decorator';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
@@ -40,6 +42,11 @@ export class QueryMemberAnalyticsDto {
 
   @IsOptional()
   dormantDays?: string;
+}
+
+export class QueryRankingDto extends QueryDashboardDto {
+  @IsOptional()
+  limit?: string;
 }
 
 @Controller('api/v1/dashboard')
@@ -118,5 +125,44 @@ export class DashboardController {
     const { dormantDays } = query;
     const days = dormantDays ? parseInt(dormantDays, 10) : 90;
     return this.dashboardService.getDormantMembersStats(shopId, days);
+  }
+
+  @Get('revenue-breakdown')
+  async getRevenueBreakdown(
+    @CurrentShop() shopId: string,
+    @Query() query: QueryDashboardDto,
+  ): Promise<RevenueBreakdown> {
+    const { timeRange = TimeRange.TODAY, startDate, endDate } = query;
+
+    if (timeRange === TimeRange.CUSTOM && (!startDate || !endDate)) {
+      throw new Error('startDate and endDate are required for custom time range');
+    }
+
+    return this.dashboardService.getRevenueBreakdown(
+      shopId,
+      timeRange,
+      startDate,
+      endDate,
+    );
+  }
+
+  @Get('service-ranking')
+  async getServiceRanking(
+    @CurrentShop() shopId: string,
+    @Query() query: QueryRankingDto,
+  ): Promise<ServiceItemRanking[]> {
+    const { timeRange = TimeRange.TODAY, startDate, endDate, limit } = query;
+
+    if (timeRange === TimeRange.CUSTOM && (!startDate || !endDate)) {
+      throw new Error('startDate and endDate are required for custom time range');
+    }
+
+    return this.dashboardService.getServiceRanking(
+      shopId,
+      timeRange,
+      startDate,
+      endDate,
+      limit ? parseInt(limit, 10) : 10,
+    );
   }
 }

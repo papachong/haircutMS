@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
 
 export const AuditActions = {
   RECHARGE: 'RECHARGE',
   ORDER_SETTLE: 'ORDER_SETTLE',
   ORDER_CANCEL: 'ORDER_CANCEL',
   MEMBER_CREATE: 'MEMBER_CREATE',
+  MEMBER_UPDATE: 'MEMBER_UPDATE',
   MEMBER_LEVEL_CHANGE: 'MEMBER_LEVEL_CHANGE',
   STAFF_CREATE: 'STAFF_CREATE',
+  STAFF_ACTIVATE: 'STAFF_ACTIVATE',
   STAFF_DEACTIVATE: 'STAFF_DEACTIVATE',
   LICENSE_UPDATE: 'LICENSE_UPDATE',
   SHOP_UPDATE: 'SHOP_UPDATE',
@@ -29,6 +30,7 @@ interface LogParams {
 interface QueryAuditLog {
   action?: string;
   staffId?: string;
+  targetId?: string;
   startDate?: string;
   endDate?: string;
   page?: number;
@@ -64,6 +66,9 @@ export class AuditService {
     }
     if (query.staffId) {
       where.staffId = query.staffId;
+    }
+    if (query.targetId) {
+      where.targetId = query.targetId;
     }
     if (query.startDate || query.endDate) {
       const createdAt: Record<string, Date> = {};

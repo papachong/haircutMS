@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, Res, HttpStatus } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Get, Post, Patch, Param, Body, Query, Res, HttpStatus, Req } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { OrderService } from './order.service';
 import { CurrentShop } from '../../common/decorators/current-shop.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CreateOrderDto, UpdateOrderDto, QueryOrderDto, SettleOrderDto } from './dto/order.dto';
 import * as XLSX from 'xlsx';
 
@@ -42,18 +43,22 @@ export class OrderController {
   async settle(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() body: SettleOrderDto,
   ) {
-    return this.orderService.settle(id, shopId, body);
+    return this.orderService.settle(id, shopId, body, operatorId, req.ip);
   }
 
   @Post(':id/cancel')
   async cancel(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() body?: { reason?: string },
   ) {
-    return this.orderService.cancel(id, shopId, body?.reason);
+    return this.orderService.cancel(id, shopId, body?.reason, operatorId, req.ip);
   }
 
   @Patch(':id')

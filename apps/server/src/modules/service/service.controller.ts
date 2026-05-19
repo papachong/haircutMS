@@ -116,6 +116,14 @@ export class ServiceController {
     return this.itemService.toggle(id, shopId);
   }
 
+  @Delete('service-items/:id')
+  async removeItem(
+    @Param('id') id: string,
+    @CurrentShop() shopId: string,
+  ) {
+    return this.itemService.remove(id, shopId);
+  }
+
   @Post('service-items/reorder')
   async reorderItems(
     @CurrentShop() shopId: string,

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateRechargePlanDto, UpdateRechargePlanDto } from './dto/recharge-plan.dto';
 
@@ -11,6 +11,13 @@ export class RechargePlanService {
 
     if (activeOnly) {
       where.isActive = true;
+
+      // Filter out expired timed plans (plans with endsAt in the past)
+      const now = new Date();
+      where.OR = [
+        { endsAt: null },
+        { endsAt: { gte: now } },
+      ];
     }
 
     return this.prisma.rechargePlan.findMany({
@@ -20,6 +27,20 @@ export class RechargePlanService {
   }
 
   async create(shopId: string, data: CreateRechargePlanDto) {
+    // Validate TIMED plans require date range
+    if (data.type === 'TIMED' && !data.startsAt && !data.endsAt) {
+      throw new BadRequestException('限时活动方案必须设置活动时间范围');
+    }
+
+    // Validate date range consistency
+    if (data.startsAt && data.endsAt) {
+      const start = new Date(data.startsAt);
+      const end = new Date(data.endsAt);
+      if (start >= end) {
+        throw new BadRequestException('结束时间必须晚于开始时间');
+      }
+    }
+
     const createData: Record<string, unknown> = {
       shopId,
       name: data.name,
@@ -46,6 +67,25 @@ export class RechargePlanService {
 
     if (!existing) {
       throw new NotFoundException(`Recharge plan ${id} not found`);
+    }
+
+    // Determine effective type after update
+    const effectiveType = data.type ?? existing.type;
+    const effectiveStartsAt = data.startsAt !== undefined
+      ? (data.startsAt ? new Date(data.startsAt) : null)
+      : existing.startsAt;
+    const effectiveEndsAt = data.endsAt !== undefined
+      ? (data.endsAt ? new Date(data.endsAt) : null)
+      : existing.endsAt;
+
+    // Validate TIMED plans require date range
+    if (effectiveType === 'TIMED' && !effectiveStartsAt && !effectiveEndsAt) {
+      throw new BadRequestException('限时活动方案必须设置活动时间范围');
+    }
+
+    // Validate date range consistency
+    if (effectiveStartsAt && effectiveEndsAt && effectiveStartsAt >= effectiveEndsAt) {
+      throw new BadRequestException('结束时间必须晚于开始时间');
     }
 
     const updateData: Record<string, unknown> = {};
@@ -91,6 +131,11 @@ export class RechargePlanService {
 
     if (!existing) {
       throw new NotFoundException(`Recharge plan ${id} not found`);
+    }
+
+    // Prevent activating expired timed plans
+    if (!existing.isActive && existing.endsAt && new Date(existing.endsAt) < new Date()) {
+      throw new BadRequestException('已结束的限时活动无法重新上架，请修改活动时间后重试');
     }
 
     return this.prisma.rechargePlan.update({

@@ -11,6 +11,7 @@ export class AuditController {
     @CurrentShop() shopId: string,
     @Query('action') action?: string,
     @Query('staffId') staffId?: string,
+    @Query('targetId') targetId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('page') page?: number,
@@ -19,6 +20,7 @@ export class AuditController {
     return this.auditService.findAll(shopId, {
       action,
       staffId,
+      targetId,
       startDate,
       endDate,
       page: page ? Number(page) : undefined,

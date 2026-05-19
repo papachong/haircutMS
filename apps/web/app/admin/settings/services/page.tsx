@@ -193,7 +193,7 @@ export default function ServiceItemsPage() {
   return (
     <div className="flex min-h-screen">
       {/* Left Sidebar - Categories */}
-      <aside className="w-64 border-r bg-card">
+      <aside className="w-64 border-r bg-card shrink-0 hidden md:block">
         <div className="p-4 border-b">
           <h2 className="font-semibold text-lg">服务分类</h2>
         </div>
@@ -203,13 +203,22 @@ export default function ServiceItemsPage() {
               key={category.id}
               type="button"
               onClick={() => setSelectedCategoryId(category.id)}
-              className={`w-full text-left px-3 py-2 rounded-md mb-1 transition-colors ${
+              className={`w-full text-left px-3 py-2.5 rounded-md mb-1 transition-colors flex items-center justify-between ${
                 selectedCategoryId === category.id
                   ? "bg-primary text-primary-foreground"
                   : "hover:bg-accent"
               }`}
             >
-              {category.name}
+              <span className="truncate">{category.name}</span>
+              <span
+                className={`text-xs px-1.5 py-0.5 rounded-full ${
+                  selectedCategoryId === category.id
+                    ? "bg-primary-foreground/20"
+                    : "bg-accent"
+                }`}
+              >
+                {category._count?.items ?? 0}
+              </span>
             </button>
           ))}
           {categories.length === 0 && (
@@ -228,7 +237,25 @@ export default function ServiceItemsPage() {
       </aside>
 
       {/* Main Content - Items */}
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-4 md:p-6 min-w-0">
+        {/* Mobile category selector */}
+        <div className="flex gap-2 overflow-x-auto md:hidden mb-4 pb-1">
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              type="button"
+              onClick={() => setSelectedCategoryId(category.id)}
+              className={`px-3 py-1.5 rounded-md text-sm whitespace-nowrap ${
+                selectedCategoryId === category.id
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-accent hover:bg-accent/80"
+              }`}
+            >
+              {category.name}
+            </button>
+          ))}
+        </div>
+
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold">
@@ -307,13 +334,17 @@ export default function ServiceItemsPage() {
                   !item.isActive ? "opacity-60" : "hover:border-primary/50"
                 }`}
               >
-                <GripVertical className="h-5 w-5 text-muted-foreground cursor-move" />
-                {item.image && (
+                <GripVertical className="h-5 w-5 text-muted-foreground cursor-move shrink-0" />
+                {item.image ? (
                   <img
                     src={item.image}
                     alt={item.name}
-                    className="w-16 h-16 object-cover rounded-md"
+                    className="w-14 h-14 md:w-16 md:h-16 object-cover rounded-md shrink-0"
                   />
+                ) : (
+                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-md bg-accent flex items-center justify-center text-muted-foreground text-xs shrink-0">
+                    暂无图
+                  </div>
                 )}
                 <div className="flex-1">
                   <div className="font-medium">{item.name}</div>

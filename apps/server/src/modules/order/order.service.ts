@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService, AuditActions } from '../audit/audit.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
 enum OrderStatus {
@@ -57,7 +58,10 @@ interface SettleOrderData {
 
 @Injectable()
 export class OrderService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService,
+  ) {}
 
   async findAll(shopId: string, query: {
     memberId?: string;
@@ -382,10 +386,11 @@ export class OrderService {
     });
   }
 
-  async settle(id: string, shopId: string, data: SettleOrderData) {
+  async settle(id: string, shopId: string, data: SettleOrderData, operatorId?: string, ip?: string) {
     const order = await this.prisma.order.findFirst({
       where: { id, shopId },
       include: {
+        member: { select: { id: true, name: true, cardNo: true } },
         items: true,
       },
     });
@@ -555,13 +560,31 @@ export class OrderService {
       return updatedOrder;
     });
 
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.ORDER_SETTLE,
+      targetType: 'Order',
+      targetId: id,
+      detail: {
+        orderNo: order.orderNo,
+        memberId: order.member.id,
+        memberName: order.member.name,
+        payableAmount: order.payableAmount,
+        paidAmount: totalPaymentAmount,
+        payments: data.payments.map(p => ({ method: p.method, amount: p.amount })),
+      },
+      ip,
+    });
+
     return result;
   }
 
-  async cancel(id: string, shopId: string, reason?: string) {
+  async cancel(id: string, shopId: string, reason?: string, operatorId?: string, ip?: string) {
     const order = await this.prisma.order.findFirst({
       where: { id, shopId },
       include: {
+        member: { select: { id: true, name: true, cardNo: true } },
         payments: true,
       },
     });
@@ -630,6 +653,22 @@ export class OrderService {
         cancelReason: reason,
         paidAmount: 0,
       },
+    });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.ORDER_CANCEL,
+      targetType: 'Order',
+      targetId: id,
+      detail: {
+        orderNo: order.orderNo,
+        memberId: order.member.id,
+        memberName: order.member.name,
+        payableAmount: order.payableAmount,
+        reason: reason || '',
+      },
+      ip,
     });
 
     return cancelledOrder;

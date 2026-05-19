@@ -1,16 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, Gift, Users, ToggleLeft, ToggleRight } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { Plus, Edit, Trash2, Gift, Users, ToggleLeft, ToggleRight, Search, X, Check } from 'lucide-react';
 import {
   getCouponTemplates,
   createCouponTemplate,
   updateCouponTemplate,
   deleteCouponTemplate,
+  issueCoupons,
   type CouponTemplate,
   type CreateCouponTemplateDto,
   type UpdateCouponTemplateDto,
 } from '@/lib/api/coupon';
+import { searchMembers, type Member } from '@/lib/api/orders';
 
 export default function CouponTemplatesPage() {
   const [templates, setTemplates] = useState<CouponTemplate[]>([]);
@@ -30,7 +32,6 @@ export default function CouponTemplatesPage() {
     endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     isActive: true,
   });
-  const [issueMemberIds, setIssueMemberIds] = useState('');
   const [filters, setFilters] = useState<{ type?: 'FIXED' | 'PERCENT'; isActive?: boolean }>({});
 
   useEffect(() => {
@@ -44,7 +45,6 @@ export default function CouponTemplatesPage() {
       setTemplates(response.items);
       setTotal(response.pagination.total);
     } catch (e: unknown) {
-      console.error(e);
       alert(`加载失败: ${e instanceof Error ? e.message : '未知错误'}`);
     } finally {
       setLoading(false);
@@ -69,16 +69,7 @@ export default function CouponTemplatesPage() {
       }
       setShowCreateModal(false);
       setSelectedTemplate(null);
-      setFormData({
-        name: '',
-        type: 'FIXED',
-        threshold: 0,
-        discount: 0,
-        total: 100,
-        startsAt: new Date().toISOString().split('T')[0],
-        endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        isActive: true,
-      });
+      resetFormData();
       loadTemplates();
     } catch (e: unknown) {
       alert(`操作失败: ${e instanceof Error ? e.message : '未知错误'}`);
@@ -88,7 +79,7 @@ export default function CouponTemplatesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('确认删除此优惠券模板？')) return;
+    if (!confirm('确认删除此优惠券模板？已发放的优惠券将无法删除。')) return;
     setLoading(true);
     try {
       await deleteCouponTemplate(id);
@@ -96,6 +87,18 @@ export default function CouponTemplatesPage() {
       loadTemplates();
     } catch (e: unknown) {
       alert(`删除失败: ${e instanceof Error ? e.message : '未知错误'}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleToggleActive(template: CouponTemplate) {
+    setLoading(true);
+    try {
+      await updateCouponTemplate(template.id, { isActive: !template.isActive });
+      loadTemplates();
+    } catch (e: unknown) {
+      alert(`操作失败: ${e instanceof Error ? e.message : '未知错误'}`);
     } finally {
       setLoading(false);
     }
@@ -121,7 +124,7 @@ export default function CouponTemplatesPage() {
     setShowIssueModal(true);
   }
 
-  function updateFilter(key: string, value: string | undefined) {
+  function updateFilter(key: string, value: string | boolean | undefined) {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setPage(1);
   }
@@ -131,6 +134,27 @@ export default function CouponTemplatesPage() {
     setPage(1);
   }
 
+  function resetFormData() {
+    setFormData({
+      name: '',
+      type: 'FIXED',
+      threshold: 0,
+      discount: 0,
+      total: 100,
+      startsAt: new Date().toISOString().split('T')[0],
+      endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      isActive: true,
+    });
+  }
+
+  function isExpired(template: CouponTemplate) {
+    return new Date(template.endsAt) < new Date();
+  }
+
+  function isNotStarted(template: CouponTemplate) {
+    return new Date(template.startsAt) > new Date();
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -138,16 +162,7 @@ export default function CouponTemplatesPage() {
         <button
           onClick={() => {
             setSelectedTemplate(null);
-            setFormData({
-              name: '',
-              type: 'FIXED',
-              threshold: 0,
-              discount: 0,
-              total: 100,
-              startsAt: new Date().toISOString().split('T')[0],
-              endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-              isActive: true,
-            });
+            resetFormData();
             setShowCreateModal(true);
           }}
           className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
@@ -187,66 +202,101 @@ export default function CouponTemplatesPage() {
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {templates.map((template) => (
-              <div key={template.id} className="rounded-xl border bg-card p-5 space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg">{template.name}</h3>
-                    <span className="text-xs text-muted-foreground">
-                      {template.type === 'FIXED' ? '满减券' : '折扣券'}
-                    </span>
-                  </div>
-                  {template.isActive ? (
-                    <ToggleRight className="h-5 w-5 text-primary" />
-                  ) : (
-                    <ToggleLeft className="h-5 w-5 text-muted-foreground" />
-                  )}
-                </div>
+            {templates.map((template) => {
+              const expired = isExpired(template);
+              const notStarted = isNotStarted(template);
+              const remaining = template.total - template.issued;
+              const availableCount = template.availableCount ?? 0;
 
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Gift className="h-4 w-4 text-primary" />
-                    <span className="font-medium text-lg">
-                      {template.type === 'FIXED'
-                        ? `满 ¥${(template.threshold / 100).toFixed(2)} 减 ¥${(template.discount / 100).toFixed(2)}`
-                        : `满 ¥${(template.threshold / 100).toFixed(2)} ${template.discount / 10}折`}
-                    </span>
+              return (
+                <div
+                  key={template.id}
+                  className={`rounded-xl border bg-card p-5 space-y-4 ${
+                    expired ? 'opacity-60' : notStarted ? 'border-dashed' : ''
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg">{template.name}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`rounded-full px-2 py-0.5 text-xs ${
+                          template.type === 'FIXED'
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                            : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                        }`}>
+                          {template.type === 'FIXED' ? '满减券' : '折扣券'}
+                        </span>
+                        {expired && (
+                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700 dark:bg-red-900/30 dark:text-red-400">已过期</span>
+                        )}
+                        {notStarted && (
+                          <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">未开始</span>
+                        )}
+                        {!template.isActive && !expired && (
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">已停用</span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleToggleActive(template)}
+                      title={template.isActive ? '点击停用' : '点击启用'}
+                      disabled={expired}
+                    >
+                      {template.isActive ? (
+                        <ToggleRight className="h-6 w-6 text-primary" />
+                      ) : (
+                        <ToggleLeft className="h-6 w-6 text-muted-foreground" />
+                      )}
+                    </button>
                   </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Users className="h-4 w-4" />
-                    <span>
-                      已发放: {template.issued} / {template.total}
-                    </span>
-                  </div>
-                  <div className="text-muted-foreground text-xs">
-                    有效期: {new Date(template.startsAt).toLocaleDateString('zh-CN')} 至{' '}
-                    {new Date(template.endsAt).toLocaleDateString('zh-CN')}
-                  </div>
-                </div>
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => openIssueModal(template)}
-                    disabled={template.issued >= template.total || !template.isActive}
-                    className="flex-1 rounded-lg border px-3 py-2 text-xs hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    发放
-                  </button>
-                  <button
-                    onClick={() => openEditModal(template)}
-                    className="rounded-lg border px-3 py-2 hover:bg-secondary"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(template.id)}
-                    className="rounded-lg border px-3 py-2 text-destructive hover:bg-destructive/10"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Gift className="h-4 w-4 text-primary" />
+                      <span className="font-medium text-lg">
+                        {template.type === 'FIXED'
+                          ? `满 ¥${(template.threshold / 100).toFixed(2)} 减 ¥${(template.discount / 100).toFixed(2)}`
+                          : `满 ¥${(template.threshold / 100).toFixed(2)} ${template.discount / 10}折`}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4 text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3.5 w-3.5" />
+                        已发 {template.issued}/{template.total}
+                      </span>
+                      <span>可用 {availableCount}</span>
+                      {remaining > 0 && <span>剩余 {remaining}</span>}
+                    </div>
+                    <div className="text-muted-foreground text-xs">
+                      {new Date(template.startsAt).toLocaleDateString('zh-CN')} 至{' '}
+                      {new Date(template.endsAt).toLocaleDateString('zh-CN')}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => openIssueModal(template)}
+                      disabled={remaining <= 0 || !template.isActive || expired}
+                      className="flex-1 rounded-lg border px-3 py-2 text-xs hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      发放
+                    </button>
+                    <button
+                      onClick={() => openEditModal(template)}
+                      className="rounded-lg border px-3 py-2 hover:bg-secondary"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(template.id)}
+                      className="rounded-lg border px-3 py-2 text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="flex items-center justify-between">
@@ -272,6 +322,7 @@ export default function CouponTemplatesPage() {
         </>
       )}
 
+      {/* Create/Edit Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-lg">
@@ -312,15 +363,14 @@ export default function CouponTemplatesPage() {
                     onChange={(e) => setFormData({ ...formData, total: parseInt(e.target.value) || 0 })}
                     className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
                     required
+                    disabled={!!selectedTemplate}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1 block text-sm">
-                    {formData.type === 'FIXED' ? '满额门槛 (元)' : '满额门槛 (元)'}
-                  </label>
+                  <label className="mb-1 block text-sm">满额门槛 (元)</label>
                   <input
                     type="number"
                     min="0"
@@ -414,88 +464,223 @@ export default function CouponTemplatesPage() {
         </div>
       )}
 
+      {/* Issue Modal with Member Search */}
       {showIssueModal && selectedTemplate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-lg">
-            <h2 className="mb-4 text-lg font-semibold">发放优惠券</h2>
-            <div className="mb-4 space-y-2 rounded-lg bg-secondary/50 p-4">
-              <div className="font-medium">{selectedTemplate.name}</div>
-              <div className="text-sm text-muted-foreground">
-                {selectedTemplate.type === 'FIXED'
-                  ? `满 ¥${(selectedTemplate.threshold / 100).toFixed(2)} 减 ¥${(selectedTemplate.discount / 100).toFixed(2)}`
-                  : `满 ¥${(selectedTemplate.threshold / 100).toFixed(2)} ${selectedTemplate.discount / 10}折`}
-              </div>
-              <div className="text-sm">
-                可发放: {selectedTemplate.total - selectedTemplate.issued} 张
-              </div>
-            </div>
+        <IssueCouponModal
+          template={selectedTemplate}
+          onClose={() => setShowIssueModal(false)}
+          onSuccess={() => {
+            setShowIssueModal(false);
+            loadTemplates();
+          }}
+        />
+      )}
+    </div>
+  );
+}
 
-            <div>
-              <label className="mb-1 block text-sm">会员ID列表（逗号分隔）</label>
-              <textarea
-                value={issueMemberIds}
-                onChange={(e) => setIssueMemberIds(e.target.value)}
-                placeholder="输入会员ID，多个用逗号分隔"
-                className="w-full rounded-lg border bg-card px-3 py-2 text-sm h-32"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                输入 {issueMemberIds.split(',').filter(Boolean).length} 个会员
-              </p>
-            </div>
+/* -------------------------------------------------- */
+/* IssueCouponModal - member search & multi-select     */
+/* -------------------------------------------------- */
 
-            <div className="mt-4 flex gap-2">
-              <button
-                onClick={() => {
-                  setShowIssueModal(false);
-                  setIssueMemberIds('');
-                }}
-                className="flex-1 rounded-lg border px-4 py-2 text-sm hover:bg-secondary"
-              >
-                取消
-              </button>
-              <button
-                onClick={async () => {
-                  const memberIds = issueMemberIds
-                    .split(',')
-                    .map((id) => id.trim())
-                    .filter(Boolean);
+interface IssueCouponModalProps {
+  template: CouponTemplate;
+  onClose: () => void;
+  onSuccess: () => void;
+}
 
-                  if (memberIds.length === 0) {
-                    alert('请输入会员ID');
-                    return;
-                  }
+interface SelectedMember {
+  id: string;
+  name: string;
+  cardNo: string;
+  phone: string;
+}
 
-                  const available = selectedTemplate.total - selectedTemplate.issued;
-                  if (memberIds.length > available) {
-                    alert(`剩余 ${available} 张优惠券，无法发放给 ${memberIds.length} 位会员`);
-                    return;
-                  }
+function IssueCouponModal({ template, onClose, onSuccess }: IssueCouponModalProps) {
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchResults, setSearchResults] = useState<Member[]>([]);
+  const [selectedMembers, setSelectedMembers] = useState<SelectedMember[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
 
-                  setLoading(true);
-                  try {
-                    const result = await (await import('@/lib/api/coupon')).issueCoupons(
-                      selectedTemplate.id,
-                      memberIds,
-                    );
-                    alert(`成功发放 ${result.issued} 张优惠券`);
-                    setShowIssueModal(false);
-                    setIssueMemberIds('');
-                    loadTemplates();
-                  } catch (e: unknown) {
-                    alert(`发放失败: ${e instanceof Error ? e.message : '未知错误'}`);
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                disabled={loading}
-                className="flex-1 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              >
-                发放
-              </button>
-            </div>
+  const remaining = template.total - template.issued;
+
+  const handleSearch = useCallback(async (keyword: string) => {
+    setSearchKeyword(keyword);
+    if (keyword.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    setSearching(true);
+    try {
+      const results = await searchMembers(keyword);
+      // Filter out already selected members
+      const selectedIds = new Set(selectedMembers.map((m) => m.id));
+      setSearchResults(results.filter((m) => !selectedIds.has(m.id)));
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, [selectedMembers]);
+
+  const addMember = (member: Member) => {
+    if (selectedMembers.length >= remaining) {
+      alert(`最多只能选择 ${remaining} 位会员`);
+      return;
+    }
+    if (selectedMembers.some((m) => m.id === member.id)) return;
+
+    setSelectedMembers((prev) => [...prev, {
+      id: member.id,
+      name: member.name,
+      cardNo: member.cardNo,
+      phone: member.phone,
+    }]);
+    setSearchResults((prev) => prev.filter((m) => m.id !== member.id));
+    setSearchKeyword('');
+    setSearchResults([]);
+  };
+
+  const removeMember = (memberId: string) => {
+    setSelectedMembers((prev) => prev.filter((m) => m.id !== memberId));
+  };
+
+  const handleIssue = async () => {
+    if (selectedMembers.length === 0) {
+      alert('请选择至少一位会员');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await issueCoupons(
+        template.id,
+        selectedMembers.map((m) => m.id),
+      );
+      alert(`成功发放 ${result.issued} 张优惠券`);
+      onSuccess();
+    } catch (e: unknown) {
+      alert(`发放失败: ${e instanceof Error ? e.message : '未知错误'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="w-full max-w-lg rounded-xl bg-card p-6 shadow-lg max-h-[85vh] overflow-y-auto">
+        <h2 className="mb-4 text-lg font-semibold">发放优惠券</h2>
+
+        {/* Template summary */}
+        <div className="mb-4 space-y-2 rounded-lg bg-secondary/50 p-4">
+          <div className="font-medium">{template.name}</div>
+          <div className="text-sm text-muted-foreground">
+            {template.type === 'FIXED'
+              ? `满 ¥${(template.threshold / 100).toFixed(2)} 减 ¥${(template.discount / 100).toFixed(2)}`
+              : `满 ¥${(template.threshold / 100).toFixed(2)} ${template.discount / 10}折`}
+          </div>
+          <div className="text-sm">
+            可发放: <span className="font-medium text-primary">{remaining}</span> 张
           </div>
         </div>
-      )}
+
+        {/* Member search */}
+        <div className="mb-4">
+          <label className="mb-1 block text-sm font-medium">搜索会员</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchKeyword}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="输入姓名/手机号/卡号搜索"
+              className="w-full rounded-lg border bg-card py-2 pl-9 pr-3 text-sm"
+            />
+            {searching && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">搜索中...</span>
+            )}
+          </div>
+
+          {/* Search results dropdown */}
+          {searchResults.length > 0 && (
+            <div className="mt-1 max-h-40 overflow-y-auto rounded-lg border bg-card shadow-sm">
+              {searchResults.map((member) => (
+                <button
+                  key={member.id}
+                  type="button"
+                  onClick={() => addMember(member)}
+                  className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-accent"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium">{member.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {member.cardNo} · {member.phone}
+                    </div>
+                  </div>
+                  <Plus className="h-4 w-4 text-primary" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Selected members */}
+        {selectedMembers.length > 0 && (
+          <div className="mb-4">
+            <div className="mb-2 flex items-center justify-between">
+              <label className="text-sm font-medium">
+                已选择 ({selectedMembers.length}/{remaining})
+              </label>
+              <button
+                type="button"
+                onClick={() => setSelectedMembers([])}
+                className="text-xs text-muted-foreground hover:text-destructive"
+              >
+                清空
+              </button>
+            </div>
+            <div className="max-h-40 space-y-1 overflow-y-auto">
+              {selectedMembers.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+                >
+                  <div className="flex-1 min-w-0">
+                    <span className="font-medium">{member.name}</span>
+                    <span className="ml-2 text-muted-foreground">{member.cardNo}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeMember(member.id)}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 rounded-lg border px-4 py-2 text-sm hover:bg-secondary"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            onClick={handleIssue}
+            disabled={loading || selectedMembers.length === 0}
+            className="flex-1 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {loading ? '发放中...' : `确认发放 (${selectedMembers.length}张)`}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

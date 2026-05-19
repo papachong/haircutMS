@@ -136,21 +136,21 @@ export default function MemberCouponsPage() {
               <div className="flex items-start justify-between mb-3">
                 <div className="font-bold text-2xl text-primary">
                   {coupon.template?.type === 'FIXED'
-                    ? `-¥${(coupon.template.discount / 100).toFixed(2)}`
-                    : `${coupon.template.discount / 10}折`}
+                    ? `-¥${((coupon.template?.discount ?? 0) / 100).toFixed(2)}`
+                    : `${(coupon.template?.discount ?? 0) / 10}折`}
                 </div>
                 <span className={`px-2 py-1 text-xs rounded-full ${getStatusClass(coupon.status)}`}>
                   {getStatusLabel(coupon.status)}
                 </span>
               </div>
 
-              <h3 className="font-semibold mb-2">{coupon.template?.name}</h3>
+              <h3 className="font-semibold mb-2">{coupon.template?.name ?? '未知优惠券'}</h3>
 
               <div className="space-y-1 text-sm">
                 <div className="text-muted-foreground">
                   {coupon.template?.type === 'FIXED'
-                    ? `满 ¥${(coupon.template.threshold / 100).toFixed(2)} 可用`
-                    : `满 ¥${(coupon.template.threshold / 100).toFixed(2)} 打 ${coupon.template.discount / 10} 折`}
+                    ? `满 ¥${((coupon.template?.threshold ?? 0) / 100).toFixed(2)} 可用`
+                    : `满 ¥${((coupon.template?.threshold ?? 0) / 100).toFixed(2)} 打 ${(coupon.template?.discount ?? 0) / 10} 折`}
                 </div>
                 <div className="text-muted-foreground text-xs">
                   有效期至 {new Date(coupon.expiresAt).toLocaleDateString('zh-CN')}

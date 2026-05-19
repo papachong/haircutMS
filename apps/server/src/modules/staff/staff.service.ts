@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { LicenseService } from '../license/license.service';
+import { AuditService, AuditActions } from '../audit/audit.service';
 import * as bcrypt from 'bcrypt';
 
 const SALT_ROUNDS = 10;
@@ -10,6 +11,7 @@ export class StaffService {
   constructor(
     private prisma: PrismaService,
     private licenseService: LicenseService,
+    private auditService: AuditService,
   ) {}
 
   async findAll(shopId: string) {
@@ -56,7 +58,7 @@ export class StaffService {
     password: string;
     role?: string;
     avatar?: string;
-  }) {
+  }, operatorId?: string, ip?: string) {
     const existing = await this.prisma.staff.findFirst({
       where: { shopId, phone: data.phone },
     });
@@ -72,7 +74,7 @@ export class StaffService {
 
     const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
 
-    return this.prisma.staff.create({
+    const staff = await this.prisma.staff.create({
       data: {
         shopId,
         name: data.name,
@@ -91,6 +93,22 @@ export class StaffService {
         createdAt: true,
       },
     });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.STAFF_CREATE,
+      targetType: 'Staff',
+      targetId: staff.id,
+      detail: {
+        name: staff.name,
+        phone: staff.phone,
+        role: staff.role,
+      },
+      ip,
+    });
+
+    return staff;
   }
 
   async update(id: string, shopId: string, data: {
@@ -127,7 +145,7 @@ export class StaffService {
     });
   }
 
-  async toggle(id: string, shopId: string) {
+  async toggle(id: string, shopId: string, operatorId?: string, ip?: string) {
     const existing = await this.prisma.staff.findFirst({
       where: { id, shopId },
     });
@@ -136,7 +154,7 @@ export class StaffService {
       throw new NotFoundException('Staff not found');
     }
 
-    return this.prisma.staff.update({
+    const updated = await this.prisma.staff.update({
       where: { id },
       data: { isActive: !existing.isActive },
       select: {
@@ -147,6 +165,23 @@ export class StaffService {
         isActive: true,
       },
     });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: updated.isActive ? AuditActions.STAFF_ACTIVATE : AuditActions.STAFF_DEACTIVATE,
+      targetType: 'Staff',
+      targetId: id,
+      detail: {
+        name: updated.name,
+        phone: updated.phone,
+        role: updated.role,
+        isActive: updated.isActive,
+      },
+      ip,
+    });
+
+    return updated;
   }
 
   async resetPassword(id: string, shopId: string, newPassword: string) {

@@ -115,4 +115,17 @@ export class ServiceItemService {
     );
     return { success: true };
   }
+
+  async remove(id: string, shopId: string) {
+    const existing = await this.prisma.serviceItem.findFirst({
+      where: { id, category: { shopId } },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Service item not found');
+    }
+
+    await this.prisma.serviceItem.delete({ where: { id } });
+    return { id };
+  }
 }

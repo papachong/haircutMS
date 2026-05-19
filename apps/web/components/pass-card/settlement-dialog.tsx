@@ -70,9 +70,6 @@ export function SettlementDialog({ order, onClose, onSuccess }: SettlementDialog
   const hasBalance = balanceAmount > 0;
   const hasOffline = offlineAmount > 0;
 
-  // Calculate total allocated
-  const totalAllocated = (hasPassCard ? 0 : 0) + (hasCoupon ? 0 : 0) + balanceAmount + offlineAmount;
-
   // Calculate coupon discount
   const selectedCoupon = availableCoupons.find((c) => c.id === selectedCouponInstanceId);
   const couponDiscount = selectedCoupon?.discount ?? 0;
@@ -80,12 +77,20 @@ export function SettlementDialog({ order, onClose, onSuccess }: SettlementDialog
   // Remaining amount after coupon
   const remainingAfterCoupon = order.payableAmount - couponDiscount;
 
+  // Calculate total allocated
+  const passCardPayAmount = hasPassCard ? remainingAfterCoupon : 0;
+  const totalAllocated = passCardPayAmount + (hasCoupon ? couponDiscount : 0) + balanceAmount * 100 + offlineAmount * 100;
+
   // Validate payment allocation
   const isPaymentValid = () => {
     if (hasPassCard && usablePassCards.length === 0) return false;
     if (hasCoupon && !selectedCoupon) return false;
     if (remainingAfterCoupon <= 0) return hasPassCard || hasCoupon;
-    return (hasPassCard ? 0 : 0) + balanceAmount + offlineAmount === remainingAfterCoupon;
+    if (hasPassCard) {
+      // Pass card covers the full remaining amount
+      return true;
+    }
+    return balanceAmount * 100 + offlineAmount * 100 === remainingAfterCoupon;
   };
 
   const getPaymentDescription = (method: PaymentMethod['type']): string => {
@@ -126,7 +131,7 @@ export function SettlementDialog({ order, onClose, onSuccess }: SettlementDialog
       if (hasPassCard && selectedPassCardId) {
         payments.push({
           method: 'PASS_CARD',
-          amount: 0,
+          amount: remainingAfterCoupon,
           passCardId: selectedPassCardId,
           detail: getPaymentDescription('PASS_CARD'),
         });
@@ -144,7 +149,7 @@ export function SettlementDialog({ order, onClose, onSuccess }: SettlementDialog
       if (balanceAmount > 0) {
         payments.push({
           method: 'BALANCE',
-          amount: balanceAmount,
+          amount: Math.round(balanceAmount * 100),
           detail: getPaymentDescription('BALANCE'),
         });
       }
@@ -152,7 +157,7 @@ export function SettlementDialog({ order, onClose, onSuccess }: SettlementDialog
       if (offlineAmount > 0) {
         payments.push({
           method: 'OFFLINE',
-          amount: offlineAmount,
+          amount: Math.round(offlineAmount * 100),
           detail: getPaymentDescription('OFFLINE'),
         });
       }
@@ -348,11 +353,23 @@ export function SettlementDialog({ order, onClose, onSuccess }: SettlementDialog
               </div>
             )}
             <div className="flex justify-between font-bold text-lg pt-2 border-t">
-              <span>实付金额</span>
+              <span>应付金额</span>
               <span className="text-primary">
-                ¥{(hasPassCard ? 0 : (hasCoupon ? couponDiscount : 0) + balanceAmount * 100 + offlineAmount * 100) / 100}
+                ¥{(order.payableAmount / 100).toFixed(2)}
               </span>
             </div>
+            {hasCoupon && (
+              <div className="flex justify-between text-sm text-orange-500">
+                <span>优惠券抵扣</span>
+                <span>-¥{(couponDiscount / 100).toFixed(2)}</span>
+              </div>
+            )}
+            {hasPassCard && (
+              <div className="flex justify-between text-sm">
+                <span>次卡抵扣</span>
+                <span>-¥{(remainingAfterCoupon / 100).toFixed(2)}</span>
+              </div>
+            )}
           </div>
 
           <button

@@ -1,20 +1,23 @@
 import { apiFetch } from '../api/client';
 
-export interface ServiceItem {
-  id: string;
-  categoryId: string;
-  name: string;
-  price: number;
-  duration: number;
-  image?: string;
-  sortOrder: number;
-}
+export type {
+  ServiceCategory,
+  ServiceItem,
+  CreateCategoryInput,
+  UpdateCategoryInput,
+  CreateServiceItemInput,
+  UpdateServiceItemInput,
+} from './service';
 
-export interface ServiceCategory {
-  id: string;
-  name: string;
-  sortOrder: number;
-}
+import type {
+  ServiceCategory,
+  ServiceItem,
+} from './service';
+
+import {
+  getServiceCategories as fetchServiceCategories,
+  getServiceItems as fetchServiceItems,
+} from './service';
 
 export interface Staff {
   id: string;
@@ -139,17 +142,11 @@ export interface Order {
 }
 
 export async function getServiceItems(categoryId?: string): Promise<ServiceItem[]> {
-  const params = new URLSearchParams();
-  if (categoryId) params.append('categoryId', categoryId);
-  params.append('activeOnly', 'true');
-  const path = `/service/items${params.toString() ? `?${params.toString()}` : ''}`;
-  const res = await apiFetch<{ code: number; data: ServiceItem[] }>(path);
-  return res.data;
+  return fetchServiceItems({ categoryId, activeOnly: true });
 }
 
 export async function getServiceCategories(): Promise<ServiceCategory[]> {
-  const res = await apiFetch<{ code: number; data: ServiceCategory[] }>('/service/categories');
-  return res.data;
+  return fetchServiceCategories();
 }
 
 export async function getStaff(): Promise<Staff[]> {

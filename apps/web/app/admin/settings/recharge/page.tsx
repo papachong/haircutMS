@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiFetch } from '@/lib/api/client';
 import { formatCurrency } from '@haircut-ms/shared';
 import {
   getAllRechargePlans,
@@ -103,15 +102,36 @@ export default function RechargePlansPage() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.name || formData.amount <= 0) {
-      alert('请填写方案名称和充值金额');
+    if (!formData.name.trim()) {
+      alert('请填写方案名称');
       return;
+    }
+    if (formData.amount <= 0) {
+      alert('充值金额必须大于0');
+      return;
+    }
+    // GIFT type should have gift amount
+    if (formData.type === 'GIFT' && formData.giftAmount <= 0) {
+      alert('充赠类型方案必须设置赠送金额');
+      return;
+    }
+    // TIMED type must have date range
+    if (formData.type === 'TIMED' && !formData.startsAt && !formData.endsAt) {
+      alert('限时活动方案必须设置活动时间范围');
+      return;
+    }
+    // Validate date range
+    if (formData.startsAt && formData.endsAt) {
+      if (new Date(formData.startsAt) >= new Date(formData.endsAt)) {
+        alert('结束时间必须晚于开始时间');
+        return;
+      }
     }
 
     setSubmitting(true);
     try {
-      const data: Record<string, unknown> = {
-        name: formData.name,
+      const data: Parameters<typeof createRechargePlan>[0] = {
+        name: formData.name.trim(),
         amount: formData.amount,
         giftAmount: formData.giftAmount,
         type: formData.type,
@@ -129,34 +149,46 @@ export default function RechargePlansPage() {
 
       closeModal();
       loadPlans();
-    } catch (error: any) {
-      alert(`操作失败：${error.message || '未知错误'}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : '未知错误';
+      alert(`操作失败：${message}`);
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleToggle = async (id: string) => {
+    const plan = plans.find((p) => p.id === id);
+    if (!plan) return;
+
+    // Warn when trying to activate an expired timed plan
+    if (!plan.isActive && isExpired(plan)) {
+      alert('该限时活动已结束，无法重新上架。请编辑修改活动时间后再上架。');
+      return;
+    }
+
     setTogglingId(id);
     try {
       const updated = await toggleRechargePlan(id);
       setPlans(plans.map((p) => (p.id === id ? updated : p)));
-    } catch (error: any) {
-      alert(`操作失败：${error.message || '未知错误'}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : '未知错误';
+      alert(`操作失败：${message}`);
     } finally {
       setTogglingId(null);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定要删除这个充值方案吗？')) return;
+    if (!confirm('确定要下架这个充值方案吗？下架后充值时将不再展示此方案。')) return;
 
     setDeletingId(id);
     try {
       await deleteRechargePlan(id);
       loadPlans();
-    } catch (error: any) {
-      alert(`删除失败：${error.message || '未知错误'}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : '未知错误';
+      alert(`删除失败：${message}`);
     } finally {
       setDeletingId(null);
     }
@@ -170,10 +202,6 @@ export default function RechargePlansPage() {
   const isNotStarted = (plan: RechargePlan): boolean => {
     if (!plan.startsAt) return false;
     return new Date(plan.startsAt) > new Date();
-  };
-
-  const isOngoing = (plan: RechargePlan): boolean => {
-    return !isNotStarted(plan) && !isExpired(plan);
   };
 
   const getPlanStatus = (plan: RechargePlan): { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' } => {
@@ -425,6 +453,18 @@ export default function RechargePlansPage() {
                   <option value="PERCENTAGE">阶梯 - 多充多送</option>
                   <option value="TIMED">限时活动 - 限时优惠</option>
                 </select>
+                {formData.type === 'DIRECT' && (
+                  <p className="text-xs text-muted-foreground mt-1">直充方案：充值金额即到账金额，无额外赠送</p>
+                )}
+                {formData.type === 'GIFT' && (
+                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">充赠方案：必须设置赠送金额，充值后额外到账赠送部分</p>
+                )}
+                {formData.type === 'PERCENTAGE' && (
+                  <p className="text-xs text-muted-foreground mt-1">阶梯方案：可设置赠送金额，适合多充多送场景</p>
+                )}
+                {formData.type === 'TIMED' && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">限时活动：必须设置活动时间范围，过期后自动不可用</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -443,7 +483,10 @@ export default function RechargePlansPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">赠送金额（元）</label>
+                  <label className="block text-sm font-medium mb-1">
+                    赠送金额（元）
+                    {formData.type === 'GIFT' && <span className="text-destructive ml-1">*</span>}
+                  </label>
                   <input
                     type="number"
                     min="0"
@@ -453,28 +496,46 @@ export default function RechargePlansPage() {
                       setFormData({ ...formData, giftAmount: Math.round(Number(e.target.value) * 100) })
                     }
                     placeholder="0.00"
-                    className="w-full px-3 py-2 rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className={`w-full px-3 py-2 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+                      formData.type === 'GIFT' && formData.giftAmount <= 0
+                        ? 'border-destructive'
+                        : 'border-input'
+                    }`}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">开始时间</label>
+                  <label className="block text-sm font-medium mb-1">
+                    开始时间
+                    {formData.type === 'TIMED' && <span className="text-destructive ml-1">*</span>}
+                  </label>
                   <input
                     type="datetime-local"
                     value={formData.startsAt}
                     onChange={(e) => setFormData({ ...formData, startsAt: e.target.value })}
-                    className="w-full px-3 py-2 rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className={`w-full px-3 py-2 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+                      formData.type === 'TIMED' && !formData.startsAt
+                        ? 'border-destructive'
+                        : 'border-input'
+                    }`}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">结束时间</label>
+                  <label className="block text-sm font-medium mb-1">
+                    结束时间
+                    {formData.type === 'TIMED' && <span className="text-destructive ml-1">*</span>}
+                  </label>
                   <input
                     type="datetime-local"
                     value={formData.endsAt}
                     onChange={(e) => setFormData({ ...formData, endsAt: e.target.value })}
-                    className="w-full px-3 py-2 rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className={`w-full px-3 py-2 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+                      formData.type === 'TIMED' && !formData.endsAt
+                        ? 'border-destructive'
+                        : 'border-input'
+                    }`}
                   />
                 </div>
               </div>

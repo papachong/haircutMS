@@ -60,8 +60,6 @@ export default function SettlementDialog({
   const [showPassCardSelector, setShowPassCardSelector] = useState(false);
   const [selectedPassCardIndex, setSelectedPassCardIndex] = useState<number | null>(null);
 
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-
   useEffect(() => {
     if (isOpen && member) {
       loadCoupons();
@@ -110,10 +108,10 @@ export default function SettlementDialog({
 
   const handleOfflineChange = (amount: number) => {
     const newAmount = Math.max(0, Math.min(amount, finalPayableAmount - payments.balanceAmount - payments.passCardAmount));
-    setPayments(newAmount => ({
+    setPayments({
       ...payments,
       offlineAmount: newAmount,
-    }));
+    });
   };
 
   const handlePassCardSelect = (passCard: PassCard, index: number) => {
@@ -129,15 +127,16 @@ export default function SettlementDialog({
   };
 
   const handleCouponSelect = (coupon: typeof availableCoupons[0], index: number) => {
+    const newCouponDiscount = coupon.discount;
+    const newFinalPayableAmount = payableAmount - newCouponDiscount;
     setPayments({
       ...payments,
-      couponDiscount: coupon.discount,
+      couponDiscount: newCouponDiscount,
       couponInstanceId: coupon.id,
-      offlineAmount: Math.max(0, finalPayableAmount - payments.balanceAmount - payments.passCardAmount),
+      offlineAmount: Math.max(0, newFinalPayableAmount - payments.balanceAmount - payments.passCardAmount),
     });
     setSelectedCouponIndex(index);
     setShowCouponSelector(false);
-    setShowConfirmDialog(true);
   };
 
   const handleSettle = async () => {

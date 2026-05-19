@@ -43,23 +43,44 @@ function formatTimestamp(dateStr: string): string {
   });
 }
 
+const DETAIL_KEY_LABELS: Record<string, string> = {
+  amount: '金额',
+  giftAmount: '赠送金额',
+  payMethod: '支付方式',
+  memberName: '会员',
+  cardNo: '卡号',
+  memberLevel: '等级',
+  name: '姓名',
+  phone: '手机',
+  role: '角色',
+  orderNo: '订单号',
+  reason: '原因',
+  fromLevel: '原等级',
+  toLevel: '新等级',
+  isActive: '状态',
+  planName: '充值方案',
+  remark: '备注',
+};
+
 function formatDetail(detail: Record<string, unknown> | null | undefined): string {
   if (!detail) return '-';
   const entries = Object.entries(detail);
   if (entries.length === 0) return '-';
 
   return entries
+    .filter(([key]) => key !== 'memberId' && key !== 'staffId' && key !== 'planId' && key !== 'targetId')
     .map(([key, value]) => {
-      if (key === 'amount') {
-        return `金额: ¥${Number(value) / 100}`;
+      const label = DETAIL_KEY_LABELS[key] || key;
+      if (key === 'amount' || key === 'giftAmount' || key === 'payableAmount' || key === 'paidAmount') {
+        return `${label}: ¥${Number(value) / 100}`;
       }
-      if (key === 'balance' || key === 'giftBalance' || key === 'principalBalance') {
-        return `余额: ¥${Number(value) / 100}`;
+      if (typeof value === 'object' && value !== null) {
+        return `${label}: ${JSON.stringify(value)}`;
       }
-      if (typeof value === 'object') {
-        return `${key}: ${JSON.stringify(value)}`;
+      if (key === 'isActive') {
+        return `${label}: ${value ? '启用' : '停用'}`;
       }
-      return `${key}: ${String(value)}`;
+      return `${label}: ${String(value)}`;
     })
     .join(' · ');
 }
@@ -393,12 +414,16 @@ export default function AdminAuditLogsPage() {
                     {Object.entries(selectedLog.detail).map(([key, value]) => (
                       <div key={key} className="flex gap-2">
                         <span className="font-medium text-muted-foreground w-24 shrink-0">
-                          {key}:
+                          {DETAIL_KEY_LABELS[key] || key}:
                         </span>
                         <span className="font-mono">
-                          {key === 'amount' || key.includes('Balance') || key.includes('Price')
+                          {key === 'amount' || key === 'giftAmount' || key === 'payableAmount' || key === 'paidAmount'
                             ? `¥${(Number(value) / 100).toFixed(2)}`
-                            : String(value)}
+                            : key === 'isActive'
+                              ? (value ? '启用' : '停用')
+                              : typeof value === 'object' && value !== null
+                                ? JSON.stringify(value)
+                                : String(value)}
                         </span>
                       </div>
                     ))}

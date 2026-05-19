@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Patch, Param, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Query, Req } from '@nestjs/common';
+import { Request } from 'express';
 import { MemberService } from './member.service';
 import { RechargeOperationService } from './recharge-operation.service';
 import { CurrentShop } from '../../common/decorators/current-shop.decorator';
@@ -44,33 +45,37 @@ export class MemberController {
   @Post()
   async create(
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() dto: CreateMemberDto,
   ) {
-    return this.memberService.create(shopId, dto);
+    return this.memberService.create(shopId, dto, operatorId, req.ip);
   }
 
   @Patch(':id')
   async update(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() dto: UpdateMemberDto,
   ) {
-    return this.memberService.update(id, shopId, dto);
+    return this.memberService.update(id, shopId, dto, operatorId, req.ip);
   }
 
   @Post(':id/recharge')
   async recharge(
     @Param('id') memberId: string,
     @CurrentShop() shopId: string,
-    @CurrentUser('id') operatorId: string,
-    @CurrentUser('ip') ip: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() dto: RechargeMemberDto,
   ) {
     return this.rechargeOperationService.recharge(
       memberId,
       shopId,
       operatorId,
-      ip,
+      req.ip ?? '',
       dto,
     );
   }

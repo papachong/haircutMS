@@ -60,6 +60,27 @@ export interface DormantMembersStats {
   dormantPercentage: number;
 }
 
+export interface RevenueComposition {
+  offline: number;
+  balance: number;
+  recharge: number;
+  passCard: number;
+}
+
+export interface RevenueBreakdown {
+  composition: RevenueComposition;
+  rechargeIncome: number;
+  consumeIncome: number;
+}
+
+export interface ServiceItemRanking {
+  id: string;
+  name: string;
+  count: number;
+  amount: number;
+  averagePrice: number;
+}
+
 @Injectable()
 export class DashboardService {
   constructor(private prisma: PrismaService) {}
@@ -557,6 +578,93 @@ export class DashboardService {
     }
 
     return dataPoints;
+  }
+
+  async getRevenueBreakdown(
+    shopId: string,
+    timeRange: TimeRange = TimeRange.TODAY,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<RevenueBreakdown> {
+    const { current } = this.getDateRanges(timeRange, startDate, endDate);
+
+    const [payments, rechargeAmount] = await Promise.all([
+      this.prisma.payment.groupBy({
+        by: ['method'],
+        where: {
+          order: {
+            shopId,
+            status: 'SETTLED',
+            createdAt: { gte: current.start, lte: current.end },
+          },
+        },
+        _sum: { amount: true },
+      }),
+      this.getRechargeAmount(shopId, current.start, current.end),
+    ]);
+
+    const composition: RevenueComposition = {
+      offline: 0,
+      balance: 0,
+      recharge: rechargeAmount,
+      passCard: 0,
+    };
+
+    for (const payment of payments) {
+      const amount = payment._sum.amount ?? 0;
+      switch (payment.method) {
+        case 'OFFLINE':
+          composition.offline = amount;
+          break;
+        case 'BALANCE':
+          composition.balance = amount;
+          break;
+        case 'PASS_CARD':
+          composition.passCard = amount;
+          break;
+      }
+    }
+
+    const consumeIncome = composition.offline + composition.balance + composition.passCard;
+
+    return {
+      composition,
+      rechargeIncome: rechargeAmount,
+      consumeIncome,
+    };
+  }
+
+  async getServiceRanking(
+    shopId: string,
+    timeRange: TimeRange = TimeRange.TODAY,
+    startDate?: string,
+    endDate?: string,
+    limit: number = 10,
+  ): Promise<ServiceItemRanking[]> {
+    const { current } = this.getDateRanges(timeRange, startDate, endDate);
+
+    const items = await this.prisma.orderItem.groupBy({
+      by: ['serviceItemId', 'serviceName'],
+      where: {
+        order: {
+          shopId,
+          status: 'SETTLED',
+          createdAt: { gte: current.start, lte: current.end },
+        },
+      },
+      _sum: { finalPrice: true },
+      _count: { id: true },
+      orderBy: { _sum: { finalPrice: 'desc' } },
+      take: limit,
+    });
+
+    return items.map((item) => ({
+      id: item.serviceItemId,
+      name: item.serviceName,
+      count: item._count.id,
+      amount: item._sum.finalPrice ?? 0,
+      averagePrice: item._count.id > 0 ? Math.round((item._sum.finalPrice ?? 0) / item._count.id) : 0,
+    }));
   }
 
   private async getRechargeAmount(shopId: string, startDate: Date, endDate: Date): Promise<number> {
