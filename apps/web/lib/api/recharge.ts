@@ -133,7 +133,7 @@ export async function deleteRechargePlan(id: string): Promise<void> {
 export async function rechargeMember(
   memberId: string,
   data: {
-    planId?: number;
+    planId?: string;
     amount?: number;
     giftAmount?: number;
     payMethod: PayMethod;

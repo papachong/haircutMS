@@ -36,21 +36,28 @@ export default function CreateShopPage() {
 
     setLoading(true);
     try {
-      await apiFetch('/platform/shops', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: formData.name,
-          address: formData.address || undefined,
-          phone: formData.phone || undefined,
-          businessHours: formData.businessHours || undefined,
-          ownerName: formData.ownerName,
-          ownerPhone: formData.ownerPhone,
-          ownerPassword: formData.ownerPassword,
-        }),
-      });
-      router.push('/platform/shops');
-    } catch (err: any) {
-      setError(err.message || '创建失败，请稍后重试');
+      const res = await apiFetch<{ code: number; data: unknown; message: string }>(
+        '/platform/shops',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            name: formData.name.trim(),
+            address: formData.address.trim() || undefined,
+            phone: formData.phone.trim() || undefined,
+            businessHours: formData.businessHours.trim() || undefined,
+            ownerName: formData.ownerName.trim(),
+            ownerPhone: formData.ownerPhone.trim(),
+            ownerPassword: formData.ownerPassword,
+          }),
+        },
+      );
+      if (res.code === 0) {
+        router.push('/platform/shops');
+      } else {
+        setError(res.message || '创建失败，请稍后重试');
+      }
+    } catch {
+      setError('创建失败，请稍后重试');
     } finally {
       setLoading(false);
     }

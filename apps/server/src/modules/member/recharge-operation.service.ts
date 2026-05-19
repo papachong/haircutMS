@@ -26,12 +26,12 @@ export class RechargeOperationService {
 
     let amount: number;
     let giftAmount: number;
-    const planId = dto.planId ? String(dto.planId) : undefined;
+    const planId = dto.planId ?? undefined;
     let planName: string | undefined;
 
     if (dto.planId) {
       const plan = await this.prisma.rechargePlan.findFirst({
-        where: { id: planId, shopId, isActive: true },
+        where: { id: dto.planId, shopId, isActive: true },
       });
 
       if (!plan) {

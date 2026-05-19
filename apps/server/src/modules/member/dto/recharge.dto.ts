@@ -11,10 +11,8 @@ export enum PayMethod {
 
 export class RechargeMemberDto {
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Type(() => Number)
-  planId?: number;
+  @IsString()
+  planId?: string;
 
   @IsOptional()
   @IsInt()
