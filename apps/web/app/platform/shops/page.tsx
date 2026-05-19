@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { apiFetch } from '../../../lib/api/client';
 
@@ -12,8 +12,8 @@ interface ShopListItem {
   staffCount: number;
   memberCount: number;
   licenseStatus: 'FREE' | 'PAID' | 'EXPIRED';
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface ShopListResponse {
@@ -38,29 +38,99 @@ export default function ShopListPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchShops = async () => {
+  // Debounce search input
+  useEffect(() => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, [searchQuery]);
+
+  const fetchShops = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (statusFilter) params.append('status', statusFilter);
-      if (searchQuery) params.append('search', searchQuery);
+      if (debouncedSearch) params.append('search', debouncedSearch);
 
-      const res = await apiFetch<ShopListResponse>(
+      const res = await apiFetch<{ code: number; data: ShopListResponse; message: string }>(
         `/platform/shops?${params.toString()}`,
       );
-      setShops(res.data);
-      setStats(res.stats);
-    } catch (error) {
-      console.error('Failed to fetch shops:', error);
+      if (res.code === 0) {
+        setShops(res.data.data);
+        setStats(res.data.stats);
+      }
+    } catch {
+      // Network error
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, debouncedSearch]);
 
   useEffect(() => {
     fetchShops();
-  }, [statusFilter, searchQuery]);
+  }, [fetchShops]);
+
+  const handleSuspend = async (shopId: string) => {
+    if (!confirm('确定要暂停该店铺吗？暂停后该店所有员工将无法登录。')) return;
+    try {
+      const res = await apiFetch<{ code: number; message: string }>(
+        `/platform/shops/${shopId}/suspend`,
+        { method: 'PATCH' },
+      );
+      if (res.code === 0) {
+        fetchShops();
+      } else {
+        alert(res.message || '操作失败');
+      }
+    } catch {
+      alert('操作失败');
+    }
+  };
+
+  const handleActivate = async (shopId: string) => {
+    if (!confirm('确定要激活该店铺吗？')) return;
+    try {
+      const res = await apiFetch<{ code: number; message: string }>(
+        `/platform/shops/${shopId}/activate`,
+        { method: 'PATCH' },
+      );
+      if (res.code === 0) {
+        fetchShops();
+      } else {
+        alert(res.message || '操作失败');
+      }
+    } catch {
+      alert('操作失败');
+    }
+  };
+
+  const handleArchive = async (shopId: string) => {
+    if (!confirm('确定要归档该店铺吗？归档后不可恢复。')) return;
+    try {
+      const res = await apiFetch<{ code: number; message: string }>(
+        `/platform/shops/${shopId}/archive`,
+        { method: 'PATCH' },
+      );
+      if (res.code === 0) {
+        fetchShops();
+      } else {
+        alert(res.message || '操作失败');
+      }
+    } catch {
+      alert('操作失败');
+    }
+  };
 
   const statusLabels = {
     ACTIVE: '正常',
@@ -198,9 +268,7 @@ export default function ShopListPage() {
               shops.map((shop) => (
                 <tr key={shop.id} className="hover:bg-gray-50">
                   <td className="px-4 sm:px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">
-                      {shop.name}
-                    </div>
+                    <div className="text-sm font-medium text-gray-900">{shop.name}</div>
                   </td>
                   <td className="px-4 sm:px-6 py-4 text-sm text-gray-500">
                     {shop.phone || '-'}
@@ -236,56 +304,25 @@ export default function ShopListPage() {
                       >
                         查看
                       </Link>
-                      {shop.status === 'ACTIVE' ? (
-                        <>
-                          <button
-                            onClick={async () => {
-                              if (!confirm('确定要暂停该店铺吗？')) return;
-                              try {
-                                await apiFetch(`/platform/shops/${shop.id}/suspend`, {
-                                  method: 'PATCH',
-                                });
-                                fetchShops();
-                              } catch (error) {
-                                alert('操作失败');
-                              }
-                            }}
-                            className="text-sm text-yellow-600 hover:text-yellow-800"
-                          >
-                            暂停
-                          </button>
-                        </>
-                      ) : shop.status === 'SUSPENDED' ? (
+                      {shop.status === 'ACTIVE' && (
                         <button
-                          onClick={async () => {
-                            if (!confirm('确定要激活该店铺吗？')) return;
-                            try {
-                              await apiFetch(`/platform/shops/${shop.id}/activate`, {
-                                method: 'PATCH',
-                              });
-                              fetchShops();
-                            } catch (error) {
-                              alert('操作失败');
-                            }
-                          }}
+                          onClick={() => handleSuspend(shop.id)}
+                          className="text-sm text-yellow-600 hover:text-yellow-800"
+                        >
+                          暂停
+                        </button>
+                      )}
+                      {shop.status === 'SUSPENDED' && (
+                        <button
+                          onClick={() => handleActivate(shop.id)}
                           className="text-sm text-green-600 hover:text-green-800"
                         >
                           激活
                         </button>
-                      ) : null}
+                      )}
                       {shop.status !== 'ARCHIVED' && (
                         <button
-                          onClick={async () => {
-                            if (!confirm('确定要归档该店铺吗？归档后不可恢复。')) return;
-                            try {
-                              await apiFetch(`/platform/shops/${shop.id}/archive`, {
-                                method: 'PATCH',
-                              });
-                              fetchShops();
-                            } catch (error) {
-                              alert('操作失败');
-                            }
-                          }}
+                          onClick={() => handleArchive(shop.id)}
                           className="text-sm text-gray-600 hover:text-gray-800"
                         >
                           归档
@@ -324,7 +361,9 @@ export default function ShopListPage() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <div className="text-xs text-gray-500">License</div>
-                  <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium mt-1 ${licenseColors[shop.licenseStatus]}`}>
+                  <span
+                    className={`inline-flex rounded-full px-2 py-1 text-xs font-medium mt-1 ${licenseColors[shop.licenseStatus]}`}
+                  >
                     {licenseLabels[shop.licenseStatus]}
                   </span>
                 </div>
@@ -338,7 +377,9 @@ export default function ShopListPage() {
                 </div>
                 <div>
                   <div className="text-xs text-gray-500">创建时间</div>
-                  <div className="font-medium text-sm">{new Date(shop.createdAt).toLocaleDateString('zh-CN')}</div>
+                  <div className="font-medium text-sm">
+                    {new Date(shop.createdAt).toLocaleDateString('zh-CN')}
+                  </div>
                 </div>
               </div>
 
@@ -352,17 +393,7 @@ export default function ShopListPage() {
                 <div className="flex gap-2">
                   {shop.status === 'ACTIVE' && (
                     <button
-                      onClick={async () => {
-                        if (!confirm('确定要暂停该店铺吗？')) return;
-                        try {
-                          await apiFetch(`/platform/shops/${shop.id}/suspend`, {
-                            method: 'PATCH',
-                          });
-                          fetchShops();
-                        } catch (error) {
-                          alert('操作失败');
-                        }
-                      }}
+                      onClick={() => handleSuspend(shop.id)}
                       className="text-sm text-yellow-600 hover:text-yellow-800"
                     >
                       暂停
@@ -370,17 +401,7 @@ export default function ShopListPage() {
                   )}
                   {shop.status === 'SUSPENDED' && (
                     <button
-                      onClick={async () => {
-                        if (!confirm('确定要激活该店铺吗？')) return;
-                        try {
-                          await apiFetch(`/platform/shops/${shop.id}/activate`, {
-                            method: 'PATCH',
-                          });
-                          fetchShops();
-                        } catch (error) {
-                          alert('操作失败');
-                        }
-                      }}
+                      onClick={() => handleActivate(shop.id)}
                       className="text-sm text-green-600 hover:text-green-800"
                     >
                       激活
@@ -388,17 +409,7 @@ export default function ShopListPage() {
                   )}
                   {shop.status !== 'ARCHIVED' && (
                     <button
-                      onClick={async () => {
-                        if (!confirm('确定要归档该店铺吗？归档后不可恢复。')) return;
-                        try {
-                          await apiFetch(`/platform/shops/${shop.id}/archive`, {
-                            method: 'PATCH',
-                          });
-                          fetchShops();
-                        } catch (error) {
-                          alert('操作失败');
-                        }
-                      }}
+                      onClick={() => handleArchive(shop.id)}
                       className="text-sm text-gray-600 hover:text-gray-800"
                     >
                       归档
