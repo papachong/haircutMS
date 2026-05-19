@@ -1,10 +1,12 @@
 import { Controller, Post, Body, HttpCode } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('login')
   @HttpCode(200)
   async login(@Body() body: { phone: string; password: string; shopId?: string }) {
@@ -14,6 +16,7 @@ export class AuthController {
     return this.authService.login(body.phone, body.password);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('refresh')
   @HttpCode(200)
   async refresh(@Body() body: { refreshToken: string }) {

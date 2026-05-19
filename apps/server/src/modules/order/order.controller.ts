@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Patch, Param, Body, Query, Res, HttpStatus, Req } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { OrderService } from './order.service';
 import { CurrentShop } from '../../common/decorators/current-shop.decorator';
@@ -28,6 +29,7 @@ export class OrderController {
     return this.orderService.getPendingOrders(shopId);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Get('export')
   async exportOrders(
     @CurrentShop() shopId: string,
