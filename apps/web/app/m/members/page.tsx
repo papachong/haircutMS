@@ -2,65 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Search, Plus, RefreshCw, User, Phone, CreditCard, TrendingUp } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Search, Plus, User, Phone, CreditCard, TrendingUp, Wallet } from 'lucide-react';
 import { searchMembers, getMembers, type Member, type MemberListParams } from '../../../lib/api/members';
-
-// Custom hook for pull-to-refresh
-function usePullToRefresh(onRefresh: () => Promise<void>) {
-  const [pulling, setPulling] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const startY = useRef(0);
-  const currentY = useRef(0);
-  const threshold = 80;
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const handleTouchStart = useCallback((e: TouchEvent) => {
-    if (containerRef.current?.scrollTop === 0) {
-      startY.current = e.touches[0].clientY;
-    }
-  }, []);
-
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (containerRef.current?.scrollTop === 0 && startY.current) {
-      currentY.current = e.touches[0].clientY;
-      const diff = currentY.current - startY.current;
-      if (diff > 0 && diff < 200) {
-        setPulling(diff > threshold);
-      }
-    }
-  }, [threshold]);
-
-  const handleTouchEnd = useCallback(async () => {
-    if (pulling && !refreshing) {
-      setRefreshing(true);
-      try {
-        await onRefresh();
-      } finally {
-        setRefreshing(false);
-        setPulling(false);
-      }
-    }
-    startY.current = 0;
-    currentY.current = 0;
-  }, [pulling, refreshing, onRefresh]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchmove', handleTouchMove, { passive: true });
-    container.addEventListener('touchend', handleTouchEnd);
-
-    return () => {
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-      container.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
-
-  return { containerRef, pulling, refreshing };
-}
+import { usePullRefresh } from '../../../hooks/use-pull-refresh';
+import { useDebounce } from '../../../hooks/use-debounce';
+import PullRefreshIndicator from '../../../components/mobile/pull-refresh-indicator';
+import SwipeableItem from '../../../components/mobile/swipeable-item';
 
 // Custom hook for infinite scroll
 function useInfiniteScroll(hasMore: boolean, onLoadMore: () => void) {
@@ -89,25 +37,11 @@ function useInfiniteScroll(hasMore: boolean, onLoadMore: () => void) {
   return { loadMoreRef };
 }
 
-// Custom hook for debounce
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
-  return debouncedValue;
-}
-
 // Quick recharge amount presets
 const AMOUNT_PRESETS = [100, 200, 500, 1000];
 
 export default function MobileMembersPage() {
+  const router = useRouter();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -121,7 +55,7 @@ export default function MobileMembersPage() {
   const debouncedSearch = useDebounce(searchKeyword, 300);
 
   // Pull-to-refresh
-  const { containerRef, pulling, refreshing } = usePullToRefresh(async () => {
+  const { containerRef, pulling, refreshing, pullDistance } = usePullRefresh(async () => {
     await loadData();
   });
 
@@ -189,12 +123,12 @@ export default function MobileMembersPage() {
     try {
       const result = await getMembers({ page: 1, pageSize: 1000 });
       const today = new Date().toDateString();
-      const members = result.items;
+      const memberItems = result.items;
 
       setStats({
         total: result.pagination.total,
-        totalBalance: members.reduce((sum, m) => sum + m.principalBalance + m.giftBalance, 0),
-        todayCount: members.filter((m) => new Date(m.createdAt).toDateString() === today).length,
+        totalBalance: memberItems.reduce((sum, m) => sum + m.principalBalance + m.giftBalance, 0),
+        todayCount: memberItems.filter((m) => new Date(m.createdAt).toDateString() === today).length,
       });
     } catch (error) {
       console.error('Failed to load stats:', error);
@@ -242,6 +176,9 @@ export default function MobileMembersPage() {
       const data = await response.json();
 
       if (data.code === 0) {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate([10, 50, 20]);
+        }
         alert('充值成功');
         loadData();
       } else {
@@ -253,25 +190,18 @@ export default function MobileMembersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pb-safe-bottom">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <div
         ref={containerRef}
         className="flex-1 overflow-auto"
-        style={{ height: '100vh', maxHeight: '100vh' }}
+        style={{ height: '100vh', maxHeight: '100vh', WebkitOverflowScrolling: 'touch' }}
       >
         {/* Pull-to-refresh indicator */}
-        <div
-          className={`flex items-center justify-center py-4 transition-all ${
-            pulling || refreshing ? 'opacity-100' : 'opacity-0'
-          }`}
-        >
-          <RefreshCw
-            className={`h-6 w-6 text-primary ${refreshing ? 'animate-spin' : ''}`}
-          />
-          <span className="ml-2 text-sm text-muted-foreground">
-            {refreshing ? '刷新中...' : '下拉刷新'}
-          </span>
-        </div>
+        <PullRefreshIndicator
+          pulling={pulling}
+          refreshing={refreshing}
+          pullDistance={pullDistance}
+        />
 
         {/* Header */}
         <div className="px-4 py-3 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-40">
@@ -283,22 +213,21 @@ export default function MobileMembersPage() {
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 placeholder="搜索姓名/手机号/卡号"
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 dark:text-white transition-all"
-                autoFocus
+                className="w-full pl-10 pr-10 py-3 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 dark:text-white transition-all min-h-[44px]"
               />
               {searchKeyword && (
                 <button
                   type="button"
                   onClick={() => setSearchKeyword('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-300 dark:bg-slate-600 flex items-center justify-center text-slate-500 dark:text-slate-300 text-xs"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-300 dark:bg-slate-600 flex items-center justify-center text-slate-500 dark:text-slate-300 text-xs active:scale-90 transition-transform"
                 >
-                  ×
+                  x
                 </button>
               )}
             </div>
             <Link
               href="/admin/members/new"
-              className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-md shadow-primary/30 active:scale-95 transition-all"
+              className="w-11 h-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-md shadow-primary/30 active:scale-95 transition-all shrink-0"
             >
               <Plus className="h-5 w-5" />
             </Link>
@@ -306,20 +235,29 @@ export default function MobileMembersPage() {
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-2">
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-2.5 text-white text-center">
+            <button
+              type="button"
+              className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-2.5 text-white text-center active:scale-[0.97] transition-transform"
+            >
               <div className="text-lg font-bold">{stats.total}</div>
               <div className="text-xs text-white/80">会员总数</div>
-            </div>
-            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-2.5 text-white text-center">
+            </button>
+            <button
+              type="button"
+              className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-2.5 text-white text-center active:scale-[0.97] transition-transform"
+            >
               <div className="text-lg font-bold">
                 ¥{(stats.totalBalance / 100).toFixed(0)}k
               </div>
               <div className="text-xs text-white/80">总余额</div>
-            </div>
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-2.5 text-white text-center">
+            </button>
+            <button
+              type="button"
+              className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-2.5 text-white text-center active:scale-[0.97] transition-transform"
+            >
               <div className="text-lg font-bold">{stats.todayCount}</div>
               <div className="text-xs text-white/80">今日新增</div>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -329,12 +267,12 @@ export default function MobileMembersPage() {
             <div className="text-xs text-slate-400 dark:text-slate-500 mb-2 font-medium uppercase tracking-wider">
               最近服务
             </div>
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-2">
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-2">
               {recentMembers.map((member) => (
                 <Link
                   key={member.id}
                   href={`/m/members/${member.id}`}
-                  className="flex-shrink-0 w-16 text-center"
+                  className="flex-shrink-0 w-16 text-center active:scale-95 transition-transform"
                 >
                   <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg mx-auto mb-1 shadow-md">
                     {member.avatar ? (
@@ -364,7 +302,7 @@ export default function MobileMembersPage() {
             </div>
           ) : members.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-4xl mb-3">📭</div>
+              <User className="h-12 w-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
               <p className="text-slate-500 dark:text-slate-400">
                 {searchKeyword ? '未找到匹配的会员' : '暂无会员数据'}
               </p>
@@ -372,11 +310,26 @@ export default function MobileMembersPage() {
           ) : (
             <div className="space-y-3">
               {members.map((member) => (
-                <MemberCard
+                <SwipeableItem
                   key={member.id}
-                  member={member}
-                  onQuickRecharge={(amount) => handleQuickRecharge(member.id, amount)}
-                />
+                  rightAction={{
+                    label: '充值',
+                    color: '#22c55e',
+                    icon: <Wallet className="h-4 w-4" />,
+                  }}
+                  leftAction={{
+                    label: '详情',
+                    color: '#3b82f6',
+                    icon: <User className="h-4 w-4" />,
+                  }}
+                  onSwipeRight={() => handleQuickRecharge(member.id, 100)}
+                  onSwipeLeft={() => router.push(`/m/members/${member.id}`)}
+                >
+                  <MemberCard
+                    member={member}
+                    onQuickRecharge={(amount) => handleQuickRecharge(member.id, amount)}
+                  />
+                </SwipeableItem>
               ))}
             </div>
           )}
@@ -409,20 +362,14 @@ interface MemberCardProps {
 }
 
 function MemberCard({ member, onQuickRecharge }: MemberCardProps) {
-  const [showRechargeMenu, setShowRechargeMenu] = useState(false);
-
   const totalBalance = member.principalBalance + member.giftBalance;
   const totalBalanceDisplay = `¥${(totalBalance / 100).toFixed(2)}`;
 
   return (
-    <Link
-      href={`/m/members/${member.id}`}
-      className="block bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 active:scale-[0.98] transition-all hover:shadow-md"
-      onClick={() => setShowRechargeMenu(false)}
-    >
+    <div className="p-4">
       <div className="flex items-start gap-3">
         {/* Avatar */}
-        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xl font-bold shadow-md shrink-0">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-lg font-bold shadow-md shrink-0">
           {member.avatar ? (
             <img
               src={member.avatar}
@@ -472,7 +419,7 @@ function MemberCard({ member, onQuickRecharge }: MemberCardProps) {
         </div>
       </div>
 
-      {/* Quick recharge */}
+      {/* Quick recharge - touch-optimized */}
       <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
         <div className="flex items-center justify-between">
           <span className="text-xs text-slate-400 dark:text-slate-500">快速充值</span>
@@ -483,25 +430,17 @@ function MemberCard({ member, onQuickRecharge }: MemberCardProps) {
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   onQuickRecharge(amount);
                 }}
-                className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg text-xs font-medium shadow-sm active:scale-95 transition-all"
+                className="px-3 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg text-xs font-medium shadow-sm active:scale-95 transition-all min-h-[36px]"
               >
                 ¥{amount}
               </button>
             ))}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-              }}
-              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-medium active:bg-slate-200 dark:active:bg-slate-600 transition-all"
-            >
-              更多
-            </button>
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
