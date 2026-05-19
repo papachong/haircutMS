@@ -1,6 +1,8 @@
-import { Controller, Get, Post, Param, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Query, Req } from '@nestjs/common';
+import { Request } from 'express';
 import { PassCardService } from './pass-card.service';
 import { CurrentShop } from '../../common/decorators/current-shop.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
   CreatePassCardDto,
   QueryPassCardDto,
@@ -40,21 +42,25 @@ export class PassCardController {
   @Post()
   create(
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() body: CreatePassCardDto,
   ) {
     return this.passCardService.create(shopId, {
       ...body,
       expiresAt: body.expiresAt ? new Date(body.expiresAt) : undefined,
-    });
+    }, operatorId, req.ip);
   }
 
   @Post(':id/use')
   async use(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() body: UsePassCardDto,
   ) {
-    return this.passCardService.use(id, shopId, body.orderItemId);
+    return this.passCardService.use(id, shopId, body.orderItemId, operatorId, req.ip);
   }
 
   @Post(':id/refund/:usageId')
@@ -62,8 +68,10 @@ export class PassCardController {
     @Param('id') id: string,
     @Param('usageId') usageId: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
   ) {
-    return this.passCardService.refundUsage(id, usageId, shopId);
+    return this.passCardService.refundUsage(id, usageId, shopId, operatorId, req.ip);
   }
 
   @Post(':id/deactivate')

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { AuditService, AuditActions } from '../../audit/audit.service';
 
 interface CreateTagGroupData {
   name: string;
@@ -19,7 +20,10 @@ interface UpdateTagData {
 
 @Injectable()
 export class TagService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService,
+  ) {}
 
   // --- Tag Groups ---
 
@@ -48,14 +52,26 @@ export class TagService {
     return group;
   }
 
-  async createGroup(shopId: string, data: CreateTagGroupData) {
-    return this.prisma.memberTagGroup.create({
+  async createGroup(shopId: string, data: CreateTagGroupData, operatorId?: string, ip?: string) {
+    const group = await this.prisma.memberTagGroup.create({
       data: { shopId, name: data.name },
       include: { tags: true },
     });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.TAG_GROUP_CREATE,
+      targetType: 'TagGroup',
+      targetId: group.id,
+      detail: { name: group.name },
+      ip,
+    });
+
+    return group;
   }
 
-  async updateGroup(id: string, shopId: string, data: UpdateTagGroupData) {
+  async updateGroup(id: string, shopId: string, data: UpdateTagGroupData, operatorId?: string, ip?: string) {
     const existing = await this.prisma.memberTagGroup.findFirst({
       where: { id, shopId },
     });
@@ -70,10 +86,21 @@ export class TagService {
         ...(data.name !== undefined && { name: data.name }),
       },
       include: { tags: { orderBy: { name: 'asc' } } },
+    }).then(async (updated) => {
+      await this.auditService.log({
+        shopId,
+        staffId: operatorId,
+        action: AuditActions.TAG_GROUP_UPDATE,
+        targetType: 'TagGroup',
+        targetId: id,
+        detail: { name: updated.name, changes: data },
+        ip,
+      });
+      return updated;
     });
   }
 
-  async deleteGroup(id: string, shopId: string) {
+  async deleteGroup(id: string, shopId: string, operatorId?: string, ip?: string) {
     const group = await this.prisma.memberTagGroup.findFirst({
       where: { id, shopId },
       include: { _count: { select: { tags: true } } },
@@ -84,6 +111,17 @@ export class TagService {
     }
 
     await this.prisma.memberTagGroup.delete({ where: { id } });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.TAG_GROUP_DELETE,
+      targetType: 'TagGroup',
+      targetId: id,
+      detail: { name: group.name },
+      ip,
+    });
+
     return { id };
   }
 
@@ -102,7 +140,7 @@ export class TagService {
     return tag;
   }
 
-  async createTag(groupId: string, shopId: string, data: CreateTagData) {
+  async createTag(groupId: string, shopId: string, data: CreateTagData, operatorId?: string, ip?: string) {
     const group = await this.prisma.memberTagGroup.findFirst({
       where: { id: groupId, shopId },
     });
@@ -123,10 +161,21 @@ export class TagService {
     return this.prisma.memberTag.create({
       data: { groupId, name: data.name },
       include: { group: true },
+    }).then(async (tag) => {
+      await this.auditService.log({
+        shopId,
+        staffId: operatorId,
+        action: AuditActions.TAG_CREATE,
+        targetType: 'Tag',
+        targetId: tag.id,
+        detail: { name: tag.name, groupId, groupName: group.name },
+        ip,
+      });
+      return tag;
     });
   }
 
-  async updateTag(id: string, shopId: string, data: UpdateTagData) {
+  async updateTag(id: string, shopId: string, data: UpdateTagData, operatorId?: string, ip?: string) {
     const tag = await this.prisma.memberTag.findFirst({
       where: { id, group: { shopId } },
       include: { group: true },
@@ -153,13 +202,27 @@ export class TagService {
       where: { id },
       data: { name: data.name },
       include: { group: true },
+    }).then(async (updated) => {
+      await this.auditService.log({
+        shopId,
+        staffId: operatorId,
+        action: AuditActions.TAG_UPDATE,
+        targetType: 'Tag',
+        targetId: id,
+        detail: { name: updated.name, groupName: updated.group.name },
+        ip,
+      });
+      return updated;
     });
   }
 
-  async deleteTag(id: string, shopId: string) {
+  async deleteTag(id: string, shopId: string, operatorId?: string, ip?: string) {
     const tag = await this.prisma.memberTag.findFirst({
       where: { id, group: { shopId } },
-      include: { _count: { select: { memberRelations: true } } },
+      include: {
+        _count: { select: { memberRelations: true } },
+        group: { select: { name: true } },
+      },
     });
 
     if (!tag) {
@@ -167,6 +230,17 @@ export class TagService {
     }
 
     await this.prisma.memberTag.delete({ where: { id } });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.TAG_DELETE,
+      targetType: 'Tag',
+      targetId: id,
+      detail: { name: tag.name, groupName: tag.group.name },
+      ip,
+    });
+
     return { id };
   }
 
@@ -236,7 +310,7 @@ export class TagService {
     return this.getMemberTags(memberId, shopId);
   }
 
-  async addMemberTag(memberId: string, shopId: string, tagId: string) {
+  async addMemberTag(memberId: string, shopId: string, tagId: string, operatorId?: string, ip?: string) {
     const member = await this.prisma.member.findFirst({
       where: { id: memberId, shopId },
     });
@@ -266,10 +340,20 @@ export class TagService {
       data: { memberId, tagId },
     });
 
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.MEMBER_TAG_ASSIGN,
+      targetType: 'Member',
+      targetId: memberId,
+      detail: { tagId, tagName: tag.name },
+      ip,
+    });
+
     return this.getMemberTags(memberId, shopId);
   }
 
-  async removeMemberTag(memberId: string, shopId: string, tagId: string) {
+  async removeMemberTag(memberId: string, shopId: string, tagId: string, operatorId?: string, ip?: string) {
     const member = await this.prisma.member.findFirst({
       where: { id: memberId, shopId },
     });
@@ -288,6 +372,16 @@ export class TagService {
 
     await this.prisma.memberTagRelation.delete({
       where: { memberId_tagId: { memberId, tagId } },
+    });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.MEMBER_TAG_REMOVE,
+      targetType: 'Member',
+      targetId: memberId,
+      detail: { tagId, tagName: tag.name },
+      ip,
     });
 
     return this.getMemberTags(memberId, shopId);

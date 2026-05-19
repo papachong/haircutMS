@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService, AuditActions } from '../audit/audit.service';
 
 interface CreateCouponTemplateData {
   name: string;
@@ -36,7 +37,10 @@ interface CouponDiscountResult {
 
 @Injectable()
 export class CouponService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService,
+  ) {}
 
   async findTemplates(shopId: string, query: {
     type?: 'FIXED' | 'PERCENT';
@@ -128,7 +132,7 @@ export class CouponService {
     };
   }
 
-  async createTemplate(shopId: string, data: CreateCouponTemplateData) {
+  async createTemplate(shopId: string, data: CreateCouponTemplateData, operatorId?: string, ip?: string) {
     const startsAt = new Date(data.startsAt);
     const endsAt = new Date(data.endsAt);
 
@@ -159,10 +163,26 @@ export class CouponService {
       },
     });
 
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.COUPON_TEMPLATE_CREATE,
+      targetType: 'CouponTemplate',
+      targetId: template.id,
+      detail: {
+        name: template.name,
+        type: template.type,
+        threshold: template.threshold,
+        discount: template.discount,
+        total: template.total,
+      },
+      ip,
+    });
+
     return template;
   }
 
-  async updateTemplate(id: string, shopId: string, data: UpdateCouponTemplateData) {
+  async updateTemplate(id: string, shopId: string, data: UpdateCouponTemplateData, operatorId?: string, ip?: string) {
     const existing = await this.prisma.couponTemplate.findFirst({
       where: { id, shopId },
     });
@@ -215,10 +235,25 @@ export class CouponService {
       }
     }
 
-    return this.prisma.couponTemplate.update({
+    const updated = await this.prisma.couponTemplate.update({
       where: { id },
       data: updateData,
     });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.COUPON_TEMPLATE_UPDATE,
+      targetType: 'CouponTemplate',
+      targetId: id,
+      detail: {
+        name: updated.name,
+        changes: data,
+      },
+      ip,
+    });
+
+    return updated;
   }
 
   async deleteTemplate(id: string, shopId: string) {
@@ -245,7 +280,7 @@ export class CouponService {
     return { success: true };
   }
 
-  async issueCoupons(templateId: string, shopId: string, memberIds: string[]) {
+  async issueCoupons(templateId: string, shopId: string, memberIds: string[], operatorId?: string, ip?: string) {
     const template = await this.prisma.couponTemplate.findFirst({
       where: { id: templateId, shopId },
     });
@@ -310,6 +345,20 @@ export class CouponService {
         issued: instances.count,
         coupons: createdInstances,
       };
+    });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.COUPON_ISSUE,
+      targetType: 'CouponTemplate',
+      targetId: templateId,
+      detail: {
+        templateName: template.name,
+        memberCount: memberIds.length,
+        memberIds,
+      },
+      ip,
     });
 
     return results;

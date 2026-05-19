@@ -8,11 +8,14 @@ import {
   Param,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { ServiceCategoryService } from './service-category.service';
 import { ServiceItemService } from './service-item.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentShop } from '../../common/decorators/current-shop.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -32,26 +35,32 @@ export class ServiceController {
   @Post('service-categories')
   async createCategory(
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() body: { name: string; sortOrder?: number },
   ) {
-    return this.categoryService.create(shopId, body);
+    return this.categoryService.create(shopId, body, operatorId, req.ip);
   }
 
   @Patch('service-categories/:id')
   async updateCategory(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() body: { name?: string; sortOrder?: number },
   ) {
-    return this.categoryService.update(id, shopId, body);
+    return this.categoryService.update(id, shopId, body, operatorId, req.ip);
   }
 
   @Delete('service-categories/:id')
   async removeCategory(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
   ) {
-    return this.categoryService.remove(id, shopId);
+    return this.categoryService.remove(id, shopId, operatorId, req.ip);
   }
 
   @Post('service-categories/reorder')
@@ -79,6 +88,8 @@ export class ServiceController {
   @Post('service-items')
   async createItem(
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body()
     body: {
       categoryId: string;
@@ -89,13 +100,15 @@ export class ServiceController {
       sortOrder?: number;
     },
   ) {
-    return this.itemService.create(shopId, body);
+    return this.itemService.create(shopId, body, operatorId, req.ip);
   }
 
   @Patch('service-items/:id')
   async updateItem(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body()
     body: {
       name?: string;
@@ -105,23 +118,27 @@ export class ServiceController {
       sortOrder?: number;
     },
   ) {
-    return this.itemService.update(id, shopId, body);
+    return this.itemService.update(id, shopId, body, operatorId, req.ip);
   }
 
   @Patch('service-items/:id/toggle')
   async toggleItem(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
   ) {
-    return this.itemService.toggle(id, shopId);
+    return this.itemService.toggle(id, shopId, operatorId, req.ip);
   }
 
   @Delete('service-items/:id')
   async removeItem(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
   ) {
-    return this.itemService.remove(id, shopId);
+    return this.itemService.remove(id, shopId, operatorId, req.ip);
   }
 
   @Post('service-items/reorder')

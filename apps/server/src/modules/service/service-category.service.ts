@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService, AuditActions } from '../audit/audit.service';
 
 interface CreateCategoryData {
   name: string;
@@ -13,7 +14,10 @@ interface UpdateCategoryData {
 
 @Injectable()
 export class ServiceCategoryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService,
+  ) {}
 
   async findAll(shopId: string) {
     return this.prisma.serviceCategory.findMany({
@@ -23,17 +27,29 @@ export class ServiceCategoryService {
     });
   }
 
-  async create(shopId: string, data: CreateCategoryData) {
-    return this.prisma.serviceCategory.create({
+  async create(shopId: string, data: CreateCategoryData, operatorId?: string, ip?: string) {
+    const category = await this.prisma.serviceCategory.create({
       data: {
         shopId,
         name: data.name,
         sortOrder: data.sortOrder ?? 0,
       },
     });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.SERVICE_CATEGORY_CREATE,
+      targetType: 'ServiceCategory',
+      targetId: category.id,
+      detail: { name: category.name, sortOrder: category.sortOrder },
+      ip,
+    });
+
+    return category;
   }
 
-  async update(id: string, shopId: string, data: UpdateCategoryData) {
+  async update(id: string, shopId: string, data: UpdateCategoryData, operatorId?: string, ip?: string) {
     const existing = await this.prisma.serviceCategory.findFirst({
       where: { id, shopId },
     });
@@ -48,10 +64,21 @@ export class ServiceCategoryService {
         ...(data.name !== undefined && { name: data.name }),
         ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
       },
+    }).then(async (updated) => {
+      await this.auditService.log({
+        shopId,
+        staffId: operatorId,
+        action: AuditActions.SERVICE_CATEGORY_UPDATE,
+        targetType: 'ServiceCategory',
+        targetId: id,
+        detail: { name: updated.name, changes: data },
+        ip,
+      });
+      return updated;
     });
   }
 
-  async remove(id: string, shopId: string) {
+  async remove(id: string, shopId: string, operatorId?: string, ip?: string) {
     const existing = await this.prisma.serviceCategory.findFirst({
       where: { id, shopId },
       include: { _count: { select: { items: true } } },
@@ -68,6 +95,17 @@ export class ServiceCategoryService {
     }
 
     await this.prisma.serviceCategory.delete({ where: { id } });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.SERVICE_CATEGORY_DELETE,
+      targetType: 'ServiceCategory',
+      targetId: id,
+      detail: { name: existing.name },
+      ip,
+    });
+
     return { id };
   }
 

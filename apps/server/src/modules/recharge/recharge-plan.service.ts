@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService, AuditActions } from '../audit/audit.service';
 import { CreateRechargePlanDto, UpdateRechargePlanDto } from './dto/recharge-plan.dto';
 
 @Injectable()
 export class RechargePlanService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService,
+  ) {}
 
   async findAll(shopId: string, activeOnly?: boolean) {
     const where: Record<string, unknown> = { shopId };
@@ -26,7 +30,7 @@ export class RechargePlanService {
     });
   }
 
-  async create(shopId: string, data: CreateRechargePlanDto) {
+  async create(shopId: string, data: CreateRechargePlanDto, operatorId?: string, ip?: string) {
     // Validate TIMED plans require date range
     if (data.type === 'TIMED' && !data.startsAt && !data.endsAt) {
       throw new BadRequestException('限时活动方案必须设置活动时间范围');
@@ -57,10 +61,26 @@ export class RechargePlanService {
       createData.endsAt = new Date(data.endsAt);
     }
 
-    return this.prisma.rechargePlan.create({ data: createData as any });
+    return this.prisma.rechargePlan.create({ data: createData as any }).then(async (plan) => {
+      await this.auditService.log({
+        shopId,
+        staffId: operatorId,
+        action: AuditActions.RECHARGE_PLAN_CREATE,
+        targetType: 'RechargePlan',
+        targetId: plan.id,
+        detail: {
+          name: plan.name,
+          amount: plan.amount,
+          giftAmount: plan.giftAmount,
+          type: plan.type,
+        },
+        ip,
+      });
+      return plan;
+    });
   }
 
-  async update(id: string, shopId: string, data: UpdateRechargePlanDto) {
+  async update(id: string, shopId: string, data: UpdateRechargePlanDto, operatorId?: string, ip?: string) {
     const existing = await this.prisma.rechargePlan.findFirst({
       where: { id, shopId },
     });
@@ -106,6 +126,17 @@ export class RechargePlanService {
     return this.prisma.rechargePlan.update({
       where: { id },
       data: updateData,
+    }).then(async (updated) => {
+      await this.auditService.log({
+        shopId,
+        staffId: operatorId,
+        action: AuditActions.RECHARGE_PLAN_UPDATE,
+        targetType: 'RechargePlan',
+        targetId: id,
+        detail: { name: updated.name, changes: data },
+        ip,
+      });
+      return updated;
     });
   }
 
@@ -124,7 +155,7 @@ export class RechargePlanService {
     });
   }
 
-  async toggle(id: string, shopId: string) {
+  async toggle(id: string, shopId: string, operatorId?: string, ip?: string) {
     const existing = await this.prisma.rechargePlan.findFirst({
       where: { id, shopId },
     });
@@ -141,6 +172,17 @@ export class RechargePlanService {
     return this.prisma.rechargePlan.update({
       where: { id },
       data: { isActive: !existing.isActive },
+    }).then(async (updated) => {
+      await this.auditService.log({
+        shopId,
+        staffId: operatorId,
+        action: AuditActions.RECHARGE_PLAN_TOGGLE,
+        targetType: 'RechargePlan',
+        targetId: id,
+        detail: { name: updated.name, isActive: updated.isActive },
+        ip,
+      });
+      return updated;
     });
   }
 }

@@ -7,9 +7,12 @@ import {
   Param,
   Body,
   Query,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { TagService } from './tag.service';
 import { CurrentShop } from '../../../common/decorators/current-shop.decorator';
+import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import {
   CreateTagGroupDto,
   CreateTagDto,
@@ -42,26 +45,32 @@ export class TagController {
   @Post('tag-groups')
   async createGroup(
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() dto: CreateTagGroupDto,
   ) {
-    return this.tagService.createGroup(shopId, dto);
+    return this.tagService.createGroup(shopId, dto, operatorId, req.ip);
   }
 
   @Patch('tag-groups/:id')
   async updateGroup(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() dto: UpdateTagGroupDto,
   ) {
-    return this.tagService.updateGroup(id, shopId, dto);
+    return this.tagService.updateGroup(id, shopId, dto, operatorId, req.ip);
   }
 
   @Delete('tag-groups/:id')
   async deleteGroup(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
   ) {
-    return this.tagService.deleteGroup(id, shopId);
+    return this.tagService.deleteGroup(id, shopId, operatorId, req.ip);
   }
 
   // --- Tags ---
@@ -78,26 +87,32 @@ export class TagController {
   async createTag(
     @Param('groupId') groupId: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() dto: CreateTagDto,
   ) {
-    return this.tagService.createTag(groupId, shopId, dto);
+    return this.tagService.createTag(groupId, shopId, dto, operatorId, req.ip);
   }
 
   @Patch('tags/:id')
   async updateTag(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() dto: UpdateTagDto,
   ) {
-    return this.tagService.updateTag(id, shopId, dto);
+    return this.tagService.updateTag(id, shopId, dto, operatorId, req.ip);
   }
 
   @Delete('tags/:id')
   async deleteTag(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
   ) {
-    return this.tagService.deleteTag(id, shopId);
+    return this.tagService.deleteTag(id, shopId, operatorId, req.ip);
   }
 
   // --- Member Tags ---
@@ -131,17 +146,21 @@ export class TagController {
   async addMemberTag(
     @Param('memberId') memberId: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() dto: AddMemberTagDto,
   ) {
-    return this.tagService.addMemberTag(memberId, shopId, dto.tagId);
+    return this.tagService.addMemberTag(memberId, shopId, dto.tagId, operatorId, req.ip);
   }
 
   @Post('members/:memberId/tags/remove')
   async removeMemberTag(
     @Param('memberId') memberId: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() dto: RemoveMemberTagDto,
   ) {
-    return this.tagService.removeMemberTag(memberId, shopId, dto.tagId);
+    return this.tagService.removeMemberTag(memberId, shopId, dto.tagId, operatorId, req.ip);
   }
 }

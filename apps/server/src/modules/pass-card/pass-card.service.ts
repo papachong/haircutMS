@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService, AuditActions } from '../audit/audit.service';
 
 export enum PassCardStatus {
   ACTIVE = 'ACTIVE',
@@ -28,7 +29,10 @@ interface QueryPassCardData {
 
 @Injectable()
 export class PassCardService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService,
+  ) {}
 
   async findAll(shopId: string, query: QueryPassCardData) {
     const page = query.page ?? 1;
@@ -237,7 +241,7 @@ export class PassCardService {
     };
   }
 
-  async create(shopId: string, data: CreatePassCardData) {
+  async create(shopId: string, data: CreatePassCardData, operatorId?: string, ip?: string) {
     // 验证会员是否存在
     const member = await this.prisma.member.findFirst({
       where: { id: data.memberId, shopId },
@@ -249,7 +253,7 @@ export class PassCardService {
     }
 
     // 创建次卡
-    return this.prisma.passCard.create({
+    const passCard = await this.prisma.passCard.create({
       data: {
         memberId: data.memberId,
         name: data.name,
@@ -277,9 +281,27 @@ export class PassCardService {
         },
       },
     });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.PASS_CARD_CREATE,
+      targetType: 'PassCard',
+      targetId: passCard.id,
+      detail: {
+        name: data.name,
+        totalTimes: data.totalTimes,
+        price: data.price,
+        memberId: data.memberId,
+        memberName: passCard.member.name,
+      },
+      ip,
+    });
+
+    return passCard;
   }
 
-  async use(passCardId: string, shopId: string, orderItemId?: string) {
+  async use(passCardId: string, shopId: string, orderItemId?: string, operatorId?: string, ip?: string) {
     const passCard = await this.prisma.passCard.findFirst({
       where: { id: passCardId, member: { shopId } },
     });
@@ -335,9 +357,22 @@ export class PassCardService {
 
       return { passCard: updated, usage };
     });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.PASS_CARD_USE,
+      targetType: 'PassCard',
+      targetId: passCardId,
+      detail: {
+        orderItemId,
+        remainingTimes: (await this.prisma.passCard.findUnique({ where: { id: passCardId } }))?.remainingTimes,
+      },
+      ip,
+    });
   }
 
-  async refundUsage(passCardId: string, usageId: string, shopId: string) {
+  async refundUsage(passCardId: string, usageId: string, shopId: string, operatorId?: string, ip?: string) {
     const passCard = await this.prisma.passCard.findFirst({
       where: { id: passCardId, member: { shopId } },
     });
@@ -358,7 +393,7 @@ export class PassCardService {
       throw new BadRequestException('Usage does not belong to this pass card');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       await tx.passCard.update({
         where: { id: passCardId },
         data: { remainingTimes: { increment: 1 } },
@@ -368,6 +403,21 @@ export class PassCardService {
         where: { id: usageId },
       });
     });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.PASS_CARD_REFUND,
+      targetType: 'PassCard',
+      targetId: passCardId,
+      detail: {
+        usageId,
+        passCardName: passCard.name,
+      },
+      ip,
+    });
+
+    return result;
   }
 
   async deactivate(id: string, shopId: string) {

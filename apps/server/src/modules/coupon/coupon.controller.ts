@@ -1,6 +1,8 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, Req } from '@nestjs/common';
+import { Request } from 'express';
 import { CouponService } from './coupon.service';
 import { CurrentShop } from '../../common/decorators/current-shop.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
   CreateCouponTemplateDto,
   UpdateCouponTemplateDto,
@@ -33,18 +35,22 @@ export class CouponController {
   @Post('templates')
   async createTemplate(
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() body: CreateCouponTemplateDto,
   ) {
-    return this.couponService.createTemplate(shopId, body);
+    return this.couponService.createTemplate(shopId, body, operatorId, req.ip);
   }
 
   @Patch('templates/:id')
   async updateTemplate(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() body: UpdateCouponTemplateDto,
   ) {
-    return this.couponService.updateTemplate(id, shopId, body);
+    return this.couponService.updateTemplate(id, shopId, body, operatorId, req.ip);
   }
 
   @Delete('templates/:id')
@@ -59,9 +65,11 @@ export class CouponController {
   async issueCoupons(
     @Param('templateId') templateId: string,
     @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
     @Body() body: IssueCouponsDto,
   ) {
-    return this.couponService.issueCoupons(templateId, shopId, body.memberIds);
+    return this.couponService.issueCoupons(templateId, shopId, body.memberIds, operatorId, req.ip);
   }
 
   @Get('members/:memberId')

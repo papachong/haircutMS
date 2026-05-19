@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { AuditService, AuditActions } from '../../audit/audit.service';
 import { CreateMemberLevelDto, UpdateMemberLevelDto, BatchSortDto } from './dto/member-level.dto';
 
 @Injectable()
 export class MemberLevelService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService,
+  ) {}
 
   async findAll(shopId: string) {
     const levels = await this.prisma.memberLevel.findMany({
@@ -21,12 +25,12 @@ export class MemberLevelService {
     }));
   }
 
-  async create(shopId: string, data: CreateMemberLevelDto) {
+  async create(shopId: string, data: CreateMemberLevelDto, operatorId?: string, ip?: string) {
     if (data.discount < 0.1 || data.discount > 1.0) {
       throw new BadRequestException('Discount must be between 0.10 and 1.00');
     }
 
-    return this.prisma.memberLevel.create({
+    const level = await this.prisma.memberLevel.create({
       data: {
         shopId,
         name: data.name,
@@ -35,9 +39,21 @@ export class MemberLevelService {
         remark: data.remark,
       },
     });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.MEMBER_LEVEL_CREATE,
+      targetType: 'MemberLevel',
+      targetId: level.id,
+      detail: { name: level.name, discount: level.discount },
+      ip,
+    });
+
+    return level;
   }
 
-  async update(id: string, shopId: string, data: UpdateMemberLevelDto) {
+  async update(id: string, shopId: string, data: UpdateMemberLevelDto, operatorId?: string, ip?: string) {
     const existing = await this.prisma.memberLevel.findFirst({
       where: { id, shopId },
     });
@@ -58,10 +74,21 @@ export class MemberLevelService {
         ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
         ...(data.remark !== undefined && { remark: data.remark }),
       },
+    }).then(async (updated) => {
+      await this.auditService.log({
+        shopId,
+        staffId: operatorId,
+        action: AuditActions.MEMBER_LEVEL_UPDATE,
+        targetType: 'MemberLevel',
+        targetId: id,
+        detail: { name: updated.name, changes: data },
+        ip,
+      });
+      return updated;
     });
   }
 
-  async remove(id: string, shopId: string) {
+  async remove(id: string, shopId: string, operatorId?: string, ip?: string) {
     const existing = await this.prisma.memberLevel.findFirst({
       where: { id, shopId },
       include: { _count: { select: { members: true } } },
@@ -78,10 +105,21 @@ export class MemberLevelService {
     }
 
     await this.prisma.memberLevel.delete({ where: { id } });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.MEMBER_LEVEL_DELETE,
+      targetType: 'MemberLevel',
+      targetId: id,
+      detail: { name: existing.name },
+      ip,
+    });
+
     return { id };
   }
 
-  async batchSort(shopId: string, items: BatchSortDto['items']) {
+  async batchSort(shopId: string, items: BatchSortDto['items'], operatorId?: string, ip?: string) {
     // Verify all items belong to this shop
     const levelIds = items.map((item) => item.id);
     const levels = await this.prisma.memberLevel.findMany({
@@ -101,6 +139,15 @@ export class MemberLevelService {
         }),
       ),
     );
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.MEMBER_LEVEL_REORDER,
+      targetType: 'MemberLevel',
+      detail: { items: items.map(i => ({ id: i.id, sortOrder: i.sortOrder })) },
+      ip,
+    });
 
     return this.findAll(shopId);
   }
