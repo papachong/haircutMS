@@ -13,5 +13,6 @@ coverage/
 *.swo
 .DS_Store
 apps/server/.env
+apps/server/src/generated/
 .omc/
 .claude/

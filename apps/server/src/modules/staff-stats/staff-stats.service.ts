@@ -342,6 +342,7 @@ export class StaffStatsService {
         },
       },
       include: {
+        order: true,
         serviceItem: {
           include: {
             category: true,

@@ -699,6 +699,8 @@ export class OrderService {
       const lastSeq = parseInt(lastOrder.orderNo.slice(-4), 10);
       seq = lastSeq + 1;
     }
+
+    return `${seqPrefix}${seq.toString().padStart(4, '0')}`;
   }
 
   async exportOrders(shopId: string, query: {

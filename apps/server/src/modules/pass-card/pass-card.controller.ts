@@ -7,7 +7,6 @@ import {
   UsePassCardDto,
 } from './dto/pass-card.dto';
 
-/* @ts-expect-error TS4053 - Transitive type issue with PassCardStatus */
 @Controller('api/v1/pass-cards')
 export class PassCardController {
   constructor(private passCardService: PassCardService) {}

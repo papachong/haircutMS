@@ -1,12 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Health check endpoint
-  app.use('/health', (req, res) => {
+  app.use('/health', (req: Request, res: Response) => {
     res.status(200).send('healthy');
   });
 

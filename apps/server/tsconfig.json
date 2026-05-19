@@ -22,6 +22,7 @@
     "skipDefaultLibCheck": true,
     "stripInternal": false,
     "paths": {
+      "@prisma/client": ["./src/generated/prisma"],
       "@haircut-ms/shared": ["../../packages/shared/src"]
     }
   }
