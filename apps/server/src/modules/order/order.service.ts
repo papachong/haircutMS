@@ -504,13 +504,20 @@ export class OrderService {
             data: { remainingTimes: { decrement: 1 } },
           });
 
-          // 找到对应的订单项并关联
-          const orderItem = items.find(item => item.finalPrice === payment.amount);
-          if (orderItem) {
+          // 找到第一个未关联次卡使用记录的订单项
+          const linkedUsage = await tx.passCardUsage.findMany({
+            where: {
+              orderItemId: { in: items.map(item => item.id) },
+            },
+            select: { orderItemId: true },
+          });
+          const linkedItemIds = new Set(linkedUsage.map(u => u.orderItemId).filter(Boolean));
+          const unlinkedItem = items.find(item => !linkedItemIds.has(item.id));
+          if (unlinkedItem) {
             await tx.passCardUsage.create({
               data: {
                 passCardId: passCard.id,
-                orderItemId: orderItem.id,
+                orderItemId: unlinkedItem.id,
               },
             });
           }
@@ -586,6 +593,7 @@ export class OrderService {
       include: {
         member: { select: { id: true, name: true, cardNo: true } },
         payments: true,
+        items: { select: { id: true } },
       },
     });
 
@@ -618,11 +626,14 @@ export class OrderService {
 
     // 恢复次卡
     const passCardPayments = order.payments.filter(p => p.method === PaymentMethod.PASS_CARD);
-    for (const payment of passCardPayments) {
-      const usage = await this.prisma.passCardUsage.findUnique({
-        where: { orderItemId: payment.orderId },
+    if (passCardPayments.length > 0) {
+      const orderItemIds = order.items.map(item => item.id);
+      const usages = await this.prisma.passCardUsage.findMany({
+        where: {
+          orderItemId: { in: orderItemIds },
+        },
       });
-      if (usage) {
+      for (const usage of usages) {
         await this.prisma.passCard.update({
           where: { id: usage.passCardId },
           data: { remainingTimes: { increment: 1 } },

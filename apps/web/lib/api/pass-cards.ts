@@ -1,19 +1,5 @@
 import { apiFetch } from './client';
 
-export interface PassCardStatus {
-  ACTIVE: 'ACTIVE';
-  EXPIRED: 'EXPIRED';
-  USED_UP: 'USED_UP';
-  INACTIVE: 'INACTIVE';
-}
-
-export const PASS_CARD_STATUS: PassCardStatus = {
-  ACTIVE: 'ACTIVE',
-  EXPIRED: 'EXPIRED',
-  USED_UP: 'USED_UP',
-  INACTIVE: 'INACTIVE',
-};
-
 export interface PassCardUsage {
   id: string;
   passCardId: string;
@@ -68,6 +54,7 @@ export interface CreatePassCardInput {
 
 export interface QueryPassCardsParams {
   memberId?: string;
+  keyword?: string;
   status?: 'ACTIVE' | 'EXPIRED' | 'USED_UP' | 'INACTIVE';
   availableOnly?: boolean;
   page?: number;
@@ -101,56 +88,77 @@ export async function getPassCards(
 ): Promise<PaginatedPassCardsResponse> {
   const query = new URLSearchParams();
   if (params?.memberId) query.append('memberId', params.memberId);
+  if (params?.keyword) query.append('keyword', params.keyword);
   if (params?.status) query.append('status', params.status);
   if (params?.availableOnly) query.append('availableOnly', 'true');
   if (params?.page) query.append('page', String(params.page));
   if (params?.pageSize) query.append('pageSize', String(params.pageSize));
 
   const path = `/pass-cards${query.toString() ? `?${query.toString()}` : ''}`;
-  return apiFetch<PaginatedPassCardsResponse>(path);
+  const res = await apiFetch<{ code: number; data: PaginatedPassCardsResponse }>(path);
+  return res.data;
 }
 
 export async function getPassCardById(id: string): Promise<PassCard> {
-  return apiFetch<PassCard>(`/pass-cards/${id}`);
+  const res = await apiFetch<{ code: number; data: PassCard }>(`/pass-cards/${id}`);
+  return res.data;
+}
+
+export async function getPassCardUsages(
+  passCardId: string,
+  page = 1,
+  pageSize = 20,
+): Promise<{ items: PassCardUsage[]; pagination: PaginationMeta }> {
+  const res = await apiFetch<{ code: number; data: { items: PassCardUsage[]; pagination: PaginationMeta } }>(
+    `/pass-cards/${passCardId}/usages?page=${page}&pageSize=${pageSize}`,
+  );
+  return res.data;
 }
 
 export async function createPassCard(data: CreatePassCardInput): Promise<PassCard> {
-  return apiFetch<PassCard>('/pass-cards', {
+  const res = await apiFetch<{ code: number; data: PassCard }>('/pass-cards', {
     method: 'POST',
     body: JSON.stringify(data),
   });
+  return res.data;
 }
 
 export async function usePassCard(data: UsePassCardInput): Promise<PassCardUsageResult> {
-  const path = data.orderItemId
-    ? `/pass-cards/${data.passCardId}/use`
-    : `/pass-cards/${data.passCardId}/use`;
-
-  return apiFetch<PassCardUsageResult>(path, {
-    method: 'POST',
-    body: JSON.stringify({ orderItemId: data.orderItemId }),
-  });
+  const res = await apiFetch<{ code: number; data: PassCardUsageResult }>(
+    `/pass-cards/${data.passCardId}/use`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ orderItemId: data.orderItemId }),
+    },
+  );
+  return res.data;
 }
 
 export async function refundPassCardUsage(
   passCardId: string,
   usageId: string,
 ): Promise<{ success: boolean }> {
-  return apiFetch<{ success: boolean }>(`/pass-cards/${passCardId}/refund/${usageId}`, {
-    method: 'POST',
-  });
+  const res = await apiFetch<{ code: number; data: { success: boolean } }>(
+    `/pass-cards/${passCardId}/refund/${usageId}`,
+    { method: 'POST' },
+  );
+  return res.data;
 }
 
 export async function deactivatePassCard(passCardId: string): Promise<PassCard> {
-  return apiFetch<PassCard>(`/pass-cards/${passCardId}/deactivate`, {
-    method: 'POST',
-  });
+  const res = await apiFetch<{ code: number; data: PassCard }>(
+    `/pass-cards/${passCardId}/deactivate`,
+    { method: 'POST' },
+  );
+  return res.data;
 }
 
 export async function activatePassCard(passCardId: string): Promise<PassCard> {
-  return apiFetch<PassCard>(`/pass-cards/${passCardId}/activate`, {
-    method: 'POST',
-  });
+  const res = await apiFetch<{ code: number; data: PassCard }>(
+    `/pass-cards/${passCardId}/activate`,
+    { method: 'POST' },
+  );
+  return res.data;
 }
 
 export function getPassCardStatusLabel(status: string): string {

@@ -19,6 +19,7 @@ interface CreatePassCardData {
 
 interface QueryPassCardData {
   memberId?: string;
+  keyword?: string;
   status?: PassCardStatus;
   availableOnly?: boolean;
   page?: number;
@@ -41,13 +42,28 @@ export class PassCardService {
       where.memberId = query.memberId;
     }
 
+    // Build AND conditions to avoid multiple top-level OR conflicts
+    const andConditions: Record<string, unknown>[] = [];
+
+    if (query.keyword) {
+      andConditions.push({
+        OR: [
+          { name: { contains: query.keyword, mode: 'insensitive' } },
+          { member: { name: { contains: query.keyword, mode: 'insensitive' } } },
+          { member: { phone: { contains: query.keyword, mode: 'insensitive' } } },
+        ],
+      });
+    }
+
     if (query.availableOnly) {
-      where.isActive = true;
-      where.remainingTimes = { gt: 0 };
-      where.OR = [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } },
-      ];
+      andConditions.push({
+        isActive: true,
+        remainingTimes: { gt: 0 },
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: new Date() } },
+        ],
+      });
     }
 
     if (query.status) {
@@ -58,13 +74,19 @@ export class PassCardService {
       } else if (query.status === PassCardStatus.INACTIVE) {
         where.isActive = false;
       } else if (query.status === PassCardStatus.ACTIVE) {
-        where.isActive = true;
-        where.remainingTimes = { gt: 0 };
-        where.OR = [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } },
-        ];
+        andConditions.push({
+          isActive: true,
+          remainingTimes: { gt: 0 },
+          OR: [
+            { expiresAt: null },
+            { expiresAt: { gt: new Date() } },
+          ],
+        });
       }
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     const [items, total] = await Promise.all([
@@ -173,6 +195,48 @@ export class PassCardService {
     };
   }
 
+  async getUsages(passCardId: string, shopId: string, page = 1, pageSize = 20) {
+    const passCard = await this.prisma.passCard.findFirst({
+      where: { id: passCardId, member: { shopId } },
+    });
+
+    if (!passCard) {
+      throw new NotFoundException('Pass card not found');
+    }
+
+    const where = { passCardId };
+    const [items, total] = await Promise.all([
+      this.prisma.passCardUsage.findMany({
+        where,
+        orderBy: { usedAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          orderItem: {
+            select: {
+              id: true,
+              serviceName: true,
+              staffName: true,
+              finalPrice: true,
+              order: {
+                select: {
+                  orderNo: true,
+                  settledAt: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.passCardUsage.count({ where }),
+    ]);
+
+    return {
+      items,
+      pagination: { total, page, pageSize, hasMore: page * pageSize < total },
+    };
+  }
+
   async create(shopId: string, data: CreatePassCardData) {
     // 验证会员是否存在
     const member = await this.prisma.member.findFirst({
@@ -215,9 +279,9 @@ export class PassCardService {
     });
   }
 
-  async use(passCardId: string, orderItemId?: string) {
-    const passCard = await this.prisma.passCard.findUnique({
-      where: { id: passCardId },
+  async use(passCardId: string, shopId: string, orderItemId?: string) {
+    const passCard = await this.prisma.passCard.findFirst({
+      where: { id: passCardId, member: { shopId } },
     });
 
     if (!passCard) {
@@ -273,10 +337,17 @@ export class PassCardService {
     });
   }
 
-  async refundUsage(passCardId: string, usageId: string) {
+  async refundUsage(passCardId: string, usageId: string, shopId: string) {
+    const passCard = await this.prisma.passCard.findFirst({
+      where: { id: passCardId, member: { shopId } },
+    });
+
+    if (!passCard) {
+      throw new NotFoundException('Pass card not found');
+    }
+
     const usage = await this.prisma.passCardUsage.findUnique({
       where: { id: usageId },
-      include: { passCard: true },
     });
 
     if (!usage) {

@@ -89,6 +89,7 @@ export default function MemberDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const [showRechargeDialog, setShowRechargeDialog] = useState(false);
+  const [showPassCardPurchase, setShowPassCardPurchase] = useState(false);
 
   useEffect(() => {
     loadMember();
@@ -418,12 +419,36 @@ export default function MemberDetailPage() {
 
         {activeTab === 'passcards' && (
           <div>
+            {/* Purchase button */}
+            <div className="flex justify-end mb-4">
+              <button
+                type="button"
+                onClick={() => setShowPassCardPurchase(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-sm"
+              >
+                <Plus className="h-4 w-4" />
+                购买次卡
+              </button>
+            </div>
+
             {member.passCards && member.passCards.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {member.passCards.map((card) => {
                   const percentage = (card.remainingTimes / card.totalTimes) * 100;
                   const isExpired = card.expiresAt && new Date(card.expiresAt) < new Date();
                   const isUsedUp = card.remainingTimes === 0;
+                  const daysUntilExpiry = card.expiresAt
+                    ? Math.ceil((new Date(card.expiresAt).getTime() - new Date().setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24))
+                    : null;
+                  const isExpiringSoon = daysUntilExpiry !== null && daysUntilExpiry <= 30 && daysUntilExpiry > 0;
+
+                  const getProgressColor = () => {
+                    if (isExpired) return 'bg-red-500';
+                    if (isExpiringSoon) return 'bg-orange-500';
+                    if (percentage <= 20) return 'bg-red-500';
+                    if (percentage <= 50) return 'bg-yellow-500';
+                    return 'bg-green-500';
+                  };
 
                   return (
                     <div
@@ -437,6 +462,11 @@ export default function MemberDetailPage() {
                         {isExpired && (
                           <span className="px-2 py-1 text-xs bg-destructive/10 text-destructive rounded">
                             已过期
+                          </span>
+                        )}
+                        {isExpiringSoon && !isExpired && (
+                          <span className="px-2 py-1 text-xs bg-orange-500/10 text-orange-700 rounded">
+                            即将过期
                           </span>
                         )}
                         {isUsedUp && !isExpired && (
@@ -455,7 +485,7 @@ export default function MemberDetailPage() {
                         </div>
                         <div className="w-full bg-secondary rounded-full h-2">
                           <div
-                            className="bg-primary h-2 rounded-full transition-all"
+                            className={`${getProgressColor()} h-2 rounded-full transition-all`}
                             style={{ width: `${percentage}%` }}
                           />
                         </div>
@@ -464,6 +494,9 @@ export default function MemberDetailPage() {
                       {card.expiresAt && (
                         <div className="text-sm text-muted-foreground">
                           有效期至: {new Date(card.expiresAt).toLocaleDateString('zh-CN')}
+                          {isExpiringSoon && (
+                            <span className="text-orange-600 ml-1">({daysUntilExpiry}天后过期)</span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -487,6 +520,19 @@ export default function MemberDetailPage() {
         <RechargeDialog
           onClose={() => setShowRechargeDialog(false)}
           onRecharge={handleRecharge}
+        />
+      )}
+
+      {/* Pass Card Purchase Dialog */}
+      {showPassCardPurchase && member && (
+        <PassCardPurchaseDialogInline
+          memberId={member.id}
+          memberName={member.name}
+          onClose={() => setShowPassCardPurchase(false)}
+          onSuccess={() => {
+            setShowPassCardPurchase(false);
+            loadMember();
+          }}
         />
       )}
     </div>
@@ -589,6 +635,157 @@ function RechargeDialog({ onClose, onRecharge }: RechargeDialogProps) {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+interface PassCardPurchaseDialogInlineProps {
+  memberId: string;
+  memberName: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function PassCardPurchaseDialogInline({
+  memberId,
+  memberName,
+  onClose,
+  onSuccess,
+}: PassCardPurchaseDialogInlineProps) {
+  const [formData, setFormData] = useState({
+    name: '',
+    totalTimes: 10,
+    price: 0,
+    expiresAt: '',
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!formData.name.trim()) {
+      alert('请输入次卡名称');
+      return;
+    }
+    if (formData.totalTimes <= 0) {
+      alert('次数必须大于0');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch('/api/v1/pass-cards', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          memberId,
+          name: formData.name.trim(),
+          totalTimes: formData.totalTimes,
+          price: Math.round(formData.price * 100),
+          expiresAt: formData.expiresAt || undefined,
+          isActive: true,
+        }),
+      });
+      const data = await response.json();
+      if (data.code === 0) {
+        alert('次卡创建成功');
+        onSuccess();
+      } else {
+        alert(data.message || '创建失败');
+      }
+    } catch (error: unknown) {
+      alert(`创建失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-background rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-auto">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="font-semibold text-lg">购买次卡</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground text-xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+        <div className="p-4 space-y-4">
+          <div className="bg-accent/50 rounded-lg p-3">
+            <div className="text-sm text-muted-foreground">会员</div>
+            <div className="font-medium">{memberName}</div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              次卡名称 <span className="text-destructive">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="例如: 剪发10次卡"
+              className="w-full px-3 py-2 border rounded-md"
+              autoFocus
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">次数</label>
+              <input
+                type="number"
+                min="1"
+                value={formData.totalTimes}
+                onChange={(e) => setFormData({ ...formData, totalTimes: parseInt(e.target.value) || 0 })}
+                className="w-full px-3 py-2 border rounded-md"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">价格 (元)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                className="w-full px-3 py-2 border rounded-md"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">有效期</label>
+            <input
+              type="date"
+              value={formData.expiresAt}
+              onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full px-3 py-2 border rounded-md"
+            />
+            <p className="text-xs text-muted-foreground mt-1">留空则永久有效</p>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border rounded-md hover:bg-accent transition-colors"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={loading}
+              className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            >
+              {loading ? '处理中...' : '创建次卡'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

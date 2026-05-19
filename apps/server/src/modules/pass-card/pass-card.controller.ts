@@ -27,6 +27,16 @@ export class PassCardController {
     return this.passCardService.findById(id, shopId);
   }
 
+  @Get(':id/usages')
+  getUsages(
+    @Param('id') id: string,
+    @CurrentShop() shopId: string,
+    @Query('page') page?: number,
+    @Query('pageSize') pageSize?: number,
+  ) {
+    return this.passCardService.getUsages(id, shopId, page, pageSize);
+  }
+
   @Post()
   create(
     @CurrentShop() shopId: string,
@@ -41,17 +51,19 @@ export class PassCardController {
   @Post(':id/use')
   async use(
     @Param('id') id: string,
+    @CurrentShop() shopId: string,
     @Body() body: UsePassCardDto,
   ) {
-    return this.passCardService.use(id, body.orderItemId);
+    return this.passCardService.use(id, shopId, body.orderItemId);
   }
 
   @Post(':id/refund/:usageId')
   async refundUsage(
     @Param('id') id: string,
     @Param('usageId') usageId: string,
+    @CurrentShop() shopId: string,
   ) {
-    return this.passCardService.refundUsage(id, usageId);
+    return this.passCardService.refundUsage(id, usageId, shopId);
   }
 
   @Post(':id/deactivate')

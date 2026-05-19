@@ -39,6 +39,10 @@ export class QueryPassCardDto {
   memberId?: string;
 
   @IsOptional()
+  @IsString()
+  keyword?: string;
+
+  @IsOptional()
   @IsEnum(PassCardStatus)
   status?: PassCardStatus;
 
