@@ -21,6 +21,7 @@ import { StaffStatsModule } from './modules/staff-stats/staff-stats.module';
 import { PlatformOverviewModule } from './modules/platform/overview/platform-overview.module';
 import { PlatformLicenseModule } from './modules/platform/platform-license/platform-license.module';
 import { MemberProfileModule } from './modules/member-profile/member-profile.module';
+import { ExportModule } from './modules/export/export.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -64,6 +65,7 @@ import { AppService } from './app.service';
     PlatformOverviewModule,
     PlatformLicenseModule,
     MemberProfileModule,
+    ExportModule,
   ],
   controllers: [AppController],
   providers: [

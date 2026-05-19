@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Plus, User, Phone, Calendar, MoreVertical } from 'lucide-react';
+import { Search, Plus, User, Phone, Calendar, MoreVertical, Download } from 'lucide-react';
 import {
   getMembers,
   type Member,
   type MemberListParams,
 } from '../../../lib/api/members';
+import { exportMembers } from '../../../lib/api/export';
 
 export default function MembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -18,6 +19,7 @@ export default function MembersPage() {
   const [pageSize, setPageSize] = useState(20);
   const [hasMore, setHasMore] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [memberLevels, setMemberLevels] = useState<Array<{ id: string; name: string; discount: number }>>([]);
 
@@ -89,6 +91,18 @@ export default function MembersPage() {
     loadMembers();
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportMembers('xlsx');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      alert(`导出失败: ${errorMessage}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const totalPages = Math.ceil(total / pageSize);
 
   const getMemberLevelName = (levelId: string) => {
@@ -101,15 +115,26 @@ export default function MembersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <h1 className="text-xl sm:text-2xl font-bold">会员管理</h1>
-        <button
-          type="button"
-          onClick={handleCreateMember}
-          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-sm"
-        >
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">新建会员</span>
-          <span className="sm:hidden">新建</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={exporting || loading || members.length === 0}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 border rounded-md hover:bg-accent transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download className="h-4 w-4" />
+            <span>{exporting ? '导出中...' : '导出'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleCreateMember}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-sm"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">新建会员</span>
+            <span className="sm:hidden">新建</span>
+          </button>
+        </div>
       </div>
 
       {/* Search */}

@@ -21,6 +21,7 @@ import {
   type Order,
   type OrderStats,
 } from '../../../lib/api/orders';
+import { exportOrders } from '../../../lib/api/export';
 
 type OrderStatus = 'PENDING' | 'SETTLED' | 'CANCELLED' | 'REFUNDED';
 
@@ -126,28 +127,7 @@ export default function OrdersPage() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const params = new URLSearchParams();
-      if (searchKeyword.trim()) params.append('keyword', searchKeyword.trim());
-      if (selectedStatus !== 'ALL') params.append('status', selectedStatus);
-      if (dateRange.start) params.append('startDate', dateRange.start);
-      if (dateRange.end) params.append('endDate', dateRange.end);
-
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(`/api/v1/orders/export?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) throw new Error('导出失败');
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `orders_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      await exportOrders('xlsx', dateRange.start, dateRange.end);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '未知错误';
       alert(`导出失败: ${errorMessage}`);
