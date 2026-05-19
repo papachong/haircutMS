@@ -27,39 +27,51 @@ export interface UpdateStaffInput {
   avatar?: string;
 }
 
-export async function getStaffList(): Promise<Staff[]> {
-  return apiFetch('/staff');
+interface ApiResponse<T> {
+  code: number;
+  data: T;
+  message: string;
 }
 
-export async function getStaffById(id: string): Promise<Staff | null> {
-  return apiFetch(`/staff/${id}`);
+export async function getStaffList(): Promise<Staff[]> {
+  const res = await apiFetch<ApiResponse<Staff[]>>('/staff');
+  return res.data;
+}
+
+export async function getStaffById(id: string): Promise<Staff> {
+  const res = await apiFetch<ApiResponse<Staff>>(`/staff/${id}`);
+  return res.data;
 }
 
 export async function createStaff(data: CreateStaffInput): Promise<Staff> {
-  return apiFetch('/staff', {
+  const res = await apiFetch<ApiResponse<Staff>>('/staff', {
     method: 'POST',
     body: JSON.stringify(data),
   });
+  return res.data;
 }
 
 export async function updateStaff(id: string, data: UpdateStaffInput): Promise<Staff> {
-  return apiFetch(`/staff/${id}`, {
+  const res = await apiFetch<ApiResponse<Staff>>(`/staff/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(data),
   });
+  return res.data;
 }
 
 export async function toggleStaffStatus(id: string): Promise<Staff> {
-  return apiFetch(`/staff/${id}/toggle`, {
+  const res = await apiFetch<ApiResponse<Staff>>(`/staff/${id}/toggle`, {
     method: 'PATCH',
   });
+  return res.data;
 }
 
 export async function resetStaffPassword(id: string, password: string): Promise<{ id: string; message: string }> {
-  return apiFetch(`/staff/${id}/reset-password`, {
+  const res = await apiFetch<ApiResponse<{ id: string; message: string }>>(`/staff/${id}/reset-password`, {
     method: 'POST',
     body: JSON.stringify({ password }),
   });
+  return res.data;
 }
 
 export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
