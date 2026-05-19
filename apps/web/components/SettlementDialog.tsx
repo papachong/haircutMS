@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Check, CreditCard, Wallet, Ticket, DollarSign } from 'lucide-react';
 import { getAvailableCoupons, settleOrder, type CouponInstance, type PaymentInput } from '@/lib/api/orders';
 import type { Member, PassCard } from '@/lib/api/orders';
+import type { SelectedCoupon } from './coupon/coupon-selector';
 
 export interface SettlementProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ export interface SettlementProps {
   payableAmount: number;
   member: Member | null;
   memberPassCards?: PassCard[];
+  preselectedCoupon?: SelectedCoupon | null;
   onSettleSuccess: () => void;
 }
 
@@ -37,6 +39,7 @@ export default function SettlementDialog({
   payableAmount,
   member,
   memberPassCards = [],
+  preselectedCoupon,
   onSettleSuccess,
 }: SettlementProps) {
   const [loading, setLoading] = useState(false);
@@ -63,19 +66,30 @@ export default function SettlementDialog({
   useEffect(() => {
     if (isOpen && member) {
       loadCoupons();
-      // 默认使用余额支付
       const totalBalance = (member.giftBalance || 0) + (member.principalBalance || 0);
-      if (totalBalance > 0) {
-        const balancePayable = Math.min(payableAmount, totalBalance);
+      const couponDiscountAmount = preselectedCoupon?.discount ?? 0;
+      const adjustedPayable = payableAmount - couponDiscountAmount;
+
+      if (preselectedCoupon) {
+        const balancePayable = totalBalance > 0 ? Math.min(adjustedPayable, totalBalance) : 0;
         setPayments({
           balanceAmount: balancePayable,
           passCardAmount: 0,
-          offlineAmount: Math.max(0, payableAmount - balancePayable),
+          offlineAmount: Math.max(0, adjustedPayable - balancePayable),
+          couponDiscount: couponDiscountAmount,
+          couponInstanceId: preselectedCoupon.id,
+        });
+      } else if (totalBalance > 0) {
+        const balancePayable = Math.min(adjustedPayable, totalBalance);
+        setPayments({
+          balanceAmount: balancePayable,
+          passCardAmount: 0,
+          offlineAmount: Math.max(0, adjustedPayable - balancePayable),
           couponDiscount: 0,
         });
       }
     }
-  }, [isOpen, member, payableAmount]);
+  }, [isOpen, member, payableAmount, preselectedCoupon]);
 
   const loadCoupons = async () => {
     if (!member) return;
@@ -83,6 +97,12 @@ export default function SettlementDialog({
     try {
       const coupons = await getAvailableCoupons(member.id, payableAmount);
       setAvailableCoupons(coupons);
+      if (preselectedCoupon) {
+        const idx = coupons.findIndex((c) => c.id === preselectedCoupon.id);
+        if (idx >= 0) {
+          setSelectedCouponIndex(idx);
+        }
+      }
     } catch (error) {
       console.error('加载优惠券失败:', error);
     } finally {

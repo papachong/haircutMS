@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Tag,
   Wallet,
+  Ticket,
 } from 'lucide-react';
 import {
   getServiceItems,
@@ -36,6 +37,7 @@ import {
   type Order,
 } from '../../../lib/api/orders';
 import SettlementDialog from '../../../components/SettlementDialog';
+import CouponSelector, { type SelectedCoupon } from '../../../components/coupon/coupon-selector';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -106,6 +108,9 @@ export default function POSPage() {
   const [pendingOrders, setPendingOrders] = useState<PendingOrderItem[]>([]);
   const [loadingPending, setLoadingPending] = useState(false);
 
+  // Coupon pre-selection
+  const [preselectedCoupon, setPreselectedCoupon] = useState<SelectedCoupon | null>(null);
+
   // Member search debounce
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -173,6 +178,7 @@ export default function POSPage() {
   const clearMember = () => {
     setSelectedMember(null);
     setMemberPassCards([]);
+    setPreselectedCoupon(null);
     recalculateCart(null, cart);
   };
 
@@ -287,6 +293,7 @@ export default function POSPage() {
     setMemberPassCards([]);
     setRemark('');
     setCreatedOrderId(null);
+    setPreselectedCoupon(null);
   };
 
   // ─── Category Toggle ─────────────────────────────────────────────────────
@@ -460,7 +467,8 @@ export default function POSPage() {
   const originalAmount = cart.reduce((sum, item) => sum + item.subtotal, 0);
   const discountAmount =
     originalAmount - cart.reduce((sum, item) => sum + item.finalPrice, 0);
-  const payableAmount = cart.reduce((sum, item) => sum + item.finalPrice, 0);
+  const couponDiscount = preselectedCoupon?.discount ?? 0;
+  const payableAmount = cart.reduce((sum, item) => sum + item.finalPrice, 0) - couponDiscount;
 
   // Group services by category
   const servicesByCategory = categories
@@ -490,6 +498,7 @@ export default function POSPage() {
           payableAmount={payableAmount}
           member={selectedMember}
           memberPassCards={memberPassCards}
+          preselectedCoupon={preselectedCoupon}
           onSettleSuccess={handleSettleSuccess}
         />
       )}
@@ -642,7 +651,9 @@ export default function POSPage() {
             loading={loading}
             originalAmount={originalAmount}
             discountAmount={discountAmount}
+            couponDiscount={couponDiscount}
             payableAmount={payableAmount}
+            preselectedCoupon={preselectedCoupon}
             onRemarkChange={setRemark}
             onUpdateStaff={updateCartItemStaff}
             onUpdateQuantity={updateCartItemQuantity}
@@ -651,6 +662,7 @@ export default function POSPage() {
             onCreateOrder={handleCreateOrder}
             onTogglePending={togglePendingPanel}
             pendingCount={pendingOrders.length}
+            onCouponSelect={setPreselectedCoupon}
           />
         </aside>
 
@@ -953,7 +965,9 @@ function CartPanel({
   loading,
   originalAmount,
   discountAmount,
+  couponDiscount,
   payableAmount,
+  preselectedCoupon,
   onRemarkChange,
   onUpdateStaff,
   onUpdateQuantity,
@@ -962,6 +976,7 @@ function CartPanel({
   onCreateOrder,
   onTogglePending,
   pendingCount,
+  onCouponSelect,
 }: {
   cart: CartItem[];
   staff: Staff[];
@@ -970,7 +985,9 @@ function CartPanel({
   loading: boolean;
   originalAmount: number;
   discountAmount: number;
+  couponDiscount: number;
   payableAmount: number;
+  preselectedCoupon: SelectedCoupon | null;
   onRemarkChange: (v: string) => void;
   onUpdateStaff: (index: number, staffId: string) => void;
   onUpdateQuantity: (index: number, delta: number) => void;
@@ -979,6 +996,7 @@ function CartPanel({
   onCreateOrder: (status: 'PENDING' | 'SETTLED') => void;
   onTogglePending: () => void;
   pendingCount: number;
+  onCouponSelect: (coupon: SelectedCoupon | null) => void;
 }) {
   return (
     <>
@@ -1110,7 +1128,7 @@ function CartPanel({
         )}
       </div>
 
-      {/* Footer: Remark + Summary + Actions */}
+      {/* Footer: Remark + Coupon + Summary + Actions */}
       <div className="border-t">
         {/* Remark */}
         <div className="px-4 pt-3">
@@ -1122,6 +1140,19 @@ function CartPanel({
             rows={2}
           />
         </div>
+
+        {/* Coupon Selector */}
+        {selectedMember && cart.length > 0 && (
+          <div className="px-4 pt-2">
+            <CouponSelector
+              memberId={selectedMember.id}
+              orderAmount={originalAmount - discountAmount}
+              selectedCoupon={preselectedCoupon}
+              onSelect={onCouponSelect}
+              compact
+            />
+          </div>
+        )}
 
         {/* Summary */}
         <div className="px-4 py-3 space-y-1.5 text-sm">
@@ -1139,9 +1170,18 @@ function CartPanel({
               <span>-¥{formatPrice(discountAmount)}</span>
             </div>
           )}
+          {couponDiscount > 0 && (
+            <div className="flex justify-between text-orange-500">
+              <span className="flex items-center gap-1">
+                <Ticket className="w-3 h-3" />
+                优惠券抵扣
+              </span>
+              <span>-¥{formatPrice(couponDiscount)}</span>
+            </div>
+          )}
           <div className="flex justify-between font-bold text-base pt-2 border-t">
             <span>应付</span>
-            <span className="text-primary">¥{formatPrice(payableAmount)}</span>
+            <span className="text-primary">¥{formatPrice(Math.max(0, payableAmount))}</span>
           </div>
         </div>
 
@@ -1161,7 +1201,7 @@ function CartPanel({
             disabled={loading || cart.length === 0 || !selectedMember}
             className="px-4 py-2.5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-medium text-sm disabled:opacity-50 transition-colors"
           >
-            {loading ? '处理中...' : '结算'}
+            {loading ? '处理中...' : `结算 ¥${formatPrice(Math.max(0, payableAmount))}`}
           </button>
         </div>
       </div>
