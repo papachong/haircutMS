@@ -1,4 +1,5 @@
 import { Controller, Get, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   DashboardService,
   TimeRange,
@@ -16,46 +17,60 @@ import { CurrentShop } from '../../common/decorators/current-shop.decorator';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class QueryDashboardDto {
+  @ApiPropertyOptional({ description: '时间范围', enum: TimeRange, example: 'TODAY' })
   @IsOptional()
   @IsEnum(TimeRange)
   timeRange?: TimeRange;
 
+  @ApiPropertyOptional({ description: '开始日期（timeRange 为 CUSTOM 时必填）', example: '2024-01-01' })
   @IsOptional()
   @IsString()
   startDate?: string;
 
+  @ApiPropertyOptional({ description: '结束日期（timeRange 为 CUSTOM 时必填）', example: '2024-12-31' })
   @IsOptional()
   @IsString()
   endDate?: string;
 }
 
 export class QueryMemberAnalyticsDto {
+  @ApiPropertyOptional({ description: '时间范围', enum: TimeRange, example: 'MONTH' })
   @IsOptional()
   @IsEnum(TimeRange)
   timeRange?: TimeRange;
 
+  @ApiPropertyOptional({ description: '开始日期（timeRange 为 CUSTOM 时必填）', example: '2024-01-01' })
   @IsOptional()
   @IsString()
   startDate?: string;
 
+  @ApiPropertyOptional({ description: '结束日期（timeRange 为 CUSTOM 时必填）', example: '2024-12-31' })
   @IsOptional()
   @IsString()
   endDate?: string;
 
+  @ApiPropertyOptional({ description: '沉睡天数阈值', example: '90' })
   @IsOptional()
   dormantDays?: string;
 }
 
 export class QueryRankingDto extends QueryDashboardDto {
+  @ApiPropertyOptional({ description: '返回数量限制', example: '10' })
   @IsOptional()
   limit?: string;
 }
 
+@ApiTags('数据面板')
+@ApiBearerAuth()
 @Controller('api/v1/dashboard')
 export class DashboardController {
   constructor(private dashboardService: DashboardService) {}
 
   @Get('metrics')
+  @ApiOperation({ summary: '获取经营指标概览' })
+  @ApiResponse({ status: 200, description: '成功获取经营指标' })
+  @ApiResponse({ status: 400, description: '参数错误（CUSTOM 时间范围需要 startDate 和 endDate）' })
+  @ApiResponse({ status: 401, description: '未授权' })
   async getMetrics(
     @CurrentShop() shopId: string,
     @Query() query: QueryDashboardDto,
@@ -75,6 +90,10 @@ export class DashboardController {
   }
 
   @Get('trends')
+  @ApiOperation({ summary: '获取经营趋势数据' })
+  @ApiResponse({ status: 200, description: '成功获取趋势数据' })
+  @ApiResponse({ status: 400, description: '参数错误' })
+  @ApiResponse({ status: 401, description: '未授权' })
   async getTrends(
     @CurrentShop() shopId: string,
     @Query() query: QueryDashboardDto,
@@ -94,6 +113,9 @@ export class DashboardController {
   }
 
   @Get('members/level-distribution')
+  @ApiOperation({ summary: '获取会员等级分布' })
+  @ApiResponse({ status: 200, description: '成功获取会员等级分布' })
+  @ApiResponse({ status: 401, description: '未授权' })
   async getMemberLevelDistribution(
     @CurrentShop() shopId: string,
   ): Promise<MemberLevelDistribution[]> {
@@ -101,6 +123,10 @@ export class DashboardController {
   }
 
   @Get('members/consumption-trends')
+  @ApiOperation({ summary: '获取会员消费趋势' })
+  @ApiResponse({ status: 200, description: '成功获取消费趋势' })
+  @ApiResponse({ status: 400, description: '参数错误' })
+  @ApiResponse({ status: 401, description: '未授权' })
   async getMemberConsumptionTrends(
     @CurrentShop() shopId: string,
     @Query() query: QueryMemberAnalyticsDto,
@@ -120,6 +146,9 @@ export class DashboardController {
   }
 
   @Get('members/dormant-stats')
+  @ApiOperation({ summary: '获取沉睡会员统计' })
+  @ApiResponse({ status: 200, description: '成功获取沉睡会员统计' })
+  @ApiResponse({ status: 401, description: '未授权' })
   async getDormantMembersStats(
     @CurrentShop() shopId: string,
     @Query() query: QueryMemberAnalyticsDto,
@@ -130,6 +159,9 @@ export class DashboardController {
   }
 
   @Get('members/dormant-detail')
+  @ApiOperation({ summary: '获取沉睡会员详细数据' })
+  @ApiResponse({ status: 200, description: '成功获取沉睡会员详情' })
+  @ApiResponse({ status: 401, description: '未授权' })
   async getDormantMembersDetail(
     @CurrentShop() shopId: string,
     @Query() query: QueryMemberAnalyticsDto,
@@ -140,6 +172,9 @@ export class DashboardController {
   }
 
   @Get('members/daily-consumption')
+  @ApiOperation({ summary: '获取每日消费趋势' })
+  @ApiResponse({ status: 200, description: '成功获取每日消费趋势' })
+  @ApiResponse({ status: 401, description: '未授权' })
   async getDailyConsumptionTrends(
     @CurrentShop() shopId: string,
     @Query('days') days?: string,
@@ -149,6 +184,10 @@ export class DashboardController {
   }
 
   @Get('revenue-breakdown')
+  @ApiOperation({ summary: '获取收入构成分析' })
+  @ApiResponse({ status: 200, description: '成功获取收入构成数据' })
+  @ApiResponse({ status: 400, description: '参数错误' })
+  @ApiResponse({ status: 401, description: '未授权' })
   async getRevenueBreakdown(
     @CurrentShop() shopId: string,
     @Query() query: QueryDashboardDto,
@@ -168,6 +207,10 @@ export class DashboardController {
   }
 
   @Get('service-ranking')
+  @ApiOperation({ summary: '获取服务项目排行' })
+  @ApiResponse({ status: 200, description: '成功获取服务项目排行' })
+  @ApiResponse({ status: 400, description: '参数错误' })
+  @ApiResponse({ status: 401, description: '未授权' })
   async getServiceRanking(
     @CurrentShop() shopId: string,
     @Query() query: QueryRankingDto,

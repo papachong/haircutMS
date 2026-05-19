@@ -1,5 +1,7 @@
 import { Controller, Get, Post, Param, Body, Query, Req } from '@nestjs/common';
 import { Request } from 'express';
+import { Controller, Get, Post, Param, Body, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PassCardService } from './pass-card.service';
 import { CurrentShop } from '../../common/decorators/current-shop.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -9,11 +11,16 @@ import {
   UsePassCardDto,
 } from './dto/pass-card.dto';
 
+@ApiTags('次卡管理')
+@ApiBearerAuth()
 @Controller('api/v1/pass-cards')
 export class PassCardController {
   constructor(private passCardService: PassCardService) {}
 
   @Get()
+  @ApiOperation({ summary: '获取次卡列表' })
+  @ApiResponse({ status: 200, description: '成功获取次卡列表' })
+  @ApiResponse({ status: 401, description: '未授权' })
   findAll(
     @CurrentShop() shopId: string,
     @Query() query: QueryPassCardDto,
@@ -22,6 +29,10 @@ export class PassCardController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: '获取次卡详情' })
+  @ApiResponse({ status: 200, description: '成功获取次卡详情' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  @ApiResponse({ status: 404, description: '次卡不存在' })
   findById(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
@@ -30,6 +41,10 @@ export class PassCardController {
   }
 
   @Get(':id/usages')
+  @ApiOperation({ summary: '获取次卡使用记录' })
+  @ApiResponse({ status: 200, description: '成功获取使用记录' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  @ApiResponse({ status: 404, description: '次卡不存在' })
   getUsages(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
@@ -40,6 +55,10 @@ export class PassCardController {
   }
 
   @Post()
+  @ApiOperation({ summary: '创建次卡' })
+  @ApiResponse({ status: 201, description: '次卡创建成功' })
+  @ApiResponse({ status: 400, description: '参数错误' })
+  @ApiResponse({ status: 401, description: '未授权' })
   create(
     @CurrentShop() shopId: string,
     @CurrentUser('staffId') operatorId: string,
@@ -53,6 +72,11 @@ export class PassCardController {
   }
 
   @Post(':id/use')
+  @ApiOperation({ summary: '使用次卡（扣减一次）' })
+  @ApiResponse({ status: 200, description: '使用成功' })
+  @ApiResponse({ status: 400, description: '参数错误或次卡已用完/已过期' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  @ApiResponse({ status: 404, description: '次卡不存在' })
   async use(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
@@ -64,6 +88,11 @@ export class PassCardController {
   }
 
   @Post(':id/refund/:usageId')
+  @ApiOperation({ summary: '退回次卡使用次数' })
+  @ApiResponse({ status: 200, description: '退回成功' })
+  @ApiResponse({ status: 400, description: '参数错误' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  @ApiResponse({ status: 404, description: '次卡或使用记录不存在' })
   async refundUsage(
     @Param('id') id: string,
     @Param('usageId') usageId: string,
@@ -75,6 +104,10 @@ export class PassCardController {
   }
 
   @Post(':id/deactivate')
+  @ApiOperation({ summary: '停用次卡' })
+  @ApiResponse({ status: 200, description: '停用成功' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  @ApiResponse({ status: 404, description: '次卡不存在' })
   async deactivate(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
@@ -83,6 +116,10 @@ export class PassCardController {
   }
 
   @Post(':id/activate')
+  @ApiOperation({ summary: '启用次卡' })
+  @ApiResponse({ status: 200, description: '启用成功' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  @ApiResponse({ status: 404, description: '次卡不存在' })
   async activate(
     @Param('id') id: string,
     @CurrentShop() shopId: string,

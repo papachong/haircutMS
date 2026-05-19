@@ -1,17 +1,23 @@
 import { Controller, Get, Post, Patch, Param, Body, Query, Res, HttpStatus, Req } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiProduces, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { OrderService } from './order.service';
 import { CurrentShop } from '../../common/decorators/current-shop.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CreateOrderDto, UpdateOrderDto, QueryOrderDto, SettleOrderDto } from './dto/order.dto';
 import * as XLSX from 'xlsx';
 
+@ApiTags('订单管理')
+@ApiBearerAuth()
 @Controller('api/v1/orders')
 export class OrderController {
   constructor(private orderService: OrderService) {}
 
   @Get()
+  @ApiOperation({ summary: '获取订单列表' })
+  @ApiResponse({ status: 200, description: '成功获取订单列表' })
+  @ApiResponse({ status: 401, description: '未授权' })
   async findAll(
     @CurrentShop() shopId: string,
     @Query() query: QueryOrderDto,
@@ -20,17 +26,24 @@ export class OrderController {
   }
 
   @Get('stats')
+  @ApiOperation({ summary: '获取订单统计' })
+  @ApiResponse({ status: 200, description: '成功获取订单统计数据' })
+  @ApiResponse({ status: 401, description: '未授权' })
   async getStats(@CurrentShop() shopId: string) {
     return this.orderService.getStats(shopId);
   }
 
   @Get('pending')
+  @ApiOperation({ summary: '获取待结算订单列表' })
+  @ApiResponse({ status: 200, description: '成功获取待结算订单' })
+  @ApiResponse({ status: 401, description: '未授权' })
   async getPendingOrders(@CurrentShop() shopId: string) {
     return this.orderService.getPendingOrders(shopId);
   }
 
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Get('export')
+  @ApiExcludeEndpoint()
   async exportOrders(
     @CurrentShop() shopId: string,
     @Query() query: QueryOrderDto,
@@ -83,6 +96,10 @@ export class OrderController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: '获取订单详情' })
+  @ApiResponse({ status: 200, description: '成功获取订单详情' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  @ApiResponse({ status: 404, description: '订单不存在' })
   async findById(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
@@ -91,6 +108,10 @@ export class OrderController {
   }
 
   @Post()
+  @ApiOperation({ summary: '创建订单' })
+  @ApiResponse({ status: 201, description: '订单创建成功' })
+  @ApiResponse({ status: 400, description: '参数错误' })
+  @ApiResponse({ status: 401, description: '未授权' })
   async create(
     @CurrentShop() shopId: string,
     @Body() body: CreateOrderDto,
@@ -99,6 +120,11 @@ export class OrderController {
   }
 
   @Post(':id/settle')
+  @ApiOperation({ summary: '结算订单' })
+  @ApiResponse({ status: 200, description: '订单结算成功' })
+  @ApiResponse({ status: 400, description: '参数错误或结算失败' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  @ApiResponse({ status: 404, description: '订单不存在' })
   async settle(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
@@ -110,6 +136,11 @@ export class OrderController {
   }
 
   @Post(':id/cancel')
+  @ApiOperation({ summary: '取消订单（仅限当日订单）' })
+  @ApiResponse({ status: 200, description: '订单取消成功' })
+  @ApiResponse({ status: 400, description: '参数错误或取消失败（非当日订单）' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  @ApiResponse({ status: 404, description: '订单不存在' })
   async cancel(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
@@ -121,6 +152,11 @@ export class OrderController {
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: '更新订单信息' })
+  @ApiResponse({ status: 200, description: '订单更新成功' })
+  @ApiResponse({ status: 400, description: '参数错误' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  @ApiResponse({ status: 404, description: '订单不存在' })
   async update(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
