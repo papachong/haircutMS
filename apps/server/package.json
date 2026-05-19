@@ -21,11 +21,10 @@
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/passport": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
-<<<<<<< HEAD
-    "@nestjs/throttler": "^6.5.0",
-=======
+    "@nestjs/platform-socket.io": "^11.1.21",
     "@nestjs/swagger": "^11.4.3",
->>>>>>> feature/swagger-docs
+    "@nestjs/throttler": "^6.5.0",
+    "@nestjs/websockets": "^11.1.21",
     "@prisma/client": "^6.2.0",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
@@ -35,6 +34,7 @@
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "socket.io": "^4.8.3",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

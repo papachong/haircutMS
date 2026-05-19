@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { RechargeMemberDto, PayMethod } from './dto/recharge.dto';
 import { RechargeResult, RechargeHistoryResult } from './types/recharge.types';
 import { AuditService, AuditActions } from '../../modules/audit/audit.service';
 import { RechargePlanService } from '../../modules/recharge/recharge-plan.service';
+import { DashboardGateway } from '../dashboard/dashboard.gateway';
 
 @Injectable()
 export class RechargeOperationService {
@@ -11,6 +12,7 @@ export class RechargeOperationService {
     private prisma: PrismaService,
     private auditService: AuditService,
     private rechargePlanService: RechargePlanService,
+    @Optional() private dashboardGateway?: DashboardGateway,
   ) {}
 
   async recharge(
@@ -113,6 +115,14 @@ export class RechargeOperationService {
       },
       ip,
     });
+
+    this.dashboardGateway?.emitMemberRecharge(
+      shopId,
+      memberId,
+      member.name,
+      amount,
+    );
+    this.dashboardGateway?.emitGlobalMetricsUpdate(shopId);
 
     return {
       member: updatedMember!,

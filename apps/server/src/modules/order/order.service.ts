@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService, AuditActions } from '../audit/audit.service';
+import { DashboardGateway } from '../dashboard/dashboard.gateway';
 import { Decimal } from '@prisma/client/runtime/library';
 
 enum OrderStatus {
@@ -61,6 +62,7 @@ export class OrderService {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
+    @Optional() private dashboardGateway?: DashboardGateway,
   ) {}
 
   async findAll(shopId: string, query: {
@@ -340,6 +342,8 @@ export class OrderService {
       return createdOrder;
     });
 
+    this.dashboardGateway?.emitNewOrder(shopId, order.id, order.orderNo);
+
     return order;
   }
 
@@ -583,6 +587,9 @@ export class OrderService {
       },
       ip,
     });
+
+    this.dashboardGateway?.emitGlobalMetricsUpdate(shopId);
+    this.dashboardGateway?.emitNewOrder(shopId, id, order.orderNo);
 
     return result;
   }
