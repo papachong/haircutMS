@@ -60,6 +60,28 @@ export interface DormantMembersStats {
   dormantPercentage: number;
 }
 
+export interface DormantMemberDistribution {
+  range: string;
+  count: number;
+  percentage: number;
+}
+
+export interface DormantMembersDetail extends DormantMembersStats {
+  distribution: DormantMemberDistribution[];
+}
+
+export interface DailyConsumptionData {
+  date: string;
+  amount: number;
+  count: number;
+}
+
+export interface DailyConsumptionResponse {
+  data: DailyConsumptionData[];
+  totalAmount: number;
+  totalCount: number;
+}
+
 export interface RevenueComposition {
   offline: number;
   balance: number;
@@ -702,5 +724,123 @@ export class DashboardService {
     });
 
     return result._sum.paidAmount ?? 0;
+  }
+
+  async getDormantMembersDetail(shopId: string, days: number = 90): Promise<DormantMembersDetail> {
+    const basicStats = await this.getDormantMembersStats(shopId, days);
+
+    if (basicStats.dormantCount === 0) {
+      return { ...basicStats, distribution: [] };
+    }
+
+    const dormantThreshold = new Date();
+    dormantThreshold.setDate(dormantThreshold.getDate() - days);
+    dormantThreshold.setHours(0, 0, 0, 0);
+
+    const dormantMembers = await this.prisma.member.findMany({
+      where: {
+        shopId,
+        isActive: true,
+        OR: [
+          { lastVisitAt: null },
+          { lastVisitAt: { lt: dormantThreshold } },
+        ],
+      },
+      select: { lastVisitAt: true },
+    });
+
+    const now = new Date();
+    const ranges: Array<{ label: string; minDays: number | null; maxDays: number | null }> = [
+      { label: '从未到店', minDays: null, maxDays: null },
+      { label: `${days}天以上`, minDays: null, maxDays: days },
+    ];
+
+    for (let i = Math.floor(days / 30); i >= 1; i--) {
+      const lower = i * 30;
+      const upper = (i + 1) * 30;
+      if (upper <= days) {
+        ranges.splice(1, 0, {
+          label: `${lower}-${upper}天`,
+          minDays: lower,
+          maxDays: upper,
+        });
+      }
+    }
+
+    const distribution: DormantMemberDistribution[] = ranges.map((range) => {
+      const count = dormantMembers.filter((m) => {
+        if (range.minDays === null && range.maxDays === null) {
+          return m.lastVisitAt === null;
+        }
+        if (m.lastVisitAt === null) return false;
+        const daysSince = Math.floor(
+          (now.getTime() - m.lastVisitAt.getTime()) / (1000 * 60 * 60 * 24),
+        );
+        if (range.minDays === null) return daysSince >= (range.maxDays as number);
+        return daysSince >= range.minDays && daysSince < (range.maxDays as number);
+      }).length;
+
+      return {
+        range: range.label,
+        count,
+        percentage: basicStats.dormantCount > 0
+          ? Math.round((count / basicStats.dormantCount) * 100)
+          : 0,
+      };
+    });
+
+    return { ...basicStats, distribution };
+  }
+
+  async getDailyConsumptionTrends(shopId: string, days: number = 30): Promise<DailyConsumptionResponse> {
+    const endDate = this.getEndOfDay(new Date());
+    const startDate = this.getStartOfDay(new Date());
+    startDate.setDate(startDate.getDate() - (days - 1));
+
+    const orders = await this.prisma.order.findMany({
+      where: {
+        shopId,
+        status: 'SETTLED',
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        createdAt: true,
+        paidAmount: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const dailyMap = new Map<string, { amount: number; count: number }>();
+
+    for (let i = 0; i < days; i++) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      const key = d.toISOString().split('T')[0];
+      dailyMap.set(key, { amount: 0, count: 0 });
+    }
+
+    for (const order of orders) {
+      const key = order.createdAt.toISOString().split('T')[0];
+      const entry = dailyMap.get(key);
+      if (entry) {
+        entry.amount += order.paidAmount;
+        entry.count += 1;
+      }
+    }
+
+    const data: DailyConsumptionData[] = [];
+    let totalAmount = 0;
+    let totalCount = 0;
+
+    dailyMap.forEach((value, date) => {
+      data.push({ date, ...value });
+      totalAmount += value.amount;
+      totalCount += value.count;
+    });
+
+    return { data, totalAmount, totalCount };
   }
 }
