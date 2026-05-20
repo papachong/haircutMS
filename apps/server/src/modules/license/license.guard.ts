@@ -59,7 +59,7 @@ export class LicenseGuard implements CanActivate {
 
     // Check if all required modules are included in the license
     const missing = requiredModules.filter(
-      (m) => !license.modules.includes(m),
+      (m) => !(license.modules as string[]).includes(m),
     );
     if (missing.length > 0) {
       this.logger.warn(

@@ -18,7 +18,7 @@ export class MemberService {
 
     if (query.keyword) {
       where.OR = [
-        { name: { contains: query.keyword, mode: 'insensitive' } },
+        { name: { contains: query.keyword } },
         { phone: { contains: query.keyword } },
         { cardNo: { contains: query.keyword } },
       ];
@@ -83,7 +83,7 @@ export class MemberService {
         shopId,
         isActive: true,
         OR: [
-          { name: { contains: keyword, mode: 'insensitive' } },
+          { name: { contains: keyword } },
           { phone: { contains: keyword } },
           { cardNo: { contains: keyword } },
         ],

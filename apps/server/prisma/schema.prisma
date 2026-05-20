@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -417,7 +417,7 @@ model License {
   plan         LicensePlan
   staffLimit   Int      @default(2)
   membersLimit Int      @default(200)
-  modules      String[]
+  modules      Json
   features     Json
   issuedAt     DateTime
   expiresAt    DateTime

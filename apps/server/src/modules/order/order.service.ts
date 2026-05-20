@@ -89,8 +89,8 @@ export class OrderService {
 
     if (query.keyword) {
       where.OR = [
-        { orderNo: { contains: query.keyword, mode: 'insensitive' } },
-        { member: { name: { contains: query.keyword, mode: 'insensitive' } } },
+        { orderNo: { contains: query.keyword } },
+        { member: { name: { contains: query.keyword } } },
       ];
     }
 
@@ -813,8 +813,8 @@ export class OrderService {
 
     if (query.keyword) {
       where.OR = [
-        { orderNo: { contains: query.keyword, mode: 'insensitive' } },
-        { member: { name: { contains: query.keyword, mode: 'insensitive' } } },
+        { orderNo: { contains: query.keyword } },
+        { member: { name: { contains: query.keyword } } },
       ];
     }
 

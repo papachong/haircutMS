@@ -91,9 +91,9 @@ export class ShopManagementService {
 
     if (filters.search) {
       where.OR = [
-        { name: { contains: filters.search, mode: 'insensitive' } },
-        { phone: { contains: filters.search, mode: 'insensitive' } },
-        { address: { contains: filters.search, mode: 'insensitive' } },
+        { name: { contains: filters.search } },
+        { phone: { contains: filters.search } },
+        { address: { contains: filters.search } },
       ];
     }
 

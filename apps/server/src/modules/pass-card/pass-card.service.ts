@@ -52,9 +52,9 @@ export class PassCardService {
     if (query.keyword) {
       andConditions.push({
         OR: [
-          { name: { contains: query.keyword, mode: 'insensitive' } },
-          { member: { name: { contains: query.keyword, mode: 'insensitive' } } },
-          { member: { phone: { contains: query.keyword, mode: 'insensitive' } } },
+          { name: { contains: query.keyword } },
+          { member: { name: { contains: query.keyword } } },
+          { member: { phone: { contains: query.keyword } } },
         ],
       });
     }

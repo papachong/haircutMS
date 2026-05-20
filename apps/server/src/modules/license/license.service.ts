@@ -44,7 +44,7 @@ export class LicenseService {
    */
   async isModuleAllowed(shopId: string, module: string): Promise<boolean> {
     const license = await this.getLicenseInfo(shopId);
-    return license.modules.includes(module);
+    return (license.modules as string[]).includes(module);
   }
 
   /**
