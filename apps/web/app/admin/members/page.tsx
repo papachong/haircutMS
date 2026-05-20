@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Plus, User, Phone, Calendar, MoreVertical, Download } from 'lucide-react';
+import { Search, Plus, User, Phone, Calendar, MoreVertical, Download, Upload } from 'lucide-react';
 import {
   getMembers,
   type Member,
@@ -117,6 +117,13 @@ export default function MembersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <h1 className="text-xl sm:text-2xl font-bold">会员管理</h1>
         <div className="flex items-center gap-2">
+          <Link
+            href="/admin/members/import"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 border rounded-md hover:bg-accent transition-colors text-sm"
+          >
+            <Upload className="h-4 w-4" />
+            <span className="hidden sm:inline">导入</span>
+          </Link>
           <RoleGuard permission="members:export">
             <button
               type="button"

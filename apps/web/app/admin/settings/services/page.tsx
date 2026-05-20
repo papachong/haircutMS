@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   getServiceCategories,
   getServiceItems,
@@ -14,7 +15,7 @@ import {
   type ServiceItem,
   type CreateServiceItemInput,
 } from "@/lib/api/service";
-import { Plus, Pencil, Trash2, GripVertical, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, GripVertical, Eye, EyeOff, Upload } from "lucide-react";
 import { RoleGuard } from "@/components/auth/role-guard";
 
 export default function ServiceItemsPage() {
@@ -266,6 +267,14 @@ export default function ServiceItemsPage() {
               管理该分类下的服务项目，支持拖拽排序
             </p>
           </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/settings/services/import"
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-accent transition-colors"
+            >
+              <Upload className="h-4 w-4" />
+              导入
+            </Link>
           <RoleGuard permission="services:manage">
             <button
               type="button"
@@ -287,6 +296,7 @@ export default function ServiceItemsPage() {
               新增项目
             </button>
           </RoleGuard>
+          </div>
         </div>
 
         {!selectedCategoryId ? (
