@@ -454,3 +454,27 @@ model AuditLog {
   @@index([action])
   @@map("audit_logs")
 }
+
+enum NotificationType {
+  LICENSE_EXPIRY
+  PASS_CARD_EXPIRY
+  MEMBER_BIRTHDAY
+  ABNORMAL_ORDER
+  SYSTEM_ANNOUNCEMENT
+}
+
+model Notification {
+  id                String           @id @default(cuid())
+  shopId            String           @map("shop_id")
+  type              NotificationType
+  title             String           @db.VarChar(100)
+  content           String           @db.VarChar(500)
+  isRead            Boolean          @default(false)
+  relatedEntityId   String?          @db.VarChar(30)
+  relatedEntityType String?          @db.VarChar(30)
+  createdAt         DateTime         @default(now())
+
+  @@index([shopId, isRead])
+  @@index([shopId, createdAt])
+  @@map("notifications")
+}

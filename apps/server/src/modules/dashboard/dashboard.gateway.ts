@@ -16,7 +16,7 @@ interface JwtPayload {
 }
 
 export interface DashboardEvent {
-  type: 'metrics-update' | 'new-order' | 'member-recharge' | 'stats-update';
+  type: 'metrics-update' | 'new-order' | 'member-recharge' | 'stats-update' | 'notification-new';
   shopId: string;
   payload: Record<string, unknown>;
   timestamp: Date;
@@ -137,6 +137,15 @@ export class DashboardGateway implements OnGatewayConnection, OnGatewayDisconnec
       type: 'member-recharge',
       shopId,
       payload: { memberId, memberName, amount },
+      timestamp: new Date(),
+    });
+  }
+
+  emitNotification(shopId: string, notification: Record<string, unknown>): void {
+    this.emitToShop(shopId, {
+      type: 'notification-new',
+      shopId,
+      payload: notification,
       timestamp: new Date(),
     });
   }

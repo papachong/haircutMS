@@ -16,6 +16,13 @@ export interface DashboardSocketEvents {
   }) => void;
   'dashboard:stats-update': (data: { timestamp: string }) => void;
   'dashboard:connected': (data: { shopId: string; timestamp: string }) => void;
+  'dashboard:notification-new': (data: {
+    id: string;
+    type: string;
+    title: string;
+    content: string;
+    timestamp: string;
+  }) => void;
 }
 
 interface UseDashboardSocketOptions {
@@ -23,6 +30,7 @@ interface UseDashboardSocketOptions {
   onNewOrder?: DashboardSocketEvents['dashboard:new-order'];
   onMemberRecharge?: DashboardSocketEvents['dashboard:member-recharge'];
   onStatsUpdate?: DashboardSocketEvents['dashboard:stats-update'];
+  onNotificationNew?: DashboardSocketEvents['dashboard:notification-new'];
   enabled?: boolean;
 }
 
@@ -43,6 +51,7 @@ export function useDashboardSocket(
     onNewOrder,
     onMemberRecharge,
     onStatsUpdate,
+    onNotificationNew,
     enabled = true,
   } = options;
 
@@ -58,12 +67,14 @@ export function useDashboardSocket(
     onNewOrder,
     onMemberRecharge,
     onStatsUpdate,
+    onNotificationNew,
   });
   stableCallbacks.current = {
     onMetricsUpdate,
     onNewOrder,
     onMemberRecharge,
     onStatsUpdate,
+    onNotificationNew,
   };
 
   const disconnect = useCallback(() => {
@@ -147,6 +158,10 @@ export function useDashboardSocket(
 
     socket.on('dashboard:stats-update', (data) => {
       stableCallbacks.current.onStatsUpdate?.(data);
+    });
+
+    socket.on('dashboard:notification-new', (data) => {
+      stableCallbacks.current.onNotificationNew?.(data);
     });
   }, [enabled, disconnect]);
 

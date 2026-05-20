@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { NotificationBell } from '@/components/notification/notification-bell';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -91,7 +92,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             ☰
           </button>
           <span className="font-semibold">HaircutMS</span>
-          <div className="w-8" />
+          <NotificationBell />
+        </header>
+
+        {/* Desktop header */}
+        <header className="hidden md:flex h-14 items-center justify-end border-b bg-card px-4">
+          <NotificationBell />
         </header>
 
         <main className="flex-1 overflow-auto">{children}</main>
