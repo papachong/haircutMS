@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search, Plus, User, Phone, CreditCard, TrendingUp, Wallet } from 'lucide-react';
-import { searchMembers, getMembers, type Member, type MemberListParams } from '../../../lib/api/members';
+import { searchMembers, getMembers, type Member, type MemberListParams } from '@/lib/api/members';
 import { usePullRefresh } from '../../../hooks/use-pull-refresh';
 import { useDebounce } from '../../../hooks/use-debounce';
 import PullRefreshIndicator from '../../../components/mobile/pull-refresh-indicator';

@@ -16,7 +16,7 @@ import {
   type Member,
   type OrderItemInput,
   type PassCard,
-} from '../../../lib/api/orders';
+} from '@/lib/api/orders';
 import SettlementDialog from '../../../components/SettlementDialog';
 import CouponSelector, { type SelectedCoupon } from '../../../components/coupon/coupon-selector';
 import { useDebounce } from '../../../hooks/use-debounce';
@@ -28,7 +28,7 @@ import {
   getAllServiceCategories,
   getAllStaff,
   searchMembers as offlineSearchMembers,
-} from '../../../lib/offline';
+} from '@/lib/offline';
 
 interface CartItem extends OrderItemInput {
   serviceItem: ServiceItem;

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getOrders, cancelOrder, type Order } from '../../../lib/api/orders';
+import { getOrders, cancelOrder, type Order } from '@/lib/api/orders';
 
 export default function HoldsPage() {
   const router = useRouter();

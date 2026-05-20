@@ -7,8 +7,8 @@ import {
   getMembers,
   type Member,
   type MemberListParams,
-} from '../../../lib/api/members';
-import { exportMembers } from '../../../lib/api/export';
+} from '@/lib/api/members';
+import { exportMembers } from '@/lib/api/export';
 import { RoleGuard } from '@/components/auth/role-guard';
 
 export default function MembersPage() {

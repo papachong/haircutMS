@@ -453,7 +453,7 @@ export default function RechargePlansPage() {
                   <div className="flex items-center justify-between pt-2 border-t">
                     <span className="text-xs text-muted-foreground">
                       {plan.startsAt || plan.endsAt
-                        ? `${new Date(plan.startsAt).toLocaleDateString('zh-CN')} - ${new Date(plan.endsAt).toLocaleDateString('zh-CN')}`
+                        ? `${new Date(plan.startsAt ?? '').toLocaleDateString('zh-CN')} - ${new Date(plan.endsAt ?? '').toLocaleDateString('zh-CN')}`
                         : '永久有效'}
                     </span>
                     <RoleGuard permission="settings:manage">

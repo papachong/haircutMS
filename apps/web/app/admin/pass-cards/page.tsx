@@ -5,8 +5,8 @@ import {
   getPassCards,
   createPassCard,
   type PassCard,
-} from '../../../lib/api/pass-cards';
-import { searchMembers, type Member } from '../../../lib/api/orders';
+} from '@/lib/api/pass-cards';
+import { searchMembers, type Member } from '@/lib/api/orders';
 import { getPassCardStatusLabel, getPassCardStatusColor } from '@/lib/api/pass-cards';
 
 export default function PassCardsPage() {

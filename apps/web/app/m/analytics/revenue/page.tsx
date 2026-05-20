@@ -6,8 +6,8 @@ import {
   getServiceRanking,
   type RevenueBreakdown,
   type ServiceItemRanking,
-} from '../../../../lib/api/analytics';
-import { TimeRange } from '../../../../lib/api/dashboard';
+} from '@/lib/api/analytics';
+import { TimeRange } from '@/lib/api/dashboard';
 import {
   PieChart,
   Pie,

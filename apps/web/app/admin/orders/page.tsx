@@ -20,8 +20,8 @@ import {
   getOrderStats,
   type Order,
   type OrderStats,
-} from '../../../lib/api/orders';
-import { exportOrders } from '../../../lib/api/export';
+} from '@/lib/api/orders';
+import { exportOrders } from '@/lib/api/export';
 
 type OrderStatus = 'PENDING' | 'SETTLED' | 'CANCELLED' | 'REFUNDED';
 

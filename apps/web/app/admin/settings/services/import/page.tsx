@@ -9,7 +9,7 @@ import {
   downloadTemplate,
   type ImportSummary,
   type PreviewResult,
-} from '../../../../../../lib/api/import';
+} from '@/lib/api/import';
 
 type Step = 'upload' | 'preview' | 'result';
 

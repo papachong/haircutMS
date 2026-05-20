@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiFetch } from '../../../../lib/api/client';
+import { apiFetch } from '@/lib/api/client';
 
 export default function CreateShopPage() {
   const router = useRouter();

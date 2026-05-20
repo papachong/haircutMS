@@ -1,6 +1,5 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Req } from '@nestjs/common';
 import { Request } from 'express';
-import { Controller, Get, Post, Patch, Delete, Body, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { MemberLevelService } from './member-level.service';
 import { CurrentShop } from '../../../common/decorators/current-shop.decorator';
@@ -74,9 +73,7 @@ export class MemberLevelController {
   @ApiResponse({ status: 200, description: '会员等级删除成功' })
   @ApiResponse({ status: 401, description: '未授权' })
   @ApiResponse({ status: 404, description: '等级不存在' })
-  async remove(@Param('id') id: string, @CurrentShop() shopId: string) {
-    return this.memberLevelService.remove(id, shopId);
-async remove(
+  async remove(
     @Param('id') id: string,
     @CurrentShop() shopId: string,
     @CurrentUser('staffId') operatorId: string,

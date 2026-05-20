@@ -19,10 +19,10 @@ import {
   AlertCircle,
   CheckCircle,
 } from 'lucide-react';
-import { getMemberById, type Member } from '../../../../lib/api/members';
-import { rechargeMember, PayMethod, PAY_METHOD_LABELS } from '../../../../lib/api/recharge';
-import { usePullRefresh } from '../../../../hooks/use-pull-refresh';
-import PullRefreshIndicator from '../../../../components/mobile/pull-refresh-indicator';
+import { getMemberById, type Member } from '@/lib/api/members';
+import { rechargeMember, PayMethod, PAY_METHOD_LABELS } from '@/lib/api/recharge';
+import { usePullRefresh } from '@/hooks/use-pull-refresh';
+import PullRefreshIndicator from '@/components/mobile/pull-refresh-indicator';
 
 type TabType = 'info' | 'orders' | 'recharge';
 

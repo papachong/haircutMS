@@ -20,10 +20,10 @@ import {
   getOrderStats,
   type Order,
   type OrderStats,
-} from '../../../../lib/api/orders';
-import { usePullRefresh } from '../../../../hooks/use-pull-refresh';
-import PullRefreshIndicator from '../../../../components/mobile/pull-refresh-indicator';
-import SwipeableItem from '../../../../components/mobile/swipeable-item';
+} from '@/lib/api/orders';
+import { usePullRefresh } from '@/hooks/use-pull-refresh';
+import PullRefreshIndicator from '@/components/mobile/pull-refresh-indicator';
+import SwipeableItem from '@/components/mobile/swipeable-item';
 
 type OrderStatus = 'PENDING' | 'SETTLED' | 'CANCELLED' | 'REFUNDED';
 

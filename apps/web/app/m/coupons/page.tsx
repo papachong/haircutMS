@@ -10,7 +10,7 @@ import {
   issueCoupons,
   type CouponTemplate,
   type CreateCouponTemplateDto,
-} from '../../../lib/api/coupon';
+} from '@/lib/api/coupon';
 
 type CouponFormData = {
   name: string;

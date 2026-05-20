@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Folder,
-  Tag,
+  Tag as TagIcon,
   Plus,
   Pencil,
   Trash2,
@@ -21,7 +21,7 @@ import {
   deleteTag,
   type TagGroup,
   type Tag,
-} from "../../../../../lib/api/tags";
+} from '@/lib/api/tags';
 
 export default function TagsPage() {
   const [tagGroups, setTagGroups] = useState<TagGroup[]>([]);
@@ -161,7 +161,7 @@ export default function TagsPage() {
         </div>
       ) : tagGroups.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-lg">
-          <Tag className="h-12 w-12 text-muted-foreground mb-4" />
+          <TagIcon className="h-12 w-12 text-muted-foreground mb-4" />
           <p className="text-muted-foreground mb-4">暂无标签组</p>
           <button
             type="button"
@@ -238,7 +238,7 @@ export default function TagsPage() {
                           className="flex items-center justify-between p-3 bg-background rounded-md border"
                         >
                           <div className="flex items-center gap-2">
-                            <Tag className="h-4 w-4 text-muted-foreground" />
+                            <TagIcon className="h-4 w-4 text-muted-foreground" />
                             <span>{tag.name}</span>
                           </div>
                           <div className="flex items-center gap-2">

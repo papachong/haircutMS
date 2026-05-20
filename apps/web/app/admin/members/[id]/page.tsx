@@ -23,7 +23,7 @@ import {
   Lightbulb,
   PieChart as PieChartIcon,
 } from 'lucide-react';
-import { apiFetch } from '../../../../lib/api/client';
+import { apiFetch } from '@/lib/api/client';
 import {
   getActiveRechargePlans,
   rechargeMember,
@@ -32,7 +32,7 @@ import {
   PAY_METHOD_LABELS,
   type RechargePlan,
   type RechargeRecord,
-} from '../../../../lib/api/recharge';
+} from '@/lib/api/recharge';
 import {
   getMemberProfile,
   getMemberRecommendations,
@@ -40,7 +40,7 @@ import {
   type MemberProfileData,
   type Recommendation as RecommendationData,
   type ConsumptionChartData,
-} from '../../../../lib/api/member-profile';
+} from '@/lib/api/member-profile';
 import MemberProfileCard from '../../../../components/member/member-profile-card';
 import MemberConsumptionChart from '../../../../components/member/member-consumption-chart';
 import MemberRecommendations from '../../../../components/member/member-recommendations';

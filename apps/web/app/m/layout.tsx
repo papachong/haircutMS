@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import BottomNav, { shouldHideBottomNav } from '../../components/mobile/bottom-nav';
 import OfflineBanner from '../../components/mobile/offline-banner';
-import { registerSyncListener } from '../../lib/offline/sync';
+import { registerSyncListener } from '@/lib/offline/sync';
 
 export default function MobileLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();

@@ -36,7 +36,7 @@ import {
   type OrderItemInput,
   type PassCard,
   type Order,
-} from '../../../lib/api/orders';
+} from '@/lib/api/orders';
 import SettlementDialog from '../../../components/SettlementDialog';
 import CouponSelector, { type SelectedCoupon } from '../../../components/coupon/coupon-selector';
 

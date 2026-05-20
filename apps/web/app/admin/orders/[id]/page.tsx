@@ -18,8 +18,8 @@ import {
   ChevronRight,
   Printer,
 } from 'lucide-react';
-import { getOrderById, cancelOrder, type Order } from '../../../lib/api/orders';
-import { getAuditLogs, ACTION_LABELS, type AuditLog } from '../../../lib/api/audit';
+import { getOrderById, cancelOrder, type Order } from '@/lib/api/orders';
+import { getAuditLogs, ACTION_LABELS, type AuditLog } from '@/lib/api/audit';
 
 const ORDER_STATUS_CONFIG = {
   PENDING: {
