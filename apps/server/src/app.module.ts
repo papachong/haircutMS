@@ -22,6 +22,7 @@ import { PlatformOverviewModule } from './modules/platform/overview/platform-ove
 import { PlatformLicenseModule } from './modules/platform/platform-license/platform-license.module';
 import { MemberProfileModule } from './modules/member-profile/member-profile.module';
 import { ExportModule } from './modules/export/export.module';
+import { ImportModule } from './modules/import/import.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -66,6 +67,7 @@ import { AppService } from './app.service';
     PlatformLicenseModule,
     MemberProfileModule,
     ExportModule,
+    ImportModule,
   ],
   controllers: [AppController],
   providers: [
