@@ -1,7 +1,7 @@
 import { IsString, IsOptional, IsEnum, IsDateString, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Gender } from '../../../../../../packages/shared/src/types';
+import { Gender } from '@haircut-ms/shared';
 
 export class CreateMemberDto {
   @ApiProperty({ description: '会员姓名', example: '张三' })

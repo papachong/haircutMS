@@ -1,9 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "skipLibCheck": true,
-    "noImplicitAny": false,
-    "strictNullChecks": false
-  },
-  "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]
-}

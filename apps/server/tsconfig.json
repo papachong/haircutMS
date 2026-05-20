@@ -1,5 +1,5 @@
 {
-  "exclude": ["**/*.spec.ts", "test/"],
+  "exclude": ["**/*.spec.ts", "test/", "prisma/"],
   "compilerOptions": {
     "module": "commonjs",
     "declaration": true,

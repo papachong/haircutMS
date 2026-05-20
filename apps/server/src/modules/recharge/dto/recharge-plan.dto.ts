@@ -1,7 +1,7 @@
 import { IsString, IsInt, IsOptional, IsEnum, IsDateString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { RechargePlanType } from '../../../../../../packages/shared/src/types';
+import { RechargePlanType } from '@haircut-ms/shared';
 
 export class CreateRechargePlanDto {
   @ApiProperty({ description: '方案名称', example: '充100送10' })
