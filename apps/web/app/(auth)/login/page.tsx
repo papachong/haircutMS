@@ -38,6 +38,7 @@ export default function LoginPage() {
 
       if (loginType === 'shop') {
         localStorage.setItem('shopId', data.data.shopId);
+        localStorage.setItem('staffId', data.data.staffId);
         localStorage.setItem('role', data.data.role);
         router.push('/admin');
       } else {

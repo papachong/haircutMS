@@ -15,6 +15,7 @@ import {
   type CreateServiceItemInput,
 } from "@/lib/api/service";
 import { Plus, Pencil, Trash2, GripVertical, Eye, EyeOff } from "lucide-react";
+import { RoleGuard } from "@/components/auth/role-guard";
 
 export default function ServiceItemsPage() {
   const router = useRouter();
@@ -265,25 +266,27 @@ export default function ServiceItemsPage() {
               管理该分类下的服务项目，支持拖拽排序
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setEditingId(null);
-              setFormData({
-                name: "",
-                price: "",
-                duration: "",
-                image: "",
-                categoryId: selectedCategoryId || "",
-              });
-              setShowCreateDialog(true);
-            }}
-            disabled={!selectedCategoryId}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            <Plus className="h-4 w-4" />
-            新增项目
-          </button>
+          <RoleGuard permission="services:manage">
+            <button
+              type="button"
+              onClick={() => {
+                setEditingId(null);
+                setFormData({
+                  name: "",
+                  price: "",
+                  duration: "",
+                  image: "",
+                  categoryId: selectedCategoryId || "",
+                });
+                setShowCreateDialog(true);
+              }}
+              disabled={!selectedCategoryId}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" />
+              新增项目
+            </button>
+          </RoleGuard>
         </div>
 
         {!selectedCategoryId ? (
@@ -358,40 +361,42 @@ export default function ServiceItemsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 sm:shrink-0 self-end sm:self-center">
-                  <button
-                    type="button"
-                    onClick={() => handleToggle(item.id)}
-                    className={`p-2 rounded-md ${
-                      item.isActive
-                        ? "hover:bg-accent"
-                        : "hover:bg-destructive/10 text-destructive"
-                    }`}
-                    title={item.isActive ? "下架" : "上架"}
-                  >
-                    {item.isActive ? (
-                      <Eye className="h-4 w-4" />
-                    ) : (
-                      <EyeOff className="h-4 w-4" />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => startEdit(item)}
-                    className="p-2 hover:bg-accent rounded-md"
-                    title="编辑"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(item.id)}
-                    className="p-2 hover:bg-destructive hover:text-destructive-foreground rounded-md"
-                    title="删除"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
+                <RoleGuard permission="services:manage">
+                  <div className="flex items-center gap-2 sm:shrink-0 self-end sm:self-center">
+                    <button
+                      type="button"
+                      onClick={() => handleToggle(item.id)}
+                      className={`p-2 rounded-md ${
+                        item.isActive
+                          ? "hover:bg-accent"
+                          : "hover:bg-destructive/10 text-destructive"
+                      }`}
+                      title={item.isActive ? "下架" : "上架"}
+                    >
+                      {item.isActive ? (
+                        <Eye className="h-4 w-4" />
+                      ) : (
+                        <EyeOff className="h-4 w-4" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => startEdit(item)}
+                      className="p-2 hover:bg-accent rounded-md"
+                      title="编辑"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(item.id)}
+                      className="p-2 hover:bg-destructive hover:text-destructive-foreground rounded-md"
+                      title="删除"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </RoleGuard>
               </div>
             ))}
           </div>

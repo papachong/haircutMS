@@ -9,6 +9,7 @@ import {
   type MemberListParams,
 } from '../../../lib/api/members';
 import { exportMembers } from '../../../lib/api/export';
+import { RoleGuard } from '@/components/auth/role-guard';
 
 export default function MembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -116,24 +117,28 @@ export default function MembersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <h1 className="text-xl sm:text-2xl font-bold">会员管理</h1>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={exporting || loading || members.length === 0}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 border rounded-md hover:bg-accent transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Download className="h-4 w-4" />
-            <span>{exporting ? '导出中...' : '导出'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleCreateMember}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-sm"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">新建会员</span>
-            <span className="sm:hidden">新建</span>
-          </button>
+          <RoleGuard permission="members:export">
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={exporting || loading || members.length === 0}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 border rounded-md hover:bg-accent transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download className="h-4 w-4" />
+              <span>{exporting ? '导出中...' : '导出'}</span>
+            </button>
+          </RoleGuard>
+          <RoleGuard permission="members:create">
+            <button
+              type="button"
+              onClick={handleCreateMember}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-sm"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">新建会员</span>
+              <span className="sm:hidden">新建</span>
+            </button>
+          </RoleGuard>
         </div>
       </div>
 
@@ -259,16 +264,18 @@ export default function MembersPage() {
               </div>
 
               <div className="col-span-2 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleEditMember(member);
-                  }}
-                  className="px-3 py-1.5 text-sm bg-secondary hover:bg-secondary/80 rounded-md"
-                >
-                  编辑
-                </button>
+                <RoleGuard permission="members:edit">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleEditMember(member);
+                    }}
+                    className="px-3 py-1.5 text-sm bg-secondary hover:bg-secondary/80 rounded-md"
+                  >
+                    编辑
+                  </button>
+                </RoleGuard>
                 <button
                   type="button"
                   className="p-1.5 text-muted-foreground hover:text-foreground"

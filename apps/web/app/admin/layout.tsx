@@ -2,10 +2,35 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/lib/auth/auth-context';
+import { hasPermission, type Permission } from '@/lib/auth/permissions';
+import { RouteGuard } from '@/components/auth/route-guard';
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: string;
+  permission: Permission;
+}
+
+const ALL_NAV_ITEMS: NavItem[] = [
+  { href: '/admin', label: '首页', icon: '📊', permission: 'dashboard:view' },
+  { href: '/admin/pos', label: '收银', icon: '💰', permission: 'pos:access' },
+  { href: '/admin/orders', label: '订单', icon: '📋', permission: 'orders:view' },
+  { href: '/admin/members', label: '会员', icon: '👥', permission: 'members:view' },
+  { href: '/admin/revenue-analytics', label: '收入分析', icon: '💵', permission: 'revenue:view' },
+  { href: '/admin/members/analytics', label: '会员分析', icon: '📈', permission: 'members:analytics' },
+  { href: '/admin/settings/services', label: '服务', icon: '✂️', permission: 'services:manage' },
+  { href: '/admin/staff', label: '员工', icon: '👤', permission: 'staff:view' },
+  { href: '/admin/staff-stats', label: '员工统计', icon: '📈', permission: 'staff-stats:view' },
+  { href: '/admin/settings/recharge', label: '充值方案', icon: '💳', permission: 'settings:view' },
+  { href: '/admin/settings', label: '设置', icon: '⚙️', permission: 'settings:view' },
+];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { role } = useAuth();
   const [ready, setReady] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -20,19 +45,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!ready) return null;
 
-  const navItems = [
-    { href: '/admin', label: '首页', icon: '📊' },
-    { href: '/admin/pos', label: '收银', icon: '💰' },
-    { href: '/admin/orders', label: '订单', icon: '📋' },
-    { href: '/admin/members', label: '会员', icon: '👥' },
-    { href: '/admin/revenue-analytics', label: '收入分析', icon: '💵' },
-    { href: '/admin/members/analytics', label: '会员分析', icon: '📈' },
-    { href: '/admin/settings/services', label: '服务', icon: '✂️' },
-    { href: '/admin/staff', label: '员工', icon: '👤' },
-    { href: '/admin/staff-stats', label: '员工统计', icon: '📈' },
-    { href: '/admin/settings/recharge', label: '充值方案', icon: '💳' },
-    { href: '/admin/settings', label: '设置', icon: '⚙️' },
-  ];
+  const navItems = ALL_NAV_ITEMS.filter(
+    (item) => role && hasPermission(role, item.permission),
+  );
 
   return (
     <div className="flex min-h-screen">
@@ -94,7 +109,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="w-8" />
         </header>
 
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto">
+          <RouteGuard>{children}</RouteGuard>
+        </main>
       </main>
     </div>
   );

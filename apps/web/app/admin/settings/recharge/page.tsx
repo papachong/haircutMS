@@ -12,6 +12,7 @@ import {
   RECHARGE_PLAN_TYPE_LABELS,
 } from '@/lib/api/recharge';
 import { Plus, Pencil, Trash2, Eye, EyeOff, Clock, Gift } from 'lucide-react';
+import { RoleGuard } from '@/components/auth/role-guard';
 
 interface CreatePlanData {
   name: string;
@@ -241,13 +242,15 @@ export default function RechargePlansPage() {
             管理充值方案、充赠活动和限时优惠
           </p>
         </div>
-        <button
-          onClick={() => openModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          新增方案
-        </button>
+        <RoleGuard permission="settings:manage">
+          <button
+            onClick={() => openModal()}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            新增方案
+          </button>
+        </RoleGuard>
       </div>
 
       {/* Filter Tabs */}
@@ -362,39 +365,41 @@ export default function RechargePlansPage() {
                       </td>
                       <td className="py-3 px-4">{plan.sortOrder}</td>
                       <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleToggle(plan.id)}
-                            disabled={togglingId === plan.id}
-                            className={`p-1.5 rounded-md transition-colors ${
-                              plan.isActive
-                                ? 'hover:bg-accent text-muted-foreground'
-                                : 'hover:bg-accent'
-                            }`}
-                            title={plan.isActive ? '下架' : '上架'}
-                          >
-                            {plan.isActive ? (
-                              <Eye className="h-4 w-4" />
-                            ) : (
-                              <EyeOff className="h-4 w-4" />
-                            )}
-                          </button>
-                          <button
-                            onClick={() => openModal(plan)}
-                            className="p-1.5 rounded-md hover:bg-accent text-primary"
-                            title="编辑"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(plan.id)}
-                            disabled={deletingId === plan.id}
-                            className="p-1.5 rounded-md hover:bg-destructive/10 text-destructive transition-colors"
-                            title="删除"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
+                        <RoleGuard permission="settings:manage">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleToggle(plan.id)}
+                              disabled={togglingId === plan.id}
+                              className={`p-1.5 rounded-md transition-colors ${
+                                plan.isActive
+                                  ? 'hover:bg-accent text-muted-foreground'
+                                  : 'hover:bg-accent'
+                              }`}
+                              title={plan.isActive ? '下架' : '上架'}
+                            >
+                              {plan.isActive ? (
+                                <Eye className="h-4 w-4" />
+                              ) : (
+                                <EyeOff className="h-4 w-4" />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => openModal(plan)}
+                              className="p-1.5 rounded-md hover:bg-accent text-primary"
+                              title="编辑"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(plan.id)}
+                              disabled={deletingId === plan.id}
+                              className="p-1.5 rounded-md hover:bg-destructive/10 text-destructive transition-colors"
+                              title="删除"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </RoleGuard>
                       </td>
                     </tr>
                   );
@@ -451,31 +456,33 @@ export default function RechargePlansPage() {
                         ? `${new Date(plan.startsAt).toLocaleDateString('zh-CN')} - ${new Date(plan.endsAt).toLocaleDateString('zh-CN')}`
                         : '永久有效'}
                     </span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleToggle(plan.id)}
-                        disabled={togglingId === plan.id}
-                        className="p-2 rounded-md hover:bg-accent min-h-[44px] min-w-[44px] flex items-center justify-center"
-                        title={plan.isActive ? '下架' : '上架'}
-                      >
-                        {plan.isActive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                      </button>
-                      <button
-                        onClick={() => openModal(plan)}
-                        className="p-2 rounded-md hover:bg-accent min-h-[44px] min-w-[44px] flex items-center justify-center"
-                        title="编辑"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(plan.id)}
-                        disabled={deletingId === plan.id}
-                        className="p-2 rounded-md hover:bg-destructive/10 min-h-[44px] min-w-[44px] flex items-center justify-center"
-                        title="删除"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+                    <RoleGuard permission="settings:manage">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleToggle(plan.id)}
+                          disabled={togglingId === plan.id}
+                          className="p-2 rounded-md hover:bg-accent min-h-[44px] min-w-[44px] flex items-center justify-center"
+                          title={plan.isActive ? '下架' : '上架'}
+                        >
+                          {plan.isActive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                        </button>
+                        <button
+                          onClick={() => openModal(plan)}
+                          className="p-2 rounded-md hover:bg-accent min-h-[44px] min-w-[44px] flex items-center justify-center"
+                          title="编辑"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(plan.id)}
+                          disabled={deletingId === plan.id}
+                          className="p-2 rounded-md hover:bg-destructive/10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                          title="删除"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </RoleGuard>
                   </div>
                 </div>
               );

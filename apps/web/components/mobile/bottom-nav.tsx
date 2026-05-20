@@ -7,6 +7,8 @@ import {
   Users,
   BarChart3,
 } from 'lucide-react';
+import { useAuth } from '@/lib/auth/auth-context';
+import { hasPermission, type Permission } from '@/lib/auth/permissions';
 
 interface NavTab {
   href: string;
@@ -14,14 +16,16 @@ interface NavTab {
   icon: React.ReactNode;
   activeIcon: React.ReactNode;
   matchPrefix?: boolean;
+  permission: Permission;
 }
 
-const TABS: NavTab[] = [
+const ALL_TABS: NavTab[] = [
   {
     href: '/m/dashboard',
     label: '首页',
     icon: <Home className="w-5 h-5" />,
     activeIcon: <Home className="w-5 h-5" strokeWidth={2.5} />,
+    permission: 'dashboard:view',
   },
   {
     href: '/m/pos',
@@ -29,6 +33,7 @@ const TABS: NavTab[] = [
     icon: <Calculator className="w-5 h-5" />,
     activeIcon: <Calculator className="w-5 h-5" strokeWidth={2.5} />,
     matchPrefix: true,
+    permission: 'pos:access',
   },
   {
     href: '/m/members',
@@ -36,12 +41,14 @@ const TABS: NavTab[] = [
     icon: <Users className="w-5 h-5" />,
     activeIcon: <Users className="w-5 h-5" strokeWidth={2.5} />,
     matchPrefix: true,
+    permission: 'members:view',
   },
   {
     href: '/m/analytics',
     label: '分析',
     icon: <BarChart3 className="w-5 h-5" />,
     activeIcon: <BarChart3 className="w-5 h-5" strokeWidth={2.5} />,
+    permission: 'dashboard:view',
   },
 ];
 
@@ -58,6 +65,11 @@ export function shouldHideBottomNav(pathname: string): boolean {
 
 export default function BottomNav({ forceHide }: BottomNavProps) {
   const pathname = usePathname();
+  const { role } = useAuth();
+
+  const tabs = role
+    ? ALL_TABS.filter((tab) => hasPermission(role, tab.permission))
+    : ALL_TABS;
 
   if (forceHide || shouldHideBottomNav(pathname)) {
     return null;
@@ -71,7 +83,7 @@ export default function BottomNav({ forceHide }: BottomNavProps) {
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="flex items-center justify-around h-14">
-        {TABS.map((tab) => {
+        {tabs.map((tab) => {
           const isActive = tab.matchPrefix
             ? pathname.startsWith(tab.href)
             : pathname === tab.href;

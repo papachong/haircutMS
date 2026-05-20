@@ -13,6 +13,7 @@ import {
   STAFF_ROLE_LABELS,
 } from '@/lib/api/staff';
 import { Plus, Edit2, KeyRound, CheckCircle, XCircle, AlertTriangle, Search } from 'lucide-react';
+import { RoleGuard } from '@/components/auth/role-guard';
 
 const PHONE_REGEX = /^1\d{10}$/;
 const PASSWORD_MIN_LENGTH = 6;
@@ -186,7 +187,6 @@ export default function StaffManagementPage() {
   function updateFormField(field: keyof StaffFormData, value: string) {
     const newFormData = { ...formData, [field]: value };
     setFormData(newFormData);
-    // Clear field error on change
     if (formErrors[field as keyof FormErrors]) {
       setFormErrors({ ...formErrors, [field]: undefined });
     }
@@ -213,13 +213,15 @@ export default function StaffManagementPage() {
             管理店铺员工信息、角色和权限
           </p>
         </div>
-        <button
-          onClick={openCreateModal}
-          className="flex items-center gap-2 rounded-lg bg-primary px-3 sm:px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 self-start sm:self-auto"
-        >
-          <Plus className="h-4 w-4" />
-          添加员工
-        </button>
+        <RoleGuard permission="staff:manage">
+          <button
+            onClick={openCreateModal}
+            className="flex items-center gap-2 rounded-lg bg-primary px-3 sm:px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 self-start sm:self-auto"
+          >
+            <Plus className="h-4 w-4" />
+            添加员工
+          </button>
+        </RoleGuard>
       </div>
 
       {/* Stats Cards */}
@@ -296,7 +298,9 @@ export default function StaffManagementPage() {
                 <th className="py-4 px-4 md:px-6 text-left font-medium">手机号</th>
                 <th className="py-4 px-4 md:px-6 text-left font-medium">状态</th>
                 <th className="py-4 px-4 md:px-6 text-left font-medium">入职时间</th>
-                <th className="py-4 px-4 md:px-6 text-right font-medium">操作</th>
+                <th className="py-4 px-4 md:px-6 text-right font-medium">
+                  <RoleGuard permission="staff:manage">操作</RoleGuard>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -346,37 +350,39 @@ export default function StaffManagementPage() {
                       {new Date(staff.createdAt).toLocaleDateString('zh-CN')}
                     </td>
                     <td className="py-4 px-4 md:px-6">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => openEditModal(staff)}
-                          className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
-                          title="编辑"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => openResetPasswordModal(staff)}
-                          className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
-                          title="重置密码"
-                        >
-                          <KeyRound className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleToggleStatus(staff)}
-                          className={`rounded-md p-2 ${
-                            staff.isActive
-                              ? 'text-red-600 hover:bg-red-50'
-                              : 'text-green-600 hover:bg-green-50'
-                          }`}
-                          title={staff.isActive ? '停用' : '启用'}
-                        >
-                          {staff.isActive ? (
-                            <XCircle className="h-4 w-4" />
-                          ) : (
-                            <CheckCircle className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
+                      <RoleGuard permission="staff:manage">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => openEditModal(staff)}
+                            className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+                            title="编辑"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => openResetPasswordModal(staff)}
+                            className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+                            title="重置密码"
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleToggleStatus(staff)}
+                            className={`rounded-md p-2 ${
+                              staff.isActive
+                                ? 'text-red-600 hover:bg-red-50'
+                                : 'text-green-600 hover:bg-green-50'
+                            }`}
+                            title={staff.isActive ? '停用' : '启用'}
+                          >
+                            {staff.isActive ? (
+                              <XCircle className="h-4 w-4" />
+                            ) : (
+                              <CheckCircle className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </RoleGuard>
                     </td>
                   </tr>
                 ))
@@ -431,37 +437,39 @@ export default function StaffManagementPage() {
                   <span>{new Date(staff.createdAt).toLocaleDateString('zh-CN')}</span>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                  <button
-                    onClick={() => openEditModal(staff)}
-                    className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
-                    title="编辑"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => openResetPasswordModal(staff)}
-                    className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
-                    title="重置密码"
-                  >
-                    <KeyRound className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleToggleStatus(staff)}
-                    className={`rounded-md p-2 ${
-                      staff.isActive
-                        ? 'text-red-600 hover:bg-red-50'
-                        : 'text-green-600 hover:bg-green-50'
-                    }`}
-                    title={staff.isActive ? '停用' : '启用'}
-                  >
-                    {staff.isActive ? (
-                      <XCircle className="h-4 w-4" />
-                    ) : (
-                      <CheckCircle className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
+                <RoleGuard permission="staff:manage">
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                    <button
+                      onClick={() => openEditModal(staff)}
+                      className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+                      title="编辑"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => openResetPasswordModal(staff)}
+                      className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+                      title="重置密码"
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleToggleStatus(staff)}
+                      className={`rounded-md p-2 ${
+                        staff.isActive
+                          ? 'text-red-600 hover:bg-red-50'
+                          : 'text-green-600 hover:bg-green-50'
+                      }`}
+                      title={staff.isActive ? '停用' : '启用'}
+                    >
+                      {staff.isActive ? (
+                        <XCircle className="h-4 w-4" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </RoleGuard>
               </div>
             ))
           )}
