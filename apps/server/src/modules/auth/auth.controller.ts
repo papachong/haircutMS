@@ -1,12 +1,21 @@
-import { Controller, Post, Body, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Body, HttpCode } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
+import { CurrentShop } from '../../common/decorators/current-shop.decorator';
 
 @ApiTags('认证管理')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
+
+  @Get('shop')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取门店信息' })
+  @ApiResponse({ status: 200, description: '返回当前门店信息' })
+  async getShopInfo(@CurrentShop() shopId: string) {
+    return this.authService.getShopInfo(shopId);
+  }
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('login')

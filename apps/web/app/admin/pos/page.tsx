@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Search,
   User,
@@ -86,6 +87,7 @@ function timeAgo(dateStr: string): string {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function POSPage() {
+  const router = useRouter();
   // Data state
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [services, setServices] = useState<ServiceItem[]>([]);
@@ -462,6 +464,12 @@ export default function POSPage() {
     setShowSettlementDialog(false);
   };
 
+  const handleSettleAndPrint = (orderId: string) => {
+    clearCart();
+    setShowSettlementDialog(false);
+    router.push(`/admin/orders/${orderId}/print`);
+  };
+
   // ─── Computed Values ─────────────────────────────────────────────────────
 
   const originalAmount = cart.reduce((sum, item) => sum + item.subtotal, 0);
@@ -500,6 +508,7 @@ export default function POSPage() {
           memberPassCards={memberPassCards}
           preselectedCoupon={preselectedCoupon}
           onSettleSuccess={handleSettleSuccess}
+          onSettleAndPrint={handleSettleAndPrint}
         />
       )}
 

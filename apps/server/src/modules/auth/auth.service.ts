@@ -49,6 +49,20 @@ export class AuthService {
     };
   }
 
+  async getShopInfo(shopId: string) {
+    const shop = await this.prisma.shop.findUnique({
+      where: { id: shopId },
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        phone: true,
+        logo: true,
+      },
+    });
+    return shop;
+  }
+
   async login(phone: string, password: string) {
     const staff = await this.prisma.staff.findUnique({
       where: { shopId_phone: { shopId: '', phone } },

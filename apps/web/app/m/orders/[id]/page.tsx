@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -13,6 +14,7 @@ import {
   CheckCircle,
   XCircle,
   FileText,
+  Printer,
 } from 'lucide-react';
 import { getOrderById, cancelOrder, type Order } from '../../../../../lib/api/orders';
 import { getAuditLogs, ACTION_LABELS, type AuditLog } from '../../../../../lib/api/audit';
@@ -129,13 +131,21 @@ export default function MobileOrderDetailPage() {
           <span className="font-medium">订单详情</span>
         </div>
         {canCancel && (
-          <button
-            type="button"
-            onClick={() => setShowCancelDialog(true)}
-            className="px-3 py-1.5 text-sm text-destructive border border-destructive rounded-md"
-          >
-            撤销
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/m/orders/${orderId}/print`}
+              className="p-2 border rounded-md hover:bg-accent"
+            >
+              <Printer className="w-4 h-4" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => setShowCancelDialog(true)}
+              className="px-3 py-1.5 text-sm text-destructive border border-destructive rounded-md"
+            >
+              撤销
+            </button>
+          </div>
         )}
       </div>
 
