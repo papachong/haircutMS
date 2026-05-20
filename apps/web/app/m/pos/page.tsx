@@ -20,6 +20,15 @@ import {
 import SettlementDialog from '../../../components/SettlementDialog';
 import CouponSelector, { type SelectedCoupon } from '../../../components/coupon/coupon-selector';
 import { useDebounce } from '../../../hooks/use-debounce';
+import {
+  syncFromServer,
+  cacheMemberResults,
+  enqueueOrder,
+  getAllServiceItems,
+  getAllServiceCategories,
+  getAllStaff,
+  searchMembers as offlineSearchMembers,
+} from '../../../lib/offline';
 
 interface CartItem extends OrderItemInput {
   serviceItem: ServiceItem;
@@ -122,14 +131,31 @@ export default function MobilePOSPage() {
   }, [categories, services]);
 
   const loadData = async () => {
-    const [cats, staffData, allServices] = await Promise.all([
-      getServiceCategories(),
-      getStaff(),
-      getServiceItems(),
-    ]);
-    setCategories(cats);
-    setStaff(staffData);
-    setServices(allServices);
+    try {
+      const [cats, staffData, allServices] = await Promise.all([
+        getServiceCategories(),
+        getStaff(),
+        getServiceItems(),
+      ]);
+      setCategories(cats);
+      setStaff(staffData);
+      setServices(allServices);
+
+      // Cache to IndexedDB in the background for offline use
+      syncFromServer().catch(() => {
+        // Background cache failure is non-critical
+      });
+    } catch {
+      // Network unavailable: load from IndexedDB
+      const [cachedCats, cachedStaff, cachedServices] = await Promise.all([
+        getAllServiceCategories(),
+        getAllStaff(),
+        getAllServiceItems(),
+      ]);
+      setCategories(cachedCats);
+      setStaff(cachedStaff);
+      setServices(cachedServices);
+    }
   };
 
   const loadMemberPassCards = async (memberId: string) => {
@@ -149,6 +175,19 @@ export default function MobilePOSPage() {
     try {
       const results = await searchMembers(value);
       setMemberResults(results);
+
+      // Cache member results for offline use
+      cacheMemberResults(value).catch(() => {
+        // Background cache failure is non-critical
+      });
+    } catch {
+      // Network unavailable: fallback to IndexedDB
+      try {
+        const cachedResults = await offlineSearchMembers(value);
+        setMemberResults(cachedResults);
+      } catch {
+        setMemberResults([]);
+      }
     } finally {
       setIsSearching(false);
     }
@@ -344,17 +383,36 @@ export default function MobilePOSPage() {
     }
 
     setLoading(true);
+
+    const orderInput = {
+      memberId: selectedMember.id,
+      items: cart.map((item) => ({
+        serviceItemId: item.serviceItemId,
+        staffId: item.staffId,
+        quantity: item.quantity,
+      })),
+      remark,
+      status,
+    };
+
+    // Offline: enqueue to IndexedDB
+    if (!navigator.onLine) {
+      try {
+        await enqueueOrder(orderInput);
+        haptic([10, 50, 20]);
+        alert('订单已保存到离线队列，恢复网络后将自动提交');
+        clearCart();
+      } catch {
+        haptic([50, 30, 50]);
+        alert('保存订单失败，请重试');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
-      const order = await createOrder({
-        memberId: selectedMember.id,
-        items: cart.map((item) => ({
-          serviceItemId: item.serviceItemId,
-          staffId: item.staffId,
-          quantity: item.quantity,
-        })),
-        remark,
-        status,
-      });
+      const order = await createOrder(orderInput);
 
       if (status === 'PENDING') {
         haptic([10, 50, 20]);
@@ -366,8 +424,21 @@ export default function MobilePOSPage() {
         setShowSettlementDialog(true);
       }
     } catch (error: unknown) {
-      haptic([50, 30, 50]);
-      alert(`创建订单失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      // On network failure, fallback to offline queue
+      if (!navigator.onLine || error instanceof TypeError) {
+        try {
+          await enqueueOrder(orderInput);
+          haptic([10, 50, 20]);
+          alert('网络不可用，订单已保存到离线队列');
+          clearCart();
+        } catch {
+          haptic([50, 30, 50]);
+          alert('保存订单失败，请重试');
+        }
+      } else {
+        haptic([50, 30, 50]);
+        alert(`创建订单失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      }
     } finally {
       setLoading(false);
     }
