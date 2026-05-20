@@ -16,6 +16,7 @@ import {
   XCircle,
   FileText,
   ChevronRight,
+  Printer,
 } from 'lucide-react';
 import { getOrderById, cancelOrder, type Order } from '../../../lib/api/orders';
 import { getAuditLogs, ACTION_LABELS, type AuditLog } from '../../../lib/api/audit';
@@ -156,13 +157,22 @@ export default function OrderDetailPage() {
           <span className="font-semibold">订单详情</span>
         </div>
         {canCancel && (
-          <button
-            type="button"
-            onClick={() => setShowCancelDialog(true)}
-            className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors"
-          >
-            取消订单
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/admin/orders/${orderId}/print`}
+              className="flex items-center gap-1.5 px-4 py-2 border rounded-md hover:bg-accent transition-colors"
+            >
+              <Printer className="h-4 w-4" />
+              打印小票
+            </Link>
+            <button
+              type="button"
+              onClick={() => setShowCancelDialog(true)}
+              className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors"
+            >
+              取消订单
+            </button>
+          </div>
         )}
       </div>
 

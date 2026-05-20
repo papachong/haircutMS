@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Check, CreditCard, Wallet, Ticket, DollarSign } from 'lucide-react';
+import { X, Check, CreditCard, Wallet, Ticket, DollarSign, Printer } from 'lucide-react';
 import { getAvailableCoupons, settleOrder, type CouponInstance, type PaymentInput } from '@/lib/api/orders';
 import type { Member, PassCard } from '@/lib/api/orders';
 import type { SelectedCoupon } from './coupon/coupon-selector';
@@ -17,6 +17,7 @@ export interface SettlementProps {
   memberPassCards?: PassCard[];
   preselectedCoupon?: SelectedCoupon | null;
   onSettleSuccess: () => void;
+  onSettleAndPrint?: (orderId: string) => void;
 }
 
 type PaymentMethod = 'BALANCE' | 'PASS_CARD' | 'OFFLINE' | 'COUPON';
@@ -41,8 +42,10 @@ export default function SettlementDialog({
   memberPassCards = [],
   preselectedCoupon,
   onSettleSuccess,
+  onSettleAndPrint,
 }: SettlementProps) {
   const [loading, setLoading] = useState(false);
+  const [settled, setSettled] = useState(false);
   const [availableCoupons, setAvailableCoupons] = useState<Array<CouponInstance & {
     canUse: boolean;
     discount: number;
@@ -65,6 +68,7 @@ export default function SettlementDialog({
 
   useEffect(() => {
     if (isOpen && member) {
+      setSettled(false);
       loadCoupons();
       const totalBalance = (member.giftBalance || 0) + (member.principalBalance || 0);
       const couponDiscountAmount = preselectedCoupon?.discount ?? 0;
@@ -200,9 +204,8 @@ export default function SettlementDialog({
       }
 
       await settleOrder(orderId, paymentInputs);
+      setSettled(true);
       onSettleSuccess();
-      onClose();
-      alert('结算成功！');
     } catch (error) {
       alert(`结算失败: ${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
@@ -473,16 +476,44 @@ export default function SettlementDialog({
           )}
         </div>
 
-        {/* Confirm Button */}
+        {/* Confirm Button / Success State */}
         <div className="p-4 border-t">
-          <button
-            type="button"
-            onClick={handleSettle}
-            disabled={loading || remainingAmount > 0}
-            className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-bold text-lg disabled:opacity-50"
-          >
-            {loading ? '处理中...' : `确认结算 · ¥{(finalPayableAmount / 100).toFixed(2)}`}
-          </button>
+          {settled ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-2 text-green-500 py-2">
+                <Check className="w-6 h-6" />
+                <span className="font-bold text-lg">结算成功</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="py-2.5 border rounded-lg font-medium text-sm hover:bg-accent transition-colors"
+                >
+                  完成
+                </button>
+                {onSettleAndPrint && (
+                  <button
+                    type="button"
+                    onClick={() => onSettleAndPrint(orderId)}
+                    className="flex items-center justify-center gap-1.5 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors"
+                  >
+                    <Printer className="w-4 h-4" />
+                    打印小票
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSettle}
+              disabled={loading || remainingAmount > 0}
+              className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-bold text-lg disabled:opacity-50"
+            >
+              {loading ? '处理中...' : `确认结算 · ¥${(finalPayableAmount / 100).toFixed(2)}`}
+            </button>
+          )}
         </div>
       </div>
     </div>

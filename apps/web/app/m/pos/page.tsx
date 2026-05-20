@@ -377,7 +377,13 @@ export default function MobilePOSPage() {
     haptic([10, 50, 20]);
     clearCart();
     setShowSettlementDialog(false);
-    alert('结算成功！');
+  };
+
+  const handleSettleAndPrint = (orderId: string) => {
+    haptic([10, 50, 20]);
+    clearCart();
+    setShowSettlementDialog(false);
+    router.push(`/m/orders/${orderId}/print`);
   };
 
   const payableAmount = cart.reduce((sum, item) => sum + item.finalPrice, 0);
@@ -1055,6 +1061,7 @@ export default function MobilePOSPage() {
           memberPassCards={memberPassCards}
           preselectedCoupon={preselectedCoupon}
           onSettleSuccess={handleSettleSuccess}
+          onSettleAndPrint={handleSettleAndPrint}
         />
       )}
     </div>
