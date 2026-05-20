@@ -2,6 +2,7 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { LicenseModule } from './modules/license/license.module';
@@ -22,6 +23,7 @@ import { PlatformOverviewModule } from './modules/platform/overview/platform-ove
 import { PlatformLicenseModule } from './modules/platform/platform-license/platform-license.module';
 import { MemberProfileModule } from './modules/member-profile/member-profile.module';
 import { ExportModule } from './modules/export/export.module';
+import { NotificationModule } from './modules/notification/notification.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -34,6 +36,7 @@ import { AppService } from './app.service';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     // Rate limiting: 100 requests per minute globally
     // Uses ThrottlerRedisStorage which falls back to in-memory if REDIS_URL is not set
     ThrottlerModule.forRoot({
@@ -66,6 +69,7 @@ import { AppService } from './app.service';
     PlatformLicenseModule,
     MemberProfileModule,
     ExportModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [

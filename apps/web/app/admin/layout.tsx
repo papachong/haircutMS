@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
 import { hasPermission, type Permission } from '@/lib/auth/permissions';
 import { RouteGuard } from '@/components/auth/route-guard';
+import { NotificationBell } from '@/components/notification/notification-bell';
 
 interface NavItem {
   href: string;
@@ -106,7 +107,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             ☰
           </button>
           <span className="font-semibold">HaircutMS</span>
-          <div className="w-8" />
+          <NotificationBell />
+        </header>
+
+        {/* Desktop header */}
+        <header className="hidden md:flex h-14 items-center justify-end border-b bg-card px-4">
+          <NotificationBell />
         </header>
 
         <main className="flex-1 overflow-auto">
