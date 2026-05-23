@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Printer, Share2 } from 'lucide-react';
+import { ArrowLeft, Printer } from 'lucide-react';
 import { getOrderById, type Order } from '@/lib/api/orders';
 import { getShopInfo, type ShopInfo } from '@/lib/api/shop';
 import { getMemberById, type Member } from '@/lib/api/members';
 import ReceiptLayout from '@/components/receipt/ReceiptLayout';
+import ShareReceiptButton from '@/components/receipt/ShareReceiptButton';
 import '@/components/receipt/receipt-print.css';
 
 export default function MobileReceiptPrintPage() {
@@ -48,22 +49,6 @@ export default function MobileReceiptPrintPage() {
 
   const handlePrint = () => {
     window.print();
-  };
-
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `小票 - ${order?.orderNo || ''}`,
-          text: `${shop?.name || ''}\n订单号: ${order?.orderNo || ''}\n金额: ¥${order ? (order.paidAmount / 100).toFixed(2) : '0.00'}`,
-        });
-      } catch {
-        // User cancelled or share failed, fall back to print
-        handlePrint();
-      }
-    } else {
-      handlePrint();
-    }
   };
 
   if (loading) {
@@ -137,14 +122,12 @@ export default function MobileReceiptPrintPage() {
           <Printer className="w-4 h-4" />
           打印
         </button>
-        <button
-          type="button"
-          onClick={handleShare}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-primary text-primary-foreground rounded-md text-sm font-medium"
-        >
-          <Share2 className="w-4 h-4" />
-          分享
-        </button>
+        <ShareReceiptButton
+          orderNo={order.orderNo}
+          shopName={shop.name}
+          variant="primary"
+          className="flex-1 py-2.5 rounded-md"
+        />
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { getOrderById, type Order } from '@/lib/api/orders';
 import { getShopInfo, type ShopInfo } from '@/lib/api/shop';
 import { getMemberById, type Member } from '@/lib/api/members';
 import ReceiptLayout from '@/components/receipt/ReceiptLayout';
+import ShareReceiptButton from '@/components/receipt/ShareReceiptButton';
 import '@/components/receipt/receipt-print.css';
 
 type ThermalWidth = '58mm' | '80mm' | 'full';
@@ -136,6 +137,11 @@ export default function AdminReceiptPrintPage() {
               全宽
             </button>
           </div>
+          <ShareReceiptButton
+            orderNo={order?.orderNo}
+            shopName={shop?.name}
+            className="px-4 py-2 rounded-md"
+          />
           <button
             type="button"
             onClick={handlePrint}

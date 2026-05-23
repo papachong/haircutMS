@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Check, CreditCard, Wallet, Ticket, DollarSign, Printer } from 'lucide-react';
+import { X, Check, CreditCard, Wallet, Ticket, DollarSign, Printer, Share2 } from 'lucide-react';
 import { getAvailableCoupons, settleOrder, getOrderById, type CouponInstance, type PaymentInput, type Order } from '@/lib/api/orders';
 import type { Member, PassCard } from '@/lib/api/orders';
 import { getShopInfo, type ShopInfo } from '@/lib/api/shop';
 import { getMemberById, type Member as MemberFull } from '@/lib/api/members';
 import ReceiptLayout from './receipt/ReceiptLayout';
+import ShareReceiptButton from './receipt/ShareReceiptButton';
 import type { SelectedCoupon } from './coupon/coupon-selector';
 
 export interface SettlementProps {
@@ -73,8 +74,7 @@ export default function SettlementDialog({
   const [selectedPassCardIndex, setSelectedPassCardIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    if (isOpen && member) {
-      setSettled(false);
+    if (isOpen && member && !settled) {
       loadCoupons();
       const totalBalance = (member.giftBalance || 0) + (member.principalBalance || 0);
       const couponDiscountAmount = preselectedCoupon?.discount ?? 0;
@@ -276,7 +276,7 @@ export default function SettlementDialog({
           </div>
 
           <div className="border-t p-4 no-print">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={onClose}
@@ -284,6 +284,11 @@ export default function SettlementDialog({
               >
                 完成
               </button>
+              <ShareReceiptButton
+                orderNo={settledOrder?.orderNo}
+                shopName={shopInfo?.name}
+                className="py-2.5 rounded-lg"
+              />
               <button
                 type="button"
                 onClick={() => window.print()}
