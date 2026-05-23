@@ -20,13 +20,7 @@ export class PlatformOverviewController {
   @ApiResponse({ status: 200, description: '成功获取平台总览数据' })
   @ApiResponse({ status: 401, description: '未授权' })
   async getOverview() {
-    const data =
-      await this.platformOverviewService.getOverview();
-    return {
-      code: 0,
-      data,
-      message: 'Success',
-    };
+    return this.platformOverviewService.getOverview();
   }
 
   /**
@@ -38,14 +32,9 @@ export class PlatformOverviewController {
   @ApiResponse({ status: 401, description: '未授权' })
   @ApiQuery({ name: 'limit', required: false, description: '返回数量，默认 10' })
   async getTopShopsByRevenue(@Query('limit') limit: string = '10') {
-    const data = await this.platformOverviewService.getTopShopsByRevenue(
+    return this.platformOverviewService.getTopShopsByRevenue(
       parseInt(limit, 10) || 10,
     );
-    return {
-      code: 0,
-      data,
-      message: 'Success',
-    };
   }
 
   /**
@@ -56,12 +45,7 @@ export class PlatformOverviewController {
   @ApiResponse({ status: 200, description: '成功获取使用量统计' })
   @ApiResponse({ status: 401, description: '未授权' })
   async getShopUsageStats() {
-    const data = await this.platformOverviewService.getShopUsageStats();
-    return {
-      code: 0,
-      data,
-      message: 'Success',
-    };
+    return this.platformOverviewService.getShopUsageStats();
   }
 
   /**
@@ -73,14 +57,9 @@ export class PlatformOverviewController {
   @ApiResponse({ status: 401, description: '未授权' })
   @ApiQuery({ name: 'days', required: false, description: '统计天数，默认 30' })
   async getNewShopsTrend(@Query('days') days: string = '30') {
-    const data = await this.platformOverviewService.getNewShopsTrend(
+    return this.platformOverviewService.getNewShopsTrend(
       parseInt(days, 10) || 30,
     );
-    return {
-      code: 0,
-      data,
-      message: 'Success',
-    };
   }
 
   /**
@@ -92,14 +71,9 @@ export class PlatformOverviewController {
   @ApiResponse({ status: 401, description: '未授权' })
   @ApiQuery({ name: 'days', required: false, description: '统计天数，默认 30' })
   async getRevenueTrend(@Query('days') days: string = '30') {
-    const data = await this.platformOverviewService.getRevenueTrend(
+    return this.platformOverviewService.getRevenueTrend(
       parseInt(days, 10) || 30,
     );
-    return {
-      code: 0,
-      data,
-      message: 'Success',
-    };
   }
 
   /**
@@ -111,13 +85,8 @@ export class PlatformOverviewController {
   @ApiResponse({ status: 401, description: '未授权' })
   @ApiQuery({ name: 'days', required: false, description: '到期天数阈值，默认 15' })
   async getExpiringLicenses(@Query('days') days: string = '15') {
-    const data = await this.platformOverviewService.getExpiringLicenses(
+    return this.platformOverviewService.getExpiringLicenses(
       parseInt(days, 10) || 15,
     );
-    return {
-      code: 0,
-      data,
-      message: 'Success',
-    };
   }
 }

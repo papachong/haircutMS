@@ -90,6 +90,13 @@ export default function MobilePOSPage() {
   // Debounced member search
   const debouncedSearch = useDebounce(memberSearch, 300);
 
+  const meetsMinSearchLength = (keyword: string): boolean => {
+    const trimmed = keyword.trim();
+    if (!trimmed) return false;
+    if (/^\d+$/.test(trimmed)) return trimmed.length >= 4;
+    return trimmed.length >= 2;
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (!token) {
@@ -101,7 +108,7 @@ export default function MobilePOSPage() {
 
   // Perform search when debounced value changes
   useEffect(() => {
-    if (debouncedSearch.length >= 2) {
+    if (meetsMinSearchLength(debouncedSearch)) {
       performMemberSearch(debouncedSearch);
     } else {
       setMemberResults([]);
@@ -581,7 +588,7 @@ export default function MobilePOSPage() {
               type="text"
               value={memberSearch}
               onChange={(e) => handleMemberSearch(e.target.value)}
-              placeholder="搜索会员..."
+              placeholder="搜索姓名(2字)/手机号(4位)"
               className="w-full px-4 py-3.5 pl-12 text-base bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all dark:text-white min-h-[48px]"
               autoFocus
             />
@@ -599,7 +606,7 @@ export default function MobilePOSPage() {
                 </svg>
               </button>
             )}
-            {isSearching && memberSearch.length >= 2 && (
+            {isSearching && meetsMinSearchLength(memberSearch) && (
               <div className="absolute right-12 top-1/2 -translate-y-1/2">
                 <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
               </div>
@@ -675,7 +682,7 @@ export default function MobilePOSPage() {
                 </button>
               ))
             )}
-            {memberResults.length === 0 && memberSearch.length >= 2 && !isSearching && (
+            {memberResults.length === 0 && meetsMinSearchLength(memberSearch) && !isSearching && (
               <div className="text-center py-12">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

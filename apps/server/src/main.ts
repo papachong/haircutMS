@@ -25,7 +25,7 @@ async function bootstrap() {
   );
 
   const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? ['https://your-domain.com']
+    ? [process.env.CORS_ORIGIN || 'https://lifa.ruhooai.com']
     : ['http://localhost:3000'];
 
   app.enableCors({

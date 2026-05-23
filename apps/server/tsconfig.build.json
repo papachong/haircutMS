@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": ["**/*.spec.ts", "test/", "prisma/", "node_modules/"],
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "."
+  }
+}

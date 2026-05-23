@@ -42,5 +42,12 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
     }
   }
 
-  return res.json();
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(res.status === 502 || res.status === 503
+      ? '服务暂时不可用，请稍后重试'
+      : `请求失败 (${res.status})`);
+  }
 }

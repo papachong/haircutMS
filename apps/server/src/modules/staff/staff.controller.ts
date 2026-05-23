@@ -8,7 +8,7 @@ import { CreateStaffDto, UpdateStaffDto, ResetPasswordDto } from './dto/staff.dt
 
 @ApiTags('员工管理')
 @ApiBearerAuth()
-@Controller('api/v1/staff')
+@Controller('staff')
 export class StaffController {
   constructor(private staffService: StaffService) {}
 

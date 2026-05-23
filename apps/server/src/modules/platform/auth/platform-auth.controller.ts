@@ -3,6 +3,7 @@ import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PlatformAuthService } from './platform-auth.service';
 import { PlatformAuthGuard } from './guards/platform-auth.guard';
+import { Public } from '../../../common/decorators/public.decorator';
 
 interface PlatformRequest extends Request {
   user?: {
@@ -13,37 +14,29 @@ interface PlatformRequest extends Request {
 }
 
 @ApiTags('平台认证')
-@Controller('api/v1/platform/auth')
+@Controller('platform/auth')
 export class PlatformAuthController {
   constructor(private platformAuthService: PlatformAuthService) {}
 
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Public()
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   @Post('login')
   @ApiOperation({ summary: '平台管理员登录' })
   @ApiResponse({ status: 200, description: '登录成功' })
   @ApiResponse({ status: 400, description: '参数错误' })
   @ApiResponse({ status: 401, description: '手机号或密码错误' })
   async login(@Body() body: { phone: string; password: string }) {
-    const result = await this.platformAuthService.login(body.phone, body.password);
-    return {
-      code: 0,
-      message: 'Login successful',
-      data: result,
-    };
+    return this.platformAuthService.login(body.phone, body.password);
   }
 
+  @Public()
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('refresh')
   @ApiOperation({ summary: '刷新平台 Token' })
   @ApiResponse({ status: 200, description: '刷新成功' })
   @ApiResponse({ status: 401, description: 'refreshToken 无效或已过期' })
   async refresh(@Body() body: { refreshToken: string }) {
-    const result = await this.platformAuthService.refresh(body.refreshToken);
-    return {
-      code: 0,
-      message: 'Token refreshed',
-      data: result,
-    };
+    return this.platformAuthService.refresh(body.refreshToken);
   }
 
   @Get('me')
@@ -53,11 +46,6 @@ export class PlatformAuthController {
   @ApiResponse({ status: 200, description: '成功获取管理员信息' })
   @ApiResponse({ status: 401, description: '未授权' })
   async me(@Request() req: PlatformRequest) {
-    const admin = await this.platformAuthService.validateAdmin(req.user?.adminId || '');
-    return {
-      code: 0,
-      message: 'Success',
-      data: admin,
-    };
+    return this.platformAuthService.validateAdmin(req.user?.adminId || '');
   }
 }

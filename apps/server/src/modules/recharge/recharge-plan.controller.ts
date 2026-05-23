@@ -22,7 +22,7 @@ import {
 
 @ApiTags('充值方案')
 @ApiBearerAuth()
-@Controller('api/v1/recharge-plans')
+@Controller('recharge-plans')
 export class RechargePlanController {
   constructor(private readonly rechargePlanService: RechargePlanService) {}
 

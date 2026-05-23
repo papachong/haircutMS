@@ -15,7 +15,7 @@ import {
 
 @ApiTags('优惠券管理')
 @ApiBearerAuth()
-@Controller('api/v1/coupons')
+@Controller('coupons')
 export class CouponController {
   constructor(private couponService: CouponService) {}
 

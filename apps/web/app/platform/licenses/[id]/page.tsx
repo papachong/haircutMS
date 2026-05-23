@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   getLicenseById,
+  getLicenseByShopId,
   getPlanDefaults,
   renewLicense,
   type LicenseDetail,
@@ -58,12 +59,16 @@ export default function LicenseDetailPage() {
 
   const loadLicense = useCallback(async () => {
     try {
-      const [data, defaults] = await Promise.all([
-        getLicenseById(params.id as string),
-        getPlanDefaults(),
-      ]);
-      setLicense(data);
+      const defaults = await getPlanDefaults();
       setPlanDefaults(defaults);
+
+      try {
+        const data = await getLicenseById(params.id as string);
+        setLicense(data);
+      } catch {
+        const data = await getLicenseByShopId(params.id as string);
+        setLicense(data);
+      }
     } catch (error) {
       console.error('Failed to load license:', error);
     } finally {

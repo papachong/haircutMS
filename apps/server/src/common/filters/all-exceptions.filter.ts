@@ -24,6 +24,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
       status = exception.getStatus();
       const res = exception.getResponse();
       message = typeof res === 'string' ? res : (res as any).message || exception.message;
+    } else {
+      this.logger.error(
+        `Unhandled exception: ${request.method} ${request.url}`,
+        exception instanceof Error ? exception.stack : String(exception),
+      );
     }
 
     // Handle rate limit (429) with Chinese message consistency

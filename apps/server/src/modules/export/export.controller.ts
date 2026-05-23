@@ -10,7 +10,7 @@ import { Response } from 'express';
 import { ExportService, ExportFormat } from './export.service';
 import { CurrentShop } from '../../common/decorators/current-shop.decorator';
 
-@Controller('api/v1/export')
+@Controller('export')
 export class ExportController {
   constructor(private exportService: ExportService) {}
 

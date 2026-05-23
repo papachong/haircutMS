@@ -12,7 +12,7 @@ import {
 
 @ApiTags('次卡管理')
 @ApiBearerAuth()
-@Controller('api/v1/pass-cards')
+@Controller('pass-cards')
 export class PassCardController {
   constructor(private passCardService: PassCardService) {}
 

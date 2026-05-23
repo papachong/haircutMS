@@ -5,7 +5,7 @@ import { CurrentShop } from '../../common/decorators/current-shop.decorator';
 
 @ApiTags('授权信息')
 @ApiBearerAuth()
-@Controller('api/v1/license')
+@Controller('license')
 export class LicenseController {
   constructor(private readonly licenseService: LicenseService) {}
 

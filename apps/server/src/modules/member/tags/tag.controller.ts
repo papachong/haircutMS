@@ -26,7 +26,7 @@ import {
 
 @ApiTags('会员标签')
 @ApiBearerAuth()
-@Controller('api/v1')
+@Controller()
 export class TagController {
   constructor(private tagService: TagService) {}
 

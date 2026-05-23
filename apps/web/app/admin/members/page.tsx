@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { Search, Plus, User, Phone, Calendar, MoreVertical, Download, Upload } from 'lucide-react';
 import {
   getMembers,
+  getMemberLevels,
+  createMember,
+  updateMember,
   type Member,
   type MemberListParams,
 } from '@/lib/api/members';
@@ -63,11 +66,8 @@ export default function MembersPage() {
 
   const loadMemberLevels = async () => {
     try {
-      const res = await fetch('/api/v1/member-levels');
-      const data = await res.json();
-      if (data.code === 0) {
-        setMemberLevels(data.data);
-      }
+      const data = await getMemberLevels();
+      setMemberLevels(data);
     } catch (error) {
       console.error('Failed to load member levels:', error);
     }
@@ -429,32 +429,20 @@ function MemberFormDialog({ member, memberLevels, onClose, onSaved }: MemberForm
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      const url = member
-        ? `/api/v1/members/${member.id}`
-        : '/api/v1/members';
+      const payload = {
+        ...formData,
+        memberLevelId: formData.memberLevelId || undefined,
+        birthday: formData.birthday || undefined,
+        gender: formData.gender || undefined,
+      };
 
-      const response = await fetch(url, {
-        method: member ? 'PATCH' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ...formData,
-          memberLevelId: formData.memberLevelId || undefined,
-          birthday: formData.birthday || undefined,
-          gender: formData.gender || undefined,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.code === 0) {
-        onSaved();
+      if (member) {
+        await updateMember(member.id, payload);
       } else {
-        alert(data.message || '操作失败');
+        await createMember(payload);
       }
+
+      onSaved();
     } catch (error: unknown) {
       alert(`操作失败: ${error instanceof Error ? error.message : '未知错误'}`);
     } finally {

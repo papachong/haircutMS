@@ -62,7 +62,7 @@ export class QueryRankingDto extends QueryDashboardDto {
 
 @ApiTags('数据面板')
 @ApiBearerAuth()
-@Controller('api/v1/dashboard')
+@Controller('dashboard')
 export class DashboardController {
   constructor(private dashboardService: DashboardService) {}
 

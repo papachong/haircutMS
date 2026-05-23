@@ -1,5 +1,4 @@
-# Lightweight production image for NestJS server
-# Requires: dist/ already built locally before docker build
+# Stage 1: Install dependencies and generate Prisma client
 FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -9,12 +8,14 @@ COPY apps/server/package.json ./apps/server/
 COPY packages/shared/package.json ./packages/shared/
 
 RUN npm install -g pnpm@9.15.0
-RUN pnpm install --frozen-lockfile --prod
-RUN npm install -g prisma@6
+RUN pnpm install --frozen-lockfile
 
+# Generate Prisma client for Linux
+RUN npm install -g prisma@6
 COPY apps/server/prisma ./apps/server/prisma
 RUN cd apps/server && prisma generate
 
+# Stage 2: Production runner
 FROM node:20-alpine AS runner
 WORKDIR /app
 
@@ -25,15 +26,12 @@ RUN apk add --no-cache dumb-init wget
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
 
-# Copy production node_modules
+# Copy all node_modules (includes Prisma generated client with Linux binary)
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/server/node_modules ./apps/server/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 
-# Copy Prisma generated client (linux-musl) into @prisma/client
-COPY --from=deps /app/apps/server/src/generated/prisma /app/apps/server/node_modules/@prisma/client/
-
-# Copy pre-built application and shared package
+# Copy pre-built application
 COPY apps/server/dist ./dist
 COPY apps/server/prisma ./prisma
 COPY packages/shared ./packages/shared
@@ -45,4 +43,4 @@ USER nestjs
 EXPOSE 4000
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/apps/server/src/main"]
+CMD ["node", "dist/src/main"]

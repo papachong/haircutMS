@@ -25,6 +25,7 @@ import { MemberProfileModule } from './modules/member-profile/member-profile.mod
 import { ExportModule } from './modules/export/export.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { ImportModule } from './modules/import/import.module';
+import { AdminManagementModule } from './modules/platform/admin-management/admin-management.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -72,6 +73,7 @@ import { AppService } from './app.service';
     ExportModule,
     NotificationModule,
     ImportModule,
+    AdminManagementModule,
   ],
   controllers: [AppController],
   providers: [

@@ -5,7 +5,7 @@ import { CurrentShop } from '../../common/decorators/current-shop.decorator';
 
 @ApiTags('操作日志')
 @ApiBearerAuth()
-@Controller('api/v1/audit-logs')
+@Controller('audit-logs')
 export class AuditController {
   constructor(private auditService: AuditService) {}
 

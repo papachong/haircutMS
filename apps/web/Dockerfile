@@ -46,6 +46,11 @@ COPY --from=shared-builder /app/packages/shared ./packages/shared
 # Copy full source for build context
 COPY . .
 
+# API proxy target: in Docker this is the server service name;
+# for local dev it defaults to localhost
+ARG API_PROXY_URL=http://localhost:4000
+ENV API_PROXY_URL=$API_PROXY_URL
+
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production

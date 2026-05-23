@@ -14,7 +14,7 @@ import { RechargeMemberDto, RechargeHistoryQueryDto } from './dto/recharge.dto';
 
 @ApiTags('会员管理')
 @ApiBearerAuth()
-@Controller('api/v1/members')
+@Controller('members')
 export class MemberController {
   constructor(
     private memberService: MemberService,

@@ -6,7 +6,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('员工统计')
 @ApiBearerAuth()
-@Controller('api/v1/staff-stats')
+@Controller('staff-stats')
 export class StaffStatsController {
   constructor(private staffStatsService: StaffStatsService) {}
 

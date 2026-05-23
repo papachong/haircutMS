@@ -1,8 +1,32 @@
-import { Controller, Get, Post, Body, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, HttpCode } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { IsString, IsOptional } from 'class-validator';
 import { AuthService } from './auth.service';
 import { CurrentShop } from '../../common/decorators/current-shop.decorator';
+import { Public } from '../../common/decorators/public.decorator';
+
+class UpdateShopDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  businessHours?: string;
+
+  @IsOptional()
+  @IsString()
+  logo?: string;
+}
 
 @ApiTags('认证管理')
 @Controller('auth')
@@ -17,7 +41,20 @@ export class AuthController {
     return this.authService.getShopInfo(shopId);
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Patch('shop')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '更新门店信息' })
+  @ApiResponse({ status: 200, description: '门店信息更新成功' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  async updateShopInfo(
+    @CurrentShop() shopId: string,
+    @Body() dto: UpdateShopDto,
+  ) {
+    return this.authService.updateShopInfo(shopId, dto);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   @Post('login')
   @HttpCode(200)
   @ApiOperation({ summary: '员工登录' })
@@ -31,6 +68,7 @@ export class AuthController {
     return this.authService.login(body.phone, body.password);
   }
 
+  @Public()
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('refresh')
   @HttpCode(200)

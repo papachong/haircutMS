@@ -74,6 +74,13 @@ function formatDiscountLabel(discount: number): string {
   return discount >= 1 ? '无折扣' : `${Math.round(discount * 100) / 10}折`;
 }
 
+function meetsMinSearchLength(keyword: string): boolean {
+  const trimmed = keyword.trim();
+  if (!trimmed) return false;
+  if (/^\d+$/.test(trimmed)) return trimmed.length >= 4;
+  return trimmed.length >= 2;
+}
+
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const minutes = Math.floor(diff / 60000);
@@ -116,6 +123,9 @@ export default function POSPage() {
   // Member search debounce
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Mobile member search modal
+  const [showMobileMemberSearch, setShowMobileMemberSearch] = useState(false);
+
   // ─── Data Loading ────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -142,7 +152,7 @@ export default function POSPage() {
     if (searchTimerRef.current) {
       clearTimeout(searchTimerRef.current);
     }
-    if (value.length < 2) {
+    if (!meetsMinSearchLength(value)) {
       setMemberResults([]);
       return;
     }
@@ -679,14 +689,12 @@ export default function POSPage() {
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t p-3 flex gap-2 z-30">
           <button
             type="button"
-            onClick={() => {
-              // Mobile: show member picker modal
-              const name = prompt('搜索会员（姓名/手机号/卡号）:');
-              if (name && name.length >= 2) {
-                handleMemberSearch(name);
-              }
-            }}
-            className="flex-1 flex items-center justify-center gap-1 py-2 rounded-md border text-sm"
+            onClick={() => setShowMobileMemberSearch(true)}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold min-h-[48px] transition-all active:scale-[0.97] ${
+              selectedMember
+                ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/30'
+                : 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-400/30 animate-pulse'
+            }`}
           >
             <User className="w-4 h-4" />
             {selectedMember ? selectedMember.name : '选择会员'}
@@ -695,7 +703,7 @@ export default function POSPage() {
             type="button"
             onClick={() => handleCreateOrder('SETTLED')}
             disabled={loading || cart.length === 0 || !selectedMember}
-            className="flex-[2] py-2 bg-primary text-primary-foreground rounded-md font-medium text-sm disabled:opacity-50"
+            className="flex-[2] py-3 bg-primary text-primary-foreground rounded-xl font-medium text-sm disabled:opacity-50 min-h-[48px]"
           >
             {loading
               ? '处理中...'
@@ -704,17 +712,149 @@ export default function POSPage() {
           <button
             type="button"
             onClick={togglePendingPanel}
-            className="px-3 py-2 rounded-md border text-sm relative"
+            className="px-4 py-3 rounded-xl border text-sm relative min-h-[48px]"
           >
             <ClipboardList className="w-4 h-4" />
           </button>
         </div>
+
+        {/* ─── Mobile Member Search Modal ────────────────────────────── */}
+        {showMobileMemberSearch && (
+          <MobileMemberSearchModal
+            search={memberSearch}
+            results={memberResults}
+            onSearch={handleMemberSearch}
+            onSelect={(member) => {
+              selectMember(member);
+              setShowMobileMemberSearch(false);
+            }}
+            onClose={() => setShowMobileMemberSearch(false)}
+          />
+        )}
       </div>
     </>
   );
 }
 
 // ─── Sub-Components ──────────────────────────────────────────────────────────
+
+// Mobile Member Search Modal
+function MobileMemberSearchModal({
+  search,
+  results,
+  onSearch,
+  onSelect,
+  onClose,
+}: {
+  search: string;
+  results: Member[];
+  onSearch: (v: string) => void;
+  onSelect: (m: Member) => void;
+  onClose: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleChange = (value: string) => {
+    onSearch(value);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (!meetsMinSearchLength(value)) {
+      setIsSearching(false);
+      return;
+    }
+    setIsSearching(true);
+  };
+
+  useEffect(() => {
+    if (results.length > 0 || !search) setIsSearching(false);
+  }, [results, search]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black/40">
+      <div className="flex-1" onClick={onClose} />
+      <div className="bg-card rounded-t-2xl max-h-[70vh] flex flex-col shadow-2xl">
+        {/* Header */}
+        <div className="p-4 border-b flex items-center gap-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={search}
+              onChange={(e) => handleChange(e.target.value)}
+              placeholder="搜索姓名(2字)/手机号(4位)"
+              className="w-full pl-10 pr-3 py-3 bg-background border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[44px]"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-2 text-sm text-muted-foreground font-medium"
+          >
+            取消
+          </button>
+        </div>
+
+        {/* Hint */}
+        {search && !meetsMinSearchLength(search) && (
+          <div className="px-4 py-3 text-xs text-center text-muted-foreground bg-muted/50">
+            {/^\d+$/.test(search.trim())
+              ? `请输入至少4位数字搜索`
+              : `请输入至少2个字符搜索`}
+          </div>
+        )}
+
+        {/* Results */}
+        <div className="flex-1 overflow-auto p-3 space-y-2">
+          {isSearching ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : results.length === 0 && meetsMinSearchLength(search) ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              未找到匹配的会员
+            </div>
+          ) : (
+            results.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => onSelect(m)}
+                className="w-full p-3 bg-background rounded-xl border text-left active:scale-[0.98] transition-all hover:border-primary min-h-[44px]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
+                    {m.avatar ? (
+                      <img src={m.avatar} alt={m.name} className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      m.name[0]
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-sm truncate">{m.name}</span>
+                      <span className="text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                        {formatDiscountLabel(m.memberLevel.discount)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {m.cardNo} · {m.phone}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Service Card
 function ServiceCard({

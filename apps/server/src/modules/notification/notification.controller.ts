@@ -6,7 +6,7 @@ import { QueryNotificationDto } from './dto/notification.dto';
 
 @ApiTags('通知')
 @ApiBearerAuth()
-@Controller('api/v1/notifications')
+@Controller('notifications')
 export class NotificationController {
   constructor(private notificationService: NotificationService) {}
 

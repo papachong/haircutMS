@@ -12,7 +12,7 @@ import {
 
 @ApiTags('会员等级')
 @ApiBearerAuth()
-@Controller('api/v1/member-levels')
+@Controller('member-levels')
 export class MemberLevelController {
   constructor(private readonly memberLevelService: MemberLevelService) {}
 

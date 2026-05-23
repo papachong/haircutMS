@@ -72,7 +72,7 @@ export class MemberService {
   }
 
   async searchByKeyword(shopId: string, keyword: string) {
-    if (!keyword || keyword.length < 2) {
+    if (!keyword || keyword.length < 1) {
       return [];
     }
 

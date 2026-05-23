@@ -58,6 +58,26 @@ export class AuthService {
         address: true,
         phone: true,
         logo: true,
+        businessHours: true,
+      },
+    });
+    return shop;
+  }
+
+  async updateShopInfo(
+    shopId: string,
+    data: { name?: string; address?: string; phone?: string; businessHours?: string; logo?: string },
+  ) {
+    const shop = await this.prisma.shop.update({
+      where: { id: shopId },
+      data,
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        phone: true,
+        logo: true,
+        businessHours: true,
       },
     });
     return shop;

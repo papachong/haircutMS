@@ -20,13 +20,15 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
     const authType = localStorage.getItem('authType');
     const token = localStorage.getItem('accessToken');
 
-    if (!token || authType !== 'platform') {
+    if (pathname === '/platform/login') {
+      setReady(true);
+    } else if (!token || authType !== 'platform') {
       router.replace('/platform/login');
     } else {
       setReady(true);
     }
     setLoading(false);
-  }, [router]);
+  }, [router, pathname]);
 
   if (loading) return null;
 

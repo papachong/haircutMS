@@ -3,6 +3,8 @@ import path from 'path';
 
 const withSerwist = (config: NextConfig) => config;
 
+const apiProxyUrl = process.env.API_PROXY_URL || 'http://localhost:4000';
+
 const nextConfig: NextConfig = {
   transpilePackages: ['@haircut-ms/shared'],
   typescript: { ignoreBuildErrors: true },
@@ -12,11 +14,11 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:4000/api/:path*',
+        destination: `${apiProxyUrl}/api/:path*`,
       },
       {
         source: '/socket.io/:path*',
-        destination: 'http://localhost:4000/socket.io/:path*',
+        destination: `${apiProxyUrl}/socket.io/:path*`,
       },
     ];
   },

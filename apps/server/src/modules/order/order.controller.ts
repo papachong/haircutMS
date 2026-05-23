@@ -10,7 +10,7 @@ import * as XLSX from 'xlsx';
 
 @ApiTags('订单管理')
 @ApiBearerAuth()
-@Controller('api/v1/orders')
+@Controller('orders')
 export class OrderController {
   constructor(private orderService: OrderService) {}
 

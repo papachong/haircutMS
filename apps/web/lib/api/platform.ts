@@ -49,7 +49,14 @@ export async function platformApiFetch<T>(path: string, options?: RequestInit): 
     }
   }
 
-  return res.json();
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(res.status === 502 || res.status === 503
+      ? '服务暂时不可用，请稍后重试'
+      : `请求失败 (${res.status})`);
+  }
 }
 
 export interface LoginRequest {
@@ -182,4 +189,62 @@ export async function getExpiringLicenses(
   days: number = 15,
 ): Promise<{ code: number; data: ExpiringLicense[]; message: string }> {
   return platformApiFetch(`/overview/expiring-licenses?days=${days}`);
+}
+
+// Platform Admin Management API
+export interface PlatformAdminInfo {
+  id: string;
+  name: string;
+  phone: string;
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'OPERATOR';
+  isActive: boolean;
+  createdAt: string;
+}
+
+export async function getPlatformAdmins(): Promise<{
+  code: number;
+  data: PlatformAdminInfo[];
+}> {
+  return platformApiFetch('/admins');
+}
+
+export async function createPlatformAdmin(data: {
+  name: string;
+  phone: string;
+  password: string;
+  role: string;
+}): Promise<{ code: number; data: PlatformAdminInfo }> {
+  return platformApiFetch('/admins', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updatePlatformAdmin(
+  id: string,
+  data: { name?: string; phone?: string; role?: string },
+): Promise<{ code: number; data: PlatformAdminInfo }> {
+  return platformApiFetch(`/admins/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function resetAdminPassword(
+  id: string,
+  newPassword: string,
+): Promise<{ code: number; data: { success: boolean } }> {
+  return platformApiFetch(`/admins/${id}/reset-password`, {
+    method: 'PATCH',
+    body: JSON.stringify({ newPassword }),
+  });
+}
+
+export async function toggleAdminActive(id: string): Promise<{
+  code: number;
+  data: PlatformAdminInfo;
+}> {
+  return platformApiFetch(`/admins/${id}/toggle-active`, {
+    method: 'PATCH',
+  });
 }

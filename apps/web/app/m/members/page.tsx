@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search, Plus, User, Phone, CreditCard, TrendingUp, Wallet } from 'lucide-react';
 import { searchMembers, getMembers, type Member, type MemberListParams } from '@/lib/api/members';
+import { apiFetch } from '@/lib/api/client';
 import { usePullRefresh } from '../../../hooks/use-pull-refresh';
 import { useDebounce } from '../../../hooks/use-debounce';
 import PullRefreshIndicator from '../../../components/mobile/pull-refresh-indicator';
@@ -73,12 +74,20 @@ export default function MobileMembersPage() {
     loadStats();
   }, []);
 
+  // Check if keyword meets minimum length requirement for search
+  const meetsMinSearchLength = (keyword: string): boolean => {
+    const trimmed = keyword.trim();
+    if (!trimmed) return false;
+    if (/^\d+$/.test(trimmed)) return trimmed.length >= 4;
+    return trimmed.length >= 2;
+  };
+
   // Handle search
   useEffect(() => {
-    if (debouncedSearch.trim()) {
-      handleSearch(debouncedSearch);
-    } else {
+    if (!debouncedSearch.trim()) {
       loadData();
+    } else if (meetsMinSearchLength(debouncedSearch)) {
+      handleSearch(debouncedSearch);
     }
   }, [debouncedSearch, currentPage]);
 
@@ -139,7 +148,7 @@ export default function MobileMembersPage() {
   const handleSearch = async (keyword: string) => {
     setLoading(true);
     try {
-      if (keyword.trim().length >= 2) {
+      if (meetsMinSearchLength(keyword)) {
         const results = await searchMembers(keyword.trim());
         setMembers(results);
         setTotal(results.length);
@@ -159,21 +168,14 @@ export default function MobileMembersPage() {
     if (!confirm(`确认充值 ¥${amount}？`)) return;
 
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(`/api/v1/members/${memberId}/recharge`, {
+      const data = await apiFetch<{ code: number; message?: string }>(`/members/${memberId}/recharge`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
         body: JSON.stringify({
           amount: amount * 100,
           giftAmount: 0,
           payMethod: 'WECHAT',
         }),
       });
-
-      const data = await response.json();
 
       if (data.code === 0) {
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -212,7 +214,7 @@ export default function MobileMembersPage() {
                 type="text"
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
-                placeholder="搜索姓名/手机号/卡号"
+                placeholder="搜索姓名(2字)/手机号(4位)"
                 className="w-full pl-10 pr-10 py-3 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 dark:text-white transition-all min-h-[44px]"
               />
               {searchKeyword && (

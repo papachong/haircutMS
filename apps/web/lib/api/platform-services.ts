@@ -241,8 +241,13 @@ export interface ShopListItem {
 }
 
 export async function getAllShops(): Promise<ShopListItem[]> {
-  const result = await platformApiFetch<ShopListItem[]>('/shops');
-  return result.data;
+  const result = await platformApiFetch<{ data: ShopListItem[]; total: number; stats: Record<string, unknown> }>('/shops');
+  const inner = result.data;
+  if (Array.isArray(inner)) return inner;
+  if (inner && typeof inner === 'object' && Array.isArray((inner as { data?: ShopListItem[] }).data)) {
+    return (inner as { data: ShopListItem[] }).data;
+  }
+  return [];
 }
 
 export async function getShopDetail(id: string) {

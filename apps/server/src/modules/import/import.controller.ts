@@ -20,7 +20,7 @@ import { ImportEntityType } from './types';
 
 @ApiTags('数据导入')
 @ApiBearerAuth()
-@Controller('api/v1/import')
+@Controller('import')
 export class ImportController {
   constructor(private importService: ImportService) {}
 

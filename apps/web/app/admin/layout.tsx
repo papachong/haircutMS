@@ -21,10 +21,8 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/admin/members', label: '会员', icon: '👥', permission: 'members:view' },
   { href: '/admin/revenue-analytics', label: '收入分析', icon: '💵', permission: 'revenue:view' },
   { href: '/admin/members/analytics', label: '会员分析', icon: '📈', permission: 'members:analytics' },
-  { href: '/admin/settings/services', label: '服务', icon: '✂️', permission: 'services:manage' },
   { href: '/admin/staff', label: '员工', icon: '👤', permission: 'staff:view' },
   { href: '/admin/staff-stats', label: '员工统计', icon: '📈', permission: 'staff-stats:view' },
-  { href: '/admin/settings/recharge', label: '充值方案', icon: '💳', permission: 'settings:view' },
   { href: '/admin/settings', label: '设置', icon: '⚙️', permission: 'settings:view' },
 ];
 

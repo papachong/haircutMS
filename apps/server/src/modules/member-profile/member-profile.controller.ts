@@ -2,7 +2,7 @@ import { Controller, Get, Param, Query } from '@nestjs/common';
 import { MemberProfileService } from './member-profile.service';
 import { CurrentShop } from '../../common/decorators/current-shop.decorator';
 
-@Controller('api/v1/members')
+@Controller('members')
 export class MemberProfileController {
   constructor(private profileService: MemberProfileService) {}
 
