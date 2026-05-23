@@ -308,7 +308,7 @@ export class OrderService {
           shopId,
           orderNo,
           memberId: data.memberId,
-          status: data.status ?? OrderStatus.PENDING,
+          status: OrderStatus.PENDING,
           originalAmount,
           discountAmount,
           payableAmount,

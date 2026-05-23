@@ -95,6 +95,7 @@ export class MemberService {
         cardNo: true,
         phone: true,
         avatar: true,
+        isActive: true,
         memberLevel: {
           select: {
             id: true,

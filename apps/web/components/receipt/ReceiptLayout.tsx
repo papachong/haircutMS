@@ -3,10 +3,23 @@
 import type { ShopInfo } from '../../lib/api/shop';
 import type { Order } from '../../lib/api/orders';
 
+interface MemberBalance {
+  principal: number;
+  gift: number;
+}
+
+interface MemberPassCard {
+  name: string;
+  remainingTimes: number;
+  expiresAt?: string;
+}
+
 interface ReceiptLayoutProps {
   shop: ShopInfo;
   order: Order;
   thermalWidth?: '58mm' | '80mm' | 'full';
+  memberBalance?: MemberBalance;
+  memberPassCards?: MemberPassCard[];
 }
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
@@ -31,7 +44,7 @@ function formatDateTime(dateStr: string): string {
   return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
 }
 
-export default function ReceiptLayout({ shop, order, thermalWidth = '80mm' }: ReceiptLayoutProps) {
+export default function ReceiptLayout({ shop, order, thermalWidth = '80mm', memberBalance, memberPassCards }: ReceiptLayoutProps) {
   const widthClass =
     thermalWidth === '58mm'
       ? 'receipt-thermal-58'
@@ -175,6 +188,44 @@ export default function ReceiptLayout({ shop, order, thermalWidth = '80mm' }: Re
                   <span>{order.member.memberLevel.name}</span>
                 </div>
               )}
+            </div>
+          </>
+        )}
+
+        {/* Member Balance */}
+        {memberBalance && (
+          <>
+            <div className="border-t border-dashed border-gray-400 my-3" />
+            <div className="space-y-1 mb-3">
+              <div className="font-bold mb-1">账户余额</div>
+              <div className="flex justify-between">
+                <span>本金余额</span>
+                <span>¥{formatAmount(memberBalance.principal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>赠送余额</span>
+                <span>¥{formatAmount(memberBalance.gift)}</span>
+              </div>
+              <div className="flex justify-between font-bold pt-1 border-t border-gray-300">
+                <span>总余额</span>
+                <span>¥{formatAmount(memberBalance.principal + memberBalance.gift)}</span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Member Pass Cards */}
+        {memberPassCards && memberPassCards.length > 0 && (
+          <>
+            <div className="border-t border-dashed border-gray-400 my-3" />
+            <div className="space-y-1 mb-3">
+              <div className="font-bold mb-1">次卡信息</div>
+              {memberPassCards.map((pc) => (
+                <div key={pc.name} className="flex justify-between">
+                  <span>{pc.name}</span>
+                  <span>剩余 {pc.remainingTimes} 次</span>
+                </div>
+              ))}
             </div>
           </>
         )}

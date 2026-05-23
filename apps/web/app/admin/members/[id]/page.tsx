@@ -286,7 +286,12 @@ export default function MemberDetailPage() {
             </div>
           )}
           <div className="flex-1">
-            <h2 className="text-xl font-semibold">{member.name}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-semibold">{member.name}</h2>
+              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${member.isActive ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                {member.isActive ? '正常' : '已冻结'}
+              </span>
+            </div>
             <div className="text-muted-foreground mt-1">{member.cardNo}</div>
             <div className="flex items-center gap-4 mt-2">
               <div className="flex items-center gap-1 text-sm">

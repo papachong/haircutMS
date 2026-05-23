@@ -18,6 +18,13 @@
   .no-print {
     display: none !important;
   }
+
+  .receipt-scroll-area {
+    overflow: visible !important;
+    max-height: none !important;
+    border: none !important;
+    visibility: visible;
+  }
 }
 
 .receipt-thermal-58 {

@@ -470,14 +470,19 @@ export default function POSPage() {
   };
 
   const handleSettleSuccess = () => {
-    clearCart();
-    setShowSettlementDialog(false);
+    setCart([]);
+    setSelectedMember(null);
+    setMemberPassCards([]);
+    setRemark('');
+    setPreselectedCoupon(null);
   };
 
   const handleSettleAndPrint = (orderId: string) => {
-    clearCart();
-    setShowSettlementDialog(false);
-    router.push(`/admin/orders/${orderId}/print`);
+    setCart([]);
+    setSelectedMember(null);
+    setMemberPassCards([]);
+    setRemark('');
+    setPreselectedCoupon(null);
   };
 
   // ─── Computed Values ─────────────────────────────────────────────────────
@@ -509,7 +514,12 @@ export default function POSPage() {
       {createdOrderId && (
         <SettlementDialog
           isOpen={showSettlementDialog}
-          onClose={() => setShowSettlementDialog(false)}
+          onClose={() => {
+            setShowSettlementDialog(false);
+            setCreatedOrderId(null);
+            setSelectedMember(null);
+            setMemberPassCards([]);
+          }}
           orderId={createdOrderId}
           originalAmount={originalAmount}
           discountAmount={discountAmount}
@@ -972,13 +982,22 @@ function MemberPanel({
                   key={m.id}
                   type="button"
                   onClick={() => {
+                    if (!m.isActive) {
+                      alert('该会员已冻结，请先到会员管理中解冻');
+                      return;
+                    }
                     onSelectMember(m);
                     setShowDropdown(false);
                   }}
-                  className="w-full px-3 py-2.5 text-left hover:bg-accent text-sm border-b last:border-b-0"
+                  className={`w-full px-3 py-2.5 text-left hover:bg-accent text-sm border-b last:border-b-0 ${!m.isActive ? 'opacity-50' : ''}`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">{m.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium">{m.name}</span>
+                      {!m.isActive && (
+                        <span className="text-[10px] text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">已冻结</span>
+                      )}
+                    </div>
                     <span className="text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded">
                       {formatDiscountLabel(m.memberLevel.discount)}
                     </span>

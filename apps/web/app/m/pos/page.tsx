@@ -408,7 +408,9 @@ export default function MobilePOSPage() {
         await enqueueOrder(orderInput);
         haptic([10, 50, 20]);
         alert('订单已保存到离线队列，恢复网络后将自动提交');
-        clearCart();
+        setCart([]);
+        setRemark('');
+        setPreselectedCoupon(null);
       } catch {
         haptic([50, 30, 50]);
         alert('保存订单失败，请重试');
@@ -424,7 +426,9 @@ export default function MobilePOSPage() {
       if (status === 'PENDING') {
         haptic([10, 50, 20]);
         alert(`挂单成功\n订单号: ${order.orderNo}`);
-        clearCart();
+        setCart([]);
+        setRemark('');
+        setPreselectedCoupon(null);
       } else {
         haptic([10, 50, 20]);
         setCreatedOrderId(order.id);
@@ -437,7 +441,9 @@ export default function MobilePOSPage() {
           await enqueueOrder(orderInput);
           haptic([10, 50, 20]);
           alert('网络不可用，订单已保存到离线队列');
-          clearCart();
+          setCart([]);
+          setRemark('');
+          setPreselectedCoupon(null);
         } catch {
           haptic([50, 30, 50]);
           alert('保存订单失败，请重试');
@@ -453,17 +459,16 @@ export default function MobilePOSPage() {
 
   const handleSettleSuccess = () => {
     haptic([10, 50, 20]);
-    clearCart();
-    setShowSettlementDialog(false);
-    alert('结算成功！');
+    setCart([]);
+    setRemark('');
+    setPreselectedCoupon(null);
   };
 
   const handleSettleAndPrint = (orderId: string) => {
     haptic([10, 50, 20]);
-    clearCart();
-    setShowSettlementDialog(false);
-    alert('结算成功！');
-    router.push(`/m/orders/${orderId}/print`);
+    setCart([]);
+    setRemark('');
+    setPreselectedCoupon(null);
   };
 
   const payableAmount = cart.reduce((sum, item) => sum + item.finalPrice, 0);
@@ -641,8 +646,14 @@ export default function MobilePOSPage() {
                 <button
                   key={member.id}
                   type="button"
-                  onClick={() => selectMember(member)}
-                  className="w-full p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 text-left active:scale-[0.98] transition-all hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg min-h-[44px]"
+                  onClick={() => {
+                    if (!member.isActive) {
+                      alert('该会员已冻结，请先到会员管理中解冻');
+                      return;
+                    }
+                    selectMember(member);
+                  }}
+                  className={`w-full p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 text-left active:scale-[0.98] transition-all hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg min-h-[44px] ${!member.isActive ? 'opacity-50' : ''}`}
                 >
                   <div className="flex items-center gap-3 sm:gap-4">
                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-lg sm:text-xl font-bold shadow-md shrink-0">
@@ -657,8 +668,13 @@ export default function MobilePOSPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold text-base sm:text-lg text-slate-900 dark:text-white truncate">
-                        {member.name}
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-base sm:text-lg text-slate-900 dark:text-white truncate">
+                          {member.name}
+                        </span>
+                        {!member.isActive && (
+                          <span className="text-[10px] text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-300 px-1.5 py-0.5 rounded">已冻结</span>
+                        )}
                       </div>
                       <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                         {member.phone}
@@ -1135,7 +1151,13 @@ export default function MobilePOSPage() {
       {createdOrderId && selectedMember && (
         <SettlementDialog
           isOpen={showSettlementDialog}
-          onClose={() => setShowSettlementDialog(false)}
+          onClose={() => {
+            setShowSettlementDialog(false);
+            setCreatedOrderId(null);
+            setSelectedMember(null);
+            setMemberPassCards([]);
+            setStep('member');
+          }}
           orderId={createdOrderId}
           originalAmount={originalAmount}
           discountAmount={discountAmount}

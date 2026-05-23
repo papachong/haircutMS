@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Printer, Ruler } from 'lucide-react';
 import { getOrderById, type Order } from '@/lib/api/orders';
 import { getShopInfo, type ShopInfo } from '@/lib/api/shop';
+import { getMemberById, type Member } from '@/lib/api/members';
 import ReceiptLayout from '@/components/receipt/ReceiptLayout';
 import '@/components/receipt/receipt-print.css';
 
@@ -17,6 +18,7 @@ export default function AdminReceiptPrintPage() {
 
   const [order, setOrder] = useState<Order | null>(null);
   const [shop, setShop] = useState<ShopInfo | null>(null);
+  const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
   const [thermalWidth, setThermalWidth] = useState<ThermalWidth>('80mm');
 
@@ -33,6 +35,13 @@ export default function AdminReceiptPrintPage() {
       ]);
       setOrder(orderData);
       setShop(shopData);
+
+      if (orderData.member?.id) {
+        try {
+          const memberData = await getMemberById(orderData.member.id);
+          setMember(memberData);
+        } catch {}
+      }
     } catch (error) {
       console.error('Failed to load receipt data:', error);
     } finally {
@@ -141,7 +150,19 @@ export default function AdminReceiptPrintPage() {
       {/* Receipt Preview */}
       <div className="flex justify-center">
         <div className="border shadow-sm bg-white">
-          <ReceiptLayout shop={shop} order={order} thermalWidth={thermalWidth} />
+          <ReceiptLayout
+            shop={shop}
+            order={order}
+            thermalWidth={thermalWidth}
+            memberBalance={member ? {
+              principal: member.principalBalance,
+              gift: member.giftBalance,
+            } : undefined}
+            memberPassCards={member?.passCards?.filter(pc => pc.isActive && pc.remainingTimes > 0).map(pc => ({
+              name: pc.name,
+              remainingTimes: pc.remainingTimes,
+            }))}
+          />
         </div>
       </div>
     </div>
