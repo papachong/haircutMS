@@ -32,13 +32,6 @@ export default function AdminDashboard() {
     load();
   }, [range]);
 
-  const cards = [
-    { label: '营收', value: formatMoney(metrics?.revenue ?? 0), bg: 'bg-blue-50', text: 'text-blue-700' },
-    { label: '客流量', value: metrics?.visitorCount ?? 0, bg: 'bg-green-50', text: 'text-green-700' },
-    { label: '客单价', value: formatMoney(metrics?.averageTicket ?? 0), bg: 'bg-purple-50', text: 'text-purple-700' },
-    { label: '新会员', value: metrics?.newMembers ?? 0, bg: 'bg-amber-50', text: 'text-amber-700' },
-  ];
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -58,25 +51,51 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map((card) => (
-          <div key={card.label} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">{card.label}</p>
-            <p className={`text-2xl font-bold mt-1.5 tracking-tight ${card.text}`}>
-              {loading ? <span className="inline-block w-16 h-7 bg-slate-100 rounded animate-pulse" /> : card.value}
+      <div className="space-y-3">
+        {/* Row 1: 营收 + 环比 */}
+        <div className="grid gap-3 grid-cols-2">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <p className="text-xs font-medium text-slate-500">营收</p>
+            <p className="text-2xl font-bold mt-1 tracking-tight text-blue-700">
+              {loading ? <span className="inline-block w-16 h-7 bg-slate-100 rounded animate-pulse" /> : formatMoney(metrics?.revenue ?? 0)}
             </p>
           </div>
-        ))}
-      </div>
-
-      {metrics?.revenueGrowth != null && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">营收环比</p>
-          <p className={`text-xl font-bold mt-1 ${metrics.revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {metrics.revenueGrowth >= 0 ? '+' : ''}{metrics.revenueGrowth.toFixed(1)}%
-          </p>
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <p className="text-xs font-medium text-slate-500">环比</p>
+            <p className={`text-2xl font-bold mt-1 tracking-tight ${(metrics?.revenueGrowth ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {loading ? (
+                <span className="inline-block w-16 h-7 bg-slate-100 rounded animate-pulse" />
+              ) : metrics?.revenueGrowth != null ? (
+                <>{metrics.revenueGrowth >= 0 ? '+' : ''}{metrics.revenueGrowth.toFixed(1)}%</>
+              ) : (
+                <span className="text-slate-400">--</span>
+              )}
+            </p>
+          </div>
         </div>
-      )}
+
+        {/* Row 2: 客流量 + 客单价 + 新会员 */}
+        <div className="grid gap-3 grid-cols-3">  
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <p className="text-xs font-medium text-slate-500">客单价</p>
+            <p className="text-2xl font-bold mt-1 tracking-tight text-purple-700">
+              {loading ? <span className="inline-block w-10 h-7 bg-slate-100 rounded animate-pulse" /> : formatMoney(metrics?.averageTicket ?? 0)}
+            </p>
+          </div>
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <p className="text-xs font-medium text-slate-500">客流量</p>
+            <p className="text-2xl font-bold mt-1 tracking-tight text-green-700">
+              {loading ? <span className="inline-block w-10 h-7 bg-slate-100 rounded animate-pulse" /> : (metrics?.visitorCount ?? 0)}
+            </p>
+          </div>
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <p className="text-xs font-medium text-slate-500">新会员</p>
+            <p className="text-2xl font-bold mt-1 tracking-tight text-amber-700">
+              {loading ? <span className="inline-block w-10 h-7 bg-slate-100 rounded animate-pulse" /> : (metrics?.newMembers ?? 0)}
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
         <h2 className="text-base font-semibold text-slate-900 mb-4">快速操作</h2>

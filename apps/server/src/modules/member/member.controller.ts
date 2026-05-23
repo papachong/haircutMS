@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, Req } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { MemberService } from './member.service';
@@ -122,5 +122,27 @@ export class MemberController {
       shopId,
       query,
     );
+  }
+
+  @Patch(':id/freeze')
+  @ApiOperation({ summary: '冻结/解冻会员' })
+  async toggleFreeze(
+    @Param('id') id: string,
+    @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
+  ) {
+    return this.memberService.toggleFreeze(id, shopId, operatorId, req.ip);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: '删除会员（软删除）' })
+  async remove(
+    @Param('id') id: string,
+    @CurrentShop() shopId: string,
+    @CurrentUser('staffId') operatorId: string,
+    @Req() req: Request,
+  ) {
+    return this.memberService.softDelete(id, shopId, operatorId, req.ip);
   }
 }

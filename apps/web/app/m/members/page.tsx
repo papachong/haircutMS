@@ -9,7 +9,6 @@ import { apiFetch } from '@/lib/api/client';
 import { usePullRefresh } from '../../../hooks/use-pull-refresh';
 import { useDebounce } from '../../../hooks/use-debounce';
 import PullRefreshIndicator from '../../../components/mobile/pull-refresh-indicator';
-import SwipeableItem from '../../../components/mobile/swipeable-item';
 
 // Custom hook for infinite scroll
 function useInfiniteScroll(hasMore: boolean, onLoadMore: () => void) {
@@ -228,7 +227,7 @@ export default function MobileMembersPage() {
               )}
             </div>
             <Link
-              href="/admin/members/new"
+              href="/m/members/new"
               className="w-11 h-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-md shadow-primary/30 active:scale-95 transition-all shrink-0"
             >
               <Plus className="h-5 w-5" />
@@ -312,26 +311,13 @@ export default function MobileMembersPage() {
           ) : (
             <div className="space-y-3">
               {members.map((member) => (
-                <SwipeableItem
+                <Link
                   key={member.id}
-                  rightAction={{
-                    label: '充值',
-                    color: '#22c55e',
-                    icon: <Wallet className="h-4 w-4" />,
-                  }}
-                  leftAction={{
-                    label: '详情',
-                    color: '#3b82f6',
-                    icon: <User className="h-4 w-4" />,
-                  }}
-                  onSwipeRight={() => handleQuickRecharge(member.id, 100)}
-                  onSwipeLeft={() => router.push(`/m/members/${member.id}`)}
+                  href={`/m/members/${member.id}`}
+                  className="block bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-hidden active:scale-[0.98] transition-transform"
                 >
-                  <MemberCard
-                    member={member}
-                    onQuickRecharge={(amount) => handleQuickRecharge(member.id, amount)}
-                  />
-                </SwipeableItem>
+                  <MemberCard member={member} />
+                </Link>
               ))}
             </div>
           )}
@@ -360,10 +346,9 @@ export default function MobileMembersPage() {
 
 interface MemberCardProps {
   member: Member;
-  onQuickRecharge: (amount: number) => void;
 }
 
-function MemberCard({ member, onQuickRecharge }: MemberCardProps) {
+function MemberCard({ member }: MemberCardProps) {
   const totalBalance = member.principalBalance + member.giftBalance;
   const totalBalanceDisplay = `¥${(totalBalance / 100).toFixed(2)}`;
 
@@ -401,6 +386,11 @@ function MemberCard({ member, onQuickRecharge }: MemberCardProps) {
             <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium">
               {member.memberLevel.name}
             </span>
+            {!member.isActive && (
+              <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full text-xs font-medium">
+                已冻结
+              </span>
+            )}
           </div>
 
           {/* Balance */}
@@ -417,29 +407,6 @@ function MemberCard({ member, onQuickRecharge }: MemberCardProps) {
                 消费 ¥{(member.totalConsume / 100).toFixed(2)}
               </div>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* Quick recharge - touch-optimized */}
-      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-slate-400 dark:text-slate-500">快速充值</span>
-          <div className="flex gap-2">
-            {AMOUNT_PRESETS.map((amount) => (
-              <button
-                key={amount}
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onQuickRecharge(amount);
-                }}
-                className="px-3 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg text-xs font-medium shadow-sm active:scale-95 transition-all min-h-[36px]"
-              >
-                ¥{amount}
-              </button>
-            ))}
           </div>
         </div>
       </div>

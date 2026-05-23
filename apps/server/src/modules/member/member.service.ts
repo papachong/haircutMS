@@ -14,7 +14,7 @@ export class MemberService {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
 
-    const where: Prisma.MemberWhereInput = { shopId, isActive: true };
+    const where: Prisma.MemberWhereInput = { shopId };
 
     if (query.keyword) {
       where.OR = [
@@ -81,7 +81,6 @@ export class MemberService {
     return this.prisma.member.findMany({
       where: {
         shopId,
-        isActive: true,
         OR: [
           { name: { contains: keyword } },
           { phone: { contains: keyword } },
@@ -249,5 +248,45 @@ export class MemberService {
     const seq = String(count + 1).padStart(4, '0');
     const prefix = shopId.slice(-4).toUpperCase();
     return `M${prefix}${seq}`;
+  }
+
+  async toggleFreeze(id: string, shopId: string, operatorId: string, ip: string | undefined) {
+    const member = await this.prisma.member.findFirst({ where: { id, shopId } });
+    if (!member) throw new NotFoundException('会员不存在');
+
+    const updated = await this.prisma.member.update({
+      where: { id },
+      data: { isActive: !member.isActive },
+    });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: member.isActive ? AuditActions.MEMBER_FREEZE : AuditActions.MEMBER_UNFREEZE,
+      targetId: id,
+      ip,
+    });
+
+    return { id: updated.id, isActive: updated.isActive };
+  }
+
+  async softDelete(id: string, shopId: string, operatorId: string, ip: string | undefined) {
+    const member = await this.prisma.member.findFirst({ where: { id, shopId } });
+    if (!member) throw new NotFoundException('会员不存在');
+
+    await this.prisma.member.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    await this.auditService.log({
+      shopId,
+      staffId: operatorId,
+      action: AuditActions.MEMBER_DELETE,
+      targetId: id,
+      ip,
+    });
+
+    return { id, deleted: true };
   }
 }

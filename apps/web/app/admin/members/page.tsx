@@ -8,6 +8,8 @@ import {
   getMemberLevels,
   createMember,
   updateMember,
+  toggleFreezeMember,
+  deleteMember,
   type Member,
   type MemberListParams,
 } from '@/lib/api/members';
@@ -90,6 +92,31 @@ export default function MembersPage() {
   const handleMemberSaved = () => {
     setShowCreateDialog(false);
     loadMembers();
+  };
+
+  const handleToggleFreeze = async (e: React.MouseEvent, member: Member) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const action = member.isActive ? '冻结' : '解冻';
+    if (!confirm(`确认${action}会员「${member.name}」？`)) return;
+    try {
+      await toggleFreezeMember(member.id);
+      loadMembers();
+    } catch (err) {
+      alert(`${action}失败: ${err instanceof Error ? err.message : '未知错误'}`);
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent, member: Member) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm(`确认删除会员「${member.name}」？此操作不可恢复。`)) return;
+    try {
+      await deleteMember(member.id);
+      loadMembers();
+    } catch (err) {
+      alert(`删除失败: ${err instanceof Error ? err.message : '未知错误'}`);
+    }
   };
 
   const handleExport = async () => {
@@ -229,7 +256,12 @@ export default function MembersPage() {
                     </div>
                   )}
                   <div className="min-w-0">
-                    <div className="font-medium truncate">{member.name}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium truncate">{member.name}</span>
+                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${member.isActive ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {member.isActive ? '正常' : '冻结'}
+                      </span>
+                    </div>
                     <div className="text-xs text-muted-foreground">{member.cardNo}</div>
                   </div>
                 </div>
@@ -270,25 +302,34 @@ export default function MembersPage() {
                 )}
               </div>
 
-              <div className="col-span-2 flex items-center gap-2">
+              <div className="col-span-2 flex items-center gap-1.5">
                 <RoleGuard permission="members:edit">
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleEditMember(member);
-                    }}
-                    className="px-3 py-1.5 text-sm bg-secondary hover:bg-secondary/80 rounded-md"
+                    onClick={(e) => { e.preventDefault(); handleEditMember(member); }}
+                    className="px-2.5 py-1.5 text-xs bg-secondary hover:bg-secondary/80 rounded-md"
                   >
                     编辑
                   </button>
                 </RoleGuard>
-                <button
-                  type="button"
-                  className="p-1.5 text-muted-foreground hover:text-foreground"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </button>
+                <RoleGuard permission="members:edit">
+                  <button
+                    type="button"
+                    onClick={(e) => handleToggleFreeze(e, member)}
+                    className={`px-2.5 py-1.5 text-xs rounded-md ${member.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-green-600 hover:bg-green-50'}`}
+                  >
+                    {member.isActive ? '冻结' : '解冻'}
+                  </button>
+                </RoleGuard>
+                <RoleGuard permission="members:edit">
+                  <button
+                    type="button"
+                    onClick={(e) => handleDelete(e, member)}
+                    className="px-2.5 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-md"
+                  >
+                    删除
+                  </button>
+                </RoleGuard>
               </div>
             </Link>
           ))
@@ -323,7 +364,12 @@ export default function MembersPage() {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium">{member.name}</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium">{member.name}</span>
+                    <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${member.isActive ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {member.isActive ? '正常' : '冻结'}
+                    </span>
+                  </div>
                   <div className="text-sm text-muted-foreground">{member.cardNo}</div>
                   <div className="text-xs text-primary mt-1">
                     {getMemberLevelName(member.memberLevelId)} · {(memberLevels.find(l => l.id === member.memberLevelId)?.discount || 1) * 10}折

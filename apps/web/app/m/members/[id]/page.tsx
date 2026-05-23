@@ -19,7 +19,7 @@ import {
   AlertCircle,
   CheckCircle,
 } from 'lucide-react';
-import { getMemberById, type Member } from '@/lib/api/members';
+import { getMemberById, updateMember, toggleFreezeMember, deleteMember, type Member } from '@/lib/api/members';
 import { rechargeMember, PayMethod, PAY_METHOD_LABELS } from '@/lib/api/recharge';
 import { usePullRefresh } from '@/hooks/use-pull-refresh';
 import PullRefreshIndicator from '@/components/mobile/pull-refresh-indicator';
@@ -36,6 +36,8 @@ export default function MemberDetailPage() {
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const [showRechargeDialog, setShowRechargeDialog] = useState(false);
   const [rechargeLoading, setRechargeLoading] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
 
   // Pull-to-refresh
   const { containerRef, pulling, refreshing, pullDistance } = usePullRefresh(async () => {
@@ -79,6 +81,49 @@ export default function MemberDetailPage() {
       alert(`充值失败: ${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
       setRechargeLoading(false);
+    }
+  };
+
+  const handleEdit = async (data: { name: string; phone: string; gender: string; birthday: string; remark: string }) => {
+    setEditLoading(true);
+    try {
+      await updateMember(params.id as string, {
+        name: data.name.trim(),
+        phone: data.phone.trim(),
+        gender: data.gender,
+        birthday: data.birthday || undefined,
+        remark: data.remark.trim() || undefined,
+      });
+      setShowEditDialog(false);
+      await loadMember();
+      alert('修改成功！');
+    } catch (error: unknown) {
+      alert(`修改失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleToggleFreeze = async () => {
+    const action = member.isActive ? '冻结' : '解冻';
+    if (!confirm(`确认${action}会员「${member.name}」？`)) return;
+    try {
+      await toggleFreezeMember(params.id as string);
+      await loadMember();
+      alert(`${action}成功！`);
+    } catch (error: unknown) {
+      alert(`${action}失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`确认删除会员「${member.name}」？此操作不可恢复。`)) return;
+    try {
+      await deleteMember(params.id as string);
+      alert('删除成功');
+      router.replace('/m/members');
+    } catch (error: unknown) {
+      alert(`删除失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
   };
 
@@ -142,13 +187,23 @@ export default function MemberDetailPage() {
             <h1 className="flex-1 ml-3 text-lg font-bold text-slate-900 dark:text-white">
               会员详情
             </h1>
-            <button
-              type="button"
-              onClick={() => setShowRechargeDialog(true)}
-              className="px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-medium shadow-md shadow-green-500/30 active:scale-95 transition-all min-h-[44px]"
-            >
-              充值
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowRechargeDialog(true)}
+                className="px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-medium shadow-md shadow-green-500/30 active:scale-95 transition-all min-h-[44px]"
+              >
+                充值
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowEditDialog(true)}
+                className="px-4 py-3 bg-blue-500 text-white rounded-xl font-medium shadow-md shadow-blue-500/30 active:scale-95 transition-all min-h-[44px] flex items-center gap-1.5"
+              >
+                <Edit className="h-4 w-4" />
+                编辑
+              </button>
+            </div>
           </div>
 
           {/* Tabs */}
@@ -201,6 +256,11 @@ export default function MemberDetailPage() {
                   <span className="text-sm text-white/80">
                     {Math.round(member.memberLevel.discount * 10)}折
                   </span>
+                  {!member.isActive && (
+                    <span className="inline-flex items-center px-2 py-0.5 bg-amber-500/30 rounded-full text-xs font-bold text-amber-200">
+                      已冻结
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -254,6 +314,28 @@ export default function MemberDetailPage() {
               <RechargeTab records={member.rechargeRecords || []} />
             )}
           </div>
+
+          {/* Freeze & Delete */}
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={handleToggleFreeze}
+              className={`py-3 rounded-2xl font-medium text-sm transition-all active:scale-[0.98] min-h-[44px] ${
+                member.isActive
+                  ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+                  : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800'
+              }`}
+            >
+              {member.isActive ? '冻结会员' : '解冻会员'}
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl font-medium text-sm border border-red-200 dark:border-red-800 transition-all active:scale-[0.98] min-h-[44px]"
+            >
+              删除会员
+            </button>
+          </div>
         </div>
       </div>
 
@@ -263,6 +345,15 @@ export default function MemberDetailPage() {
           onClose={() => setShowRechargeDialog(false)}
           onRecharge={handleRecharge}
           loading={rechargeLoading}
+        />
+      )}
+
+      {showEditDialog && member && (
+        <EditMemberDialog
+          member={member}
+          onClose={() => setShowEditDialog(false)}
+          onSave={handleEdit}
+          loading={editLoading}
         />
       )}
     </div>
@@ -440,7 +531,7 @@ function RechargeTab({ records }: RechargeTabProps) {
             </div>
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400">
-            操作人: {record.operator.name}
+            操作人: {record.operator?.name ?? '系统'}
           </div>
         </div>
       ))}
@@ -628,6 +719,144 @@ function RechargeDialog({ onClose, onRecharge, loading }: RechargeDialogProps) {
               className="flex-1 py-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-bold shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all"
             >
               {loading ? '处理中...' : '确认充值'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+interface EditMemberDialogProps {
+  member: Member;
+  onClose: () => void;
+  onSave: (data: { name: string; phone: string; gender: string; birthday: string; remark: string }) => void;
+  loading: boolean;
+}
+
+const GENDER_OPTIONS = [
+  { value: 'MALE', label: '男' },
+  { value: 'FEMALE', label: '女' },
+  { value: 'OTHER', label: '其他' },
+];
+
+function EditMemberDialog({ member, onClose, onSave, loading }: EditMemberDialogProps) {
+  const [form, setForm] = useState({
+    name: member.name,
+    phone: member.phone,
+    gender: member.gender ?? 'MALE',
+    birthday: member.birthday ? member.birthday.split('T')[0] : '',
+    remark: member.remark ?? '',
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.phone.trim()) {
+      alert('请填写姓名和手机号');
+      return;
+    }
+    onSave(form);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-white dark:bg-slate-800 w-full sm:max-w-md sm:rounded-2xl rounded-t-3xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-12 h-1 bg-slate-300 dark:bg-slate-600 rounded-full" />
+        </div>
+
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+          <h2 className="font-semibold text-slate-900 dark:text-white text-lg">编辑会员</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300"
+          >
+            ×
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+              姓名 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+              手机号 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="tel"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">性别</label>
+            <div className="flex gap-2">
+              {GENDER_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setForm({ ...form, gender: opt.value })}
+                  className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all ${
+                    form.gender === opt.value
+                      ? 'bg-blue-500 text-white shadow-md'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">生日</label>
+            <input
+              type="date"
+              value={form.birthday}
+              onChange={(e) => setForm({ ...form, birthday: e.target.value })}
+              className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">备注</label>
+            <textarea
+              value={form.remark}
+              onChange={(e) => setForm({ ...form, remark: e.target.value })}
+              rows={2}
+              className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none resize-none"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-4 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium"
+            >
+              取消
+            </button>
+            <button
+              type="submit"
+              disabled={loading || !form.name.trim() || !form.phone.trim()}
+              className="flex-1 py-4 bg-blue-500 text-white rounded-xl font-bold disabled:opacity-50 active:scale-[0.98] transition-all"
+            >
+              {loading ? '保存中...' : '保存'}
             </button>
           </div>
         </form>

@@ -36,9 +36,14 @@ export function LineChart({
   const maxValue = Math.max(...values);
 
   const xScale = (index: number) =>
-    padding.left + (index / (data.length - 1)) * innerWidth;
-  const yScale = (value: number) =>
-    padding.top + innerHeight - ((value - minValue) / (maxValue - minValue)) * innerHeight;
+    data.length <= 1
+      ? padding.left + innerWidth / 2
+      : padding.left + (index / (data.length - 1)) * innerWidth;
+  const yScale = (value: number) => {
+    const range = maxValue - minValue;
+    if (range === 0) return padding.top + innerHeight / 2;
+    return padding.top + innerHeight - ((value - minValue) / range) * innerHeight;
+  };
 
   const points = data.map((d, i) => `${xScale(i)},${yScale(d.value)}`).join(' ');
 

@@ -455,12 +455,14 @@ export default function MobilePOSPage() {
     haptic([10, 50, 20]);
     clearCart();
     setShowSettlementDialog(false);
+    alert('结算成功！');
   };
 
   const handleSettleAndPrint = (orderId: string) => {
     haptic([10, 50, 20]);
     clearCart();
     setShowSettlementDialog(false);
+    alert('结算成功！');
     router.push(`/m/orders/${orderId}/print`);
   };
 
@@ -714,15 +716,18 @@ export default function MobilePOSPage() {
                 </svg>
               </button>
               <div className="flex-1 ml-3">
-                <h1 className="text-lg font-bold text-slate-900 dark:text-white">选择服务</h1>
-                {selectedMember && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {selectedMember.name}
-                    <span className="ml-1">
-                      ({Math.round(selectedMember.memberLevel.discount * 10)}折)
+                <h1 className="text-lg font-bold text-slate-900 dark:text-white">
+                  选择服务项目
+                  {selectedMember && (
+                    <span className="text-base font-normal text-slate-500 dark:text-slate-400">
+                      （会员:
+                        <span className="text-blue-600 dark:text-blue-400 font-bold text-base">
+                          {selectedMember.name}
+                        </span>
+                      ）
                     </span>
-                  </p>
-                )}
+                  )}
+                </h1>
               </div>
               {cart.length > 0 && (
                 <div className="flex items-center gap-2">

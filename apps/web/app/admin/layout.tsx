@@ -29,20 +29,31 @@ const ALL_NAV_ITEMS: NavItem[] = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { role } = useAuth();
+  const { role, isLoading } = useAuth();
   const [ready, setReady] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
+    if (isLoading) return;
     const token = localStorage.getItem('accessToken');
     if (!token) {
       router.replace('/login');
     } else {
       setReady(true);
     }
-  }, [router]);
+  }, [router, isLoading]);
 
   if (!ready) return null;
+
+  const handleLogout = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('authType');
+    localStorage.removeItem('shopId');
+    localStorage.removeItem('staffId');
+    localStorage.removeItem('role');
+    router.replace('/login');
+  };
 
   const navItems = ALL_NAV_ITEMS.filter(
     (item) => role && hasPermission(role, item.permission),
@@ -105,17 +116,56 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             ☰
           </button>
           <span className="font-semibold">HaircutMS</span>
-          <NotificationBell />
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <button
+              onClick={handleLogout}
+              className="p-2 hover:bg-accent rounded text-slate-500 hover:text-slate-700 transition-colors"
+              title="退出登录"
+            >
+              🚪
+            </button>
+          </div>
         </header>
 
         {/* Desktop header */}
-        <header className="hidden md:flex h-14 items-center justify-end border-b bg-card px-4">
+        <header className="hidden md:flex h-14 items-center justify-end gap-4 border-b bg-card px-4">
           <NotificationBell />
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+          >
+            <span>🚪</span>
+            <span>退出</span>
+          </button>
         </header>
 
         <main className="flex-1 overflow-auto">
           <RouteGuard>{children}</RouteGuard>
         </main>
+
+        <footer className="border-t bg-card px-6 py-4 text-center text-xs text-slate-400 space-y-1">
+          <p>
+            儒虎智能科技（北京）有限公司 |
+            <a
+              href="https://beian.miit.gov.cn/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-slate-600 transition-colors"
+            >
+              京ICP备2025154066号-1
+            </a> |
+            <a
+              href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=11011402055127"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-slate-600 transition-colors"
+            >
+              京公网安备11011402055127号
+            </a>
+          </p>
+          <p>Copyright © 2024-2025 Ruhoo AI. All Rights Reserved. 儒虎智能科技 版权所有</p>
+        </footer>
       </main>
     </div>
   );

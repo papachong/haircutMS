@@ -34,7 +34,8 @@ export default function LoginPage() {
       localStorage.setItem('shopId', data.data.shopId);
       localStorage.setItem('staffId', data.data.staffId);
       localStorage.setItem('role', data.data.role);
-      router.push('/admin');
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      router.push(isMobile ? '/m/dashboard' : '/admin');
     } catch {
       setError('网络错误，请稍后重试');
     } finally {
@@ -43,7 +44,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900">HaircutMS</h1>
@@ -80,6 +81,15 @@ export default function LoginPage() {
           </button>
         </form>
       </div>
+
+      <footer className="mt-8 text-center text-xs text-slate-400 space-y-1">
+        <p>
+          儒虎智能科技（北京）有限公司 |
+          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-600 transition-colors">京ICP备2025154066号-1</a> |
+          <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=11011402055127" target="_blank" rel="noopener noreferrer" className="hover:text-slate-600 transition-colors">京公网安备11011402055127号</a>
+        </p>
+        <p>Copyright &copy; 2024-2025 Ruhoo AI. All Rights Reserved. 儒虎智能科技 版权所有</p>
+      </footer>
     </div>
   );
 }

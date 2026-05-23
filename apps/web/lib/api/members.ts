@@ -147,6 +147,17 @@ export async function updateMember(id: string, data: UpdateMemberInput): Promise
   return res.data;
 }
 
+export async function toggleFreezeMember(id: string): Promise<{ id: string; isActive: boolean }> {
+  const res = await apiFetch<{ code: number; data: { id: string; isActive: boolean } }>(`/members/${id}/freeze`, {
+    method: 'PATCH',
+  });
+  return res.data;
+}
+
+export async function deleteMember(id: string): Promise<void> {
+  await apiFetch<{ code: number }>(`/members/${id}`, { method: 'DELETE' });
+}
+
 export async function getMemberLevels(): Promise<MemberLevel[]> {
   const res = await apiFetch<{ code: number; data: MemberLevel[] }>('/member-levels');
   return res.data;

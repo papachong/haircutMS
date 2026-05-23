@@ -23,8 +23,8 @@ test.describe('Shop admin dashboard', () => {
 
     // Four stat cards (use exact to avoid matching "营收环比" etc.)
     await expect(page.getByText('营收', { exact: true })).toBeVisible();
-    await expect(page.getByText('客流量', { exact: true })).toBeVisible();
     await expect(page.getByText('客单价', { exact: true })).toBeVisible();
+    await expect(page.getByText('客流量', { exact: true })).toBeVisible();
     await expect(page.getByText('新会员', { exact: true })).toBeVisible();
   });
 

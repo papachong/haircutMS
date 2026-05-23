@@ -42,7 +42,7 @@ export default function PlatformLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-xl shadow-lg">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-slate-900">HaircutMS 平台管理</h1>
@@ -91,6 +91,15 @@ export default function PlatformLoginPage() {
           </button>
         </form>
       </div>
+
+      <footer className="mt-8 text-center text-xs text-slate-400 space-y-1">
+        <p>
+          儒虎智能科技（北京）有限公司 |
+          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-600 transition-colors">京ICP备2025154066号-1</a> |
+          <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=11011402055127" target="_blank" rel="noopener noreferrer" className="hover:text-slate-600 transition-colors">京公网安备11011402055127号</a>
+        </p>
+        <p>Copyright &copy; 2024-2025 Ruhoo AI. All Rights Reserved. 儒虎智能科技 版权所有</p>
+      </footer>
     </div>
   );
 }

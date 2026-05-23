@@ -53,7 +53,7 @@ const ALL_TABS: NavTab[] = [
 ];
 
 // Paths where bottom nav should be hidden
-const HIDDEN_PATHS = ['/m/pos', '/m/pos-holds'];
+const HIDDEN_PATHS = ['/m/pos-holds'];
 
 interface BottomNavProps {
   forceHide?: boolean;
