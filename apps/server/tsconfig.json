@@ -18,12 +18,8 @@
     "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
-    "preserveSymlinks": true,
     "declarationMap": true,
     "skipDefaultLibCheck": true,
-    "stripInternal": false,
-    "paths": {
-      "@prisma/client": ["./src/generated/prisma"]
-    }
+    "stripInternal": false
   }
 }

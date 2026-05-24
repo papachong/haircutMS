@@ -6,6 +6,10 @@ node_modules
 .next
 dist
 build
+!apps/server/dist
+!apps/server/dist/**
+!packages/shared/dist
+!packages/shared/dist/**
 
 # Environment files
 .env
