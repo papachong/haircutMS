@@ -24,15 +24,9 @@ REMOTE_DIR="${REMOTE_DIR:-/opt/haircutms}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker/docker-compose.prod.yml}"
 APP_URL="${APP_URL:-https://lifa.ruhooai.com}"
 HEALTH_URL="${HEALTH_URL:-${APP_URL%/}/health}"
-SERVER_IMAGE="${SERVER_IMAGE:-haircutms-server:latest}"
-WEB_IMAGE="${WEB_IMAGE:-haircutms-web:latest}"
 HEALTH_RETRIES="${HEALTH_RETRIES:-30}"
 HEALTH_INTERVAL="${HEALTH_INTERVAL:-10}"
 SSH_OPTS="${SSH_OPTS:-}"
-
-SERVER_ARCHIVE="haircutms-server-${ENV_NAME}.tar.gz"
-WEB_ARCHIVE="haircutms-web-${ENV_NAME}.tar.gz"
-TMP_DIR=""
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -45,15 +39,20 @@ ok() { echo -e "${GREEN}[OK]${NC}    $*"; }
 warn() { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 fail() { echo -e "${RED}[FAIL]${NC}  $*"; exit 1; }
 
-cleanup() {
-  if [[ -n "$TMP_DIR" && -d "$TMP_DIR" ]]; then
-    rm -rf "$TMP_DIR"
-  fi
-}
-trap cleanup EXIT
-
 quote() {
   printf '%q' "$1"
+}
+
+join_quoted() {
+  local joined=""
+  local arg
+  for arg in "$@"; do
+    if [[ -n "$joined" ]]; then
+      joined+=" "
+    fi
+    joined+="$(quote "$arg")"
+  done
+  printf '%s' "$joined"
 }
 
 read_ssh_args() {
@@ -69,11 +68,6 @@ ssh_remote() {
   ssh "${SSH_ARGS[@]}" "$REMOTE_HOST" "$@"
 }
 
-scp_remote() {
-  read_ssh_args
-  scp "${SSH_ARGS[@]}" "$@"
-}
-
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || fail "$1 not found"
 }
@@ -81,13 +75,9 @@ require_cmd() {
 check_local_prerequisites() {
   info "Checking local prerequisites..."
   require_cmd pnpm
-  require_cmd docker
   require_cmd rsync
   require_cmd ssh
-  require_cmd scp
-  require_cmd gzip
   require_cmd curl
-  docker info >/dev/null 2>&1 || fail "Docker daemon is not running"
   ok "Local prerequisites are ready"
 }
 
@@ -106,8 +96,6 @@ Remote dir:   $REMOTE_DIR
 Compose file: $COMPOSE_FILE
 App URL:      $APP_URL
 Health URL:   $HEALTH_URL
-Server image: $SERVER_IMAGE
-Web image:    $WEB_IMAGE
 EOF
 }
 
@@ -118,13 +106,6 @@ build_dist() {
   pnpm --filter @haircut-ms/server prisma:generate
   pnpm --filter @haircut-ms/server build
   ok "Workspace artifacts built"
-}
-
-build_images() {
-  info "Building Docker images for $ENV_NAME..."
-  cd "$PROJECT_ROOT"
-  docker compose -f "$COMPOSE_FILE" build "$@" server web
-  ok "Docker images built"
 }
 
 sync_source() {
@@ -146,26 +127,17 @@ sync_source() {
   ok "Source synced"
 }
 
-save_images() {
-  TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/haircutms-deploy.XXXXXX")"
+build_images_remote() {
+  local build_opts=("$@")
+  local remote_build_opts=""
 
-  info "Saving Docker images..."
-  docker save "$SERVER_IMAGE" | gzip > "$TMP_DIR/$SERVER_ARCHIVE"
-  docker save "$WEB_IMAGE" | gzip > "$TMP_DIR/$WEB_ARCHIVE"
-  ok "Docker images saved to $TMP_DIR"
-}
+  if [[ "${#build_opts[@]}" -gt 0 ]]; then
+    remote_build_opts="$(join_quoted "${build_opts[@]}") "
+  fi
 
-upload_images() {
-  info "Uploading Docker images to $REMOTE_HOST..."
-  scp_remote -q "$TMP_DIR/$SERVER_ARCHIVE" "${REMOTE_HOST}:/tmp/$SERVER_ARCHIVE"
-  scp_remote -q "$TMP_DIR/$WEB_ARCHIVE" "${REMOTE_HOST}:/tmp/$WEB_ARCHIVE"
-  ok "Docker images uploaded"
-}
-
-load_images_remote() {
-  info "Loading Docker images on $REMOTE_HOST..."
-  ssh_remote "docker load < /tmp/$(quote "$SERVER_ARCHIVE") && docker load < /tmp/$(quote "$WEB_ARCHIVE") && rm -f /tmp/$(quote "$SERVER_ARCHIVE") /tmp/$(quote "$WEB_ARCHIVE")"
-  ok "Docker images loaded"
+  info "Building Docker images on $REMOTE_HOST for $ENV_NAME..."
+  ssh_remote "cd $(quote "$REMOTE_DIR") && docker compose -f $(quote "$COMPOSE_FILE") build ${remote_build_opts}server web"
+  ok "Remote Docker images built"
 }
 
 restart_remote() {
@@ -223,10 +195,7 @@ deploy() {
   check_remote_prerequisites
   build_dist
   sync_source
-  build_images "${build_opts[@]}"
-  save_images
-  upload_images
-  load_images_remote
+  build_images_remote "${build_opts[@]}"
   restart_remote
   wait_for_health
   ok "$ENV_NAME deployment complete"
@@ -239,8 +208,8 @@ Usage: $(basename "$0") <command> [options]
 Build and deploy HaircutMS to the $ENV_NAME cloud environment.
 
 Commands:
-  deploy       Build, sync, upload images, restart remote services, and verify health (default)
-  build        Build workspace artifacts and local Docker images only
+  deploy       Build workspace artifacts, sync source, build Docker images on the remote host, restart services, and verify health (default)
+  build        Build workspace artifacts, sync source, and build Docker images on the remote host only
   sync         Sync source files to the remote environment only
   restart      Restart remote Docker Compose services
   status       Show remote Docker Compose status
@@ -254,14 +223,14 @@ Options:
 
 Environment overrides:
   ENV_NAME, ENV_FILE, REMOTE_HOST, REMOTE_DIR, COMPOSE_FILE, APP_URL, HEALTH_URL,
-  SERVER_IMAGE, WEB_IMAGE, SSH_OPTS, HEALTH_RETRIES, HEALTH_INTERVAL
+  SSH_OPTS, HEALTH_RETRIES, HEALTH_INTERVAL
 
 Examples:
-  ./deploy.sh
-  ./deploy.sh deploy --no-cache
-  ./deploy.sh status
-  ./deploy.sh logs server
-  REMOTE_HOST=root@example.com APP_URL=https://example.com ./deploy.sh deploy
+  ./deploy.hireCutENV.sh
+  ./deploy.hireCutENV.sh deploy --no-cache
+  ./deploy.hireCutENV.sh status
+  ./deploy.hireCutENV.sh logs server
+  REMOTE_HOST=root@example.com APP_URL=https://example.com ./deploy.hireCutENV.sh deploy
 EOF
 }
 
@@ -296,8 +265,10 @@ main() {
     build)
       show_config
       check_local_prerequisites
+      check_remote_prerequisites
       build_dist
-      build_images "${build_opts[@]}"
+      sync_source
+      build_images_remote "${build_opts[@]}"
       ;;
     sync)
       show_config
