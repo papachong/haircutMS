@@ -75,9 +75,9 @@ require_cmd() {
 check_local_prerequisites() {
   info "Checking local prerequisites..."
   require_cmd pnpm
-  require_cmd rsync
   require_cmd ssh
   require_cmd curl
+  require_cmd tar
   ok "Local prerequisites are ready"
 }
 
@@ -111,19 +111,38 @@ build_dist() {
 sync_source() {
   info "Syncing source to $REMOTE_HOST:$REMOTE_DIR..."
   ssh_remote "mkdir -p $(quote "$REMOTE_DIR")"
-  rsync -az --delete \
-    --exclude='node_modules' \
-    --exclude='.next' \
-    --exclude='.turbo' \
-    --exclude='.claude/worktrees' \
-    --exclude='.git' \
-    --exclude='.env' \
-    --exclude='.env.local' \
-    --exclude='.env.*.local' \
-    --exclude='.env.production' \
-    --exclude='.deploy/*.env' \
-    -e "ssh $SSH_OPTS" \
-    "$PROJECT_ROOT/" "${REMOTE_HOST}:${REMOTE_DIR}/"
+
+  if command -v rsync >/dev/null 2>&1; then
+    rsync -az --delete \
+      --exclude='node_modules' \
+      --exclude='.next' \
+      --exclude='.turbo' \
+      --exclude='.claude/worktrees' \
+      --exclude='.git' \
+      --exclude='.env' \
+      --exclude='.env.local' \
+      --exclude='.env.*.local' \
+      --exclude='.env.production' \
+      --exclude='.deploy/*.env' \
+      -e "ssh $SSH_OPTS" \
+      "$PROJECT_ROOT/" "${REMOTE_HOST}:${REMOTE_DIR}/"
+  else
+    warn "rsync not found locally, falling back to tar over ssh"
+    read_ssh_args
+    ssh_remote "find $(quote "$REMOTE_DIR") -mindepth 1 -maxdepth 1 ! -name '.env' ! -name '.env.production' -exec rm -rf {} +"
+    tar -C "$PROJECT_ROOT" \
+      --exclude='node_modules' \
+      --exclude='.next' \
+      --exclude='.turbo' \
+      --exclude='.claude/worktrees' \
+      --exclude='.git' \
+      --exclude='.env' \
+      --exclude='.env.local' \
+      --exclude='.env.*.local' \
+      --exclude='.env.production' \
+      --exclude='.deploy/*.env' \
+      -cf - . | ssh "${SSH_ARGS[@]}" "$REMOTE_HOST" "tar -xf - -C $(quote "$REMOTE_DIR")"
+  fi
   ok "Source synced"
 }
 
@@ -272,7 +291,6 @@ main() {
       ;;
     sync)
       show_config
-      require_cmd rsync
       require_cmd ssh
       sync_source
       ;;
