@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api/client';
+import type { TemplatePreview } from '@/lib/types/template';
 
 export default function CreateShopPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [templates, setTemplates] = useState<TemplatePreview[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [showPreview, setShowPreview] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -19,6 +23,15 @@ export default function CreateShopPage() {
     ownerPassword: '',
     confirmPassword: '',
   });
+
+  useEffect(() => {
+    apiFetch<TemplatePreview[]>('/platform/shops/templates')
+      .then((res) => {
+        const data = (res as unknown as { code: number; data: TemplatePreview[] }).data;
+        if (data) setTemplates(data);
+      })
+      .catch(() => {});
+  }, []);
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -67,6 +80,7 @@ export default function CreateShopPage() {
             ownerName: formData.ownerName.trim(),
             ownerPhone: formData.ownerPhone.trim(),
             ownerPassword: formData.ownerPassword,
+            template: selectedTemplate || undefined,
           }),
         },
       );
@@ -84,6 +98,8 @@ export default function CreateShopPage() {
 
   const inputClass =
     'mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500';
+
+  const selectedPreview = templates.find((t) => t.key === selectedTemplate);
 
   return (
     <div>
@@ -107,7 +123,7 @@ export default function CreateShopPage() {
           )}
 
           {/* Step indicator */}
-          <div className="mb-6 flex items-center gap-2 text-sm text-gray-500">
+          <div className="mb-6 flex flex-wrap items-center gap-2 text-sm text-gray-500">
             <div className="flex items-center gap-1">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-medium text-white">
                 1
@@ -119,17 +135,25 @@ export default function CreateShopPage() {
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-medium text-white">
                 2
               </span>
+              <span className="font-medium text-gray-900">选择数据模板</span>
+            </div>
+            <span className="text-gray-300">&rarr;</span>
+            <div className="flex items-center gap-1">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-medium text-white">
+                3
+              </span>
               <span className="font-medium text-gray-900">创建店主账号</span>
             </div>
             <span className="text-gray-300">&rarr;</span>
             <div className="flex items-center gap-1">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-300 text-xs font-medium text-white">
-                3
+                4
               </span>
               <span>自动创建 License</span>
             </div>
           </div>
 
+          {/* Section 1: Shop Info */}
           <h2 className="mb-4 text-lg font-semibold text-gray-900">店铺信息</h2>
 
           <div className="space-y-4">
@@ -194,6 +218,107 @@ export default function CreateShopPage() {
             </div>
           </div>
 
+          {/* Section 2: Template Selection */}
+          <h2 className="mt-8 mb-4 text-lg font-semibold text-gray-900">数据模板</h2>
+          <p className="mb-4 text-sm text-gray-500">
+            选择预设模板可自动填充服务项目、会员等级和充值方案，也可以创建后再手动配置
+          </p>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <button
+              type="button"
+              onClick={() => setSelectedTemplate('')}
+              className={`rounded-lg border-2 p-4 text-left transition-all ${
+                selectedTemplate === ''
+                  ? 'border-gray-400 bg-gray-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="text-sm font-medium text-gray-700">不使用模板</div>
+              <div className="mt-1 text-xs text-gray-400">创建空白店铺，手动配置</div>
+            </button>
+
+            {templates.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => {
+                  setSelectedTemplate(t.key);
+                  setShowPreview(true);
+                }}
+                className={`rounded-lg border-2 p-4 text-left transition-all ${
+                  selectedTemplate === t.key
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-blue-300'
+                }`}
+              >
+                <div className="text-sm font-medium text-gray-900">{t.name}</div>
+                <div className="mt-1 text-xs text-gray-500">{t.description}</div>
+                <div className="mt-2 flex gap-2 text-xs text-gray-400">
+                  <span>{t.serviceItemCount}个服务</span>
+                  <span>{t.memberLevelCount}个等级</span>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Template Preview */}
+          {selectedPreview && showPreview && (
+            <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-medium text-blue-900">
+                  模板预览：{selectedPreview.name}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(false)}
+                  className="text-xs text-blue-500 hover:text-blue-700"
+                >
+                  收起
+                </button>
+              </div>
+
+              <div className="space-y-3 text-sm">
+                {/* Services */}
+                <div>
+                  <div className="font-medium text-blue-800">
+                    服务项目 ({selectedPreview.serviceCategoryCount} 分类,{' '}
+                    {selectedPreview.serviceItemCount} 项目)
+                  </div>
+                  <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1">
+                    {selectedPreview.serviceCategories.map((cat) => (
+                      <div key={cat.name} className="text-xs text-blue-700">
+                        {cat.name}：{cat.itemCount}项 (¥{cat.priceRange.min}~¥
+                        {cat.priceRange.max})
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Member Levels */}
+                <div>
+                  <div className="font-medium text-blue-800">
+                    会员等级 ({selectedPreview.memberLevelCount} 级)
+                  </div>
+                  <div className="mt-1 text-xs text-blue-700">
+                    {selectedPreview.memberLevelNames.join(' / ')}
+                  </div>
+                </div>
+
+                {/* Recharge Plans */}
+                <div>
+                  <div className="font-medium text-blue-800">
+                    充值方案 ({selectedPreview.rechargePlanCount} 个)
+                  </div>
+                  <div className="mt-1 text-xs text-blue-700">
+                    {selectedPreview.rechargePlans.join('、')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section 3: Owner Account */}
           <h2 className="mt-8 mb-4 text-lg font-semibold text-gray-900">店主账号</h2>
 
           <div className="space-y-4">

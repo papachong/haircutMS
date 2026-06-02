@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/lib/auth/auth-context';
 
 interface PlatformUser {
   type: 'platform';
@@ -12,6 +13,7 @@ interface PlatformUser {
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { clearAuthData } = useAuth();
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -43,11 +45,9 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   ];
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    clearAuthData();
     localStorage.removeItem('authType');
     localStorage.removeItem('adminId');
-    localStorage.removeItem('role');
     router.push('/platform/login');
   };
 

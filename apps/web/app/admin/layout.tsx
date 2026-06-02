@@ -29,7 +29,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { role, isLoading } = useAuth();
+  const { role, isLoading, clearAuthData } = useAuth();
   const [ready, setReady] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -46,12 +46,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!ready) return null;
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('authType');
-    localStorage.removeItem('shopId');
-    localStorage.removeItem('staffId');
-    localStorage.removeItem('role');
+    clearAuthData();
     router.replace('/login');
   };
 

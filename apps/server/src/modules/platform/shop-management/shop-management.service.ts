@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { SHOP_TEMPLATES, ShopTemplateKey } from './shop-templates';
 
 const SALT_ROUNDS = 10;
 
@@ -19,6 +20,7 @@ export interface CreateShopDto {
   ownerName: string;
   ownerPhone: string;
   ownerPassword: string;
+  template?: string;
 }
 
 export interface UpdateShopDto {
@@ -284,6 +286,12 @@ export class ShopManagementService {
         },
       });
 
+      // Apply template data if specified
+      if (data.template && data.template in SHOP_TEMPLATES) {
+        const template = SHOP_TEMPLATES[data.template as ShopTemplateKey];
+        await this.applyTemplate(tx, newShop.id, template);
+      }
+
       return newShop;
     });
 
@@ -393,6 +401,52 @@ export class ShopManagementService {
     });
 
     return this.findById(id);
+  }
+
+  /**
+   * Apply template data to a newly created shop
+   */
+  private async applyTemplate(
+    tx: Prisma.TransactionClient,
+    shopId: string,
+    template: import('./shop-templates').ShopTemplate,
+  ) {
+    // Member levels
+    for (const level of template.memberLevels) {
+      await tx.memberLevel.create({
+        data: { shopId, name: level.name, discount: level.discount, sortOrder: level.sortOrder },
+      });
+    }
+
+    // Service categories + items
+    for (const category of template.serviceCategories) {
+      const cat = await tx.serviceCategory.create({
+        data: { shopId, name: category.name, sortOrder: category.sortOrder },
+      });
+      await tx.serviceItem.createMany({
+        data: category.items.map((item) => ({
+          categoryId: cat.id,
+          name: item.name,
+          price: item.price * 100,
+          duration: item.duration,
+          sortOrder: item.sortOrder,
+        })),
+      });
+    }
+
+    // Recharge plans
+    for (const plan of template.rechargePlans) {
+      await tx.rechargePlan.create({
+        data: {
+          shopId,
+          name: plan.name,
+          amount: plan.amount * 100,
+          giftAmount: plan.giftAmount * 100,
+          type: plan.type,
+          sortOrder: plan.sortOrder,
+        },
+      });
+    }
   }
 
   /**

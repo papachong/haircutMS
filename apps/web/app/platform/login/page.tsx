@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth/auth-context';
 
 export default function PlatformLoginPage() {
   const router = useRouter();
+  const { clearAuthData } = useAuth();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,6 +30,7 @@ export default function PlatformLoginPage() {
         return;
       }
 
+      clearAuthData();
       localStorage.setItem('accessToken', data.data.accessToken);
       localStorage.setItem('refreshToken', data.data.refreshToken);
       localStorage.setItem('authType', 'platform');

@@ -14,6 +14,7 @@ import {
   ShopManagementService,
 } from './shop-management.service';
 import { PlatformJwtAuthGuard } from '../auth/guards/platform-jwt-auth.guard';
+import { SHOP_TEMPLATES, getTemplatePreview } from './shop-templates';
 
 // Swagger-documented DTOs for shop management
 
@@ -54,6 +55,11 @@ class CreateShopBodyDto {
   @IsString()
   @MinLength(6)
   ownerPassword!: string;
+
+  @ApiPropertyOptional({ description: '数据模板：SMALL_SHOP 或 LARGE_SHOP', enum: ['SMALL_SHOP', 'LARGE_SHOP'] })
+  @IsOptional()
+  @IsString()
+  template?: string;
 }
 
 class UpdateShopBodyDto {
@@ -102,6 +108,16 @@ export class ShopManagementController {
   constructor(
     private readonly shopManagementService: ShopManagementService,
   ) {}
+
+  /**
+   * Get available shop templates
+   */
+  @Get('templates')
+  @ApiOperation({ summary: '获取店铺数据模板列表' })
+  @ApiResponse({ status: 200, description: '成功获取模板列表' })
+  async getTemplates() {
+    return Object.values(SHOP_TEMPLATES).map(getTemplatePreview);
+  }
 
   /**
    * Get all shops with filters

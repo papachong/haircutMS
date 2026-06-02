@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth/auth-context';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setAuthData } = useAuth();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,12 +30,13 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem('accessToken', data.data.accessToken);
-      localStorage.setItem('refreshToken', data.data.refreshToken);
-      localStorage.setItem('authType', 'shop');
-      localStorage.setItem('shopId', data.data.shopId);
-      localStorage.setItem('staffId', data.data.staffId);
-      localStorage.setItem('role', data.data.role);
+      setAuthData({
+        accessToken: data.data.accessToken,
+        refreshToken: data.data.refreshToken,
+        shopId: data.data.shopId,
+        staffId: data.data.staffId,
+        role: data.data.role,
+      });
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       router.push(isMobile ? '/m/dashboard' : '/admin');
     } catch {
@@ -79,6 +82,10 @@ export default function LoginPage() {
           >
             {loading ? '登录中...' : '登录'}
           </button>
+
+          <p className="text-center text-sm text-gray-500">
+            还没有店铺？<a href="/register" className="text-blue-600 hover:underline">免费注册</a>
+          </p>
         </form>
       </div>
 
