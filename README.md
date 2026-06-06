@@ -10,6 +10,17 @@
 
 ---
 
+## 🚀 立即体验
+
+| | 地址 |
+|---|---|
+| **系统登录** | [https://lifa.ruhooai.com/](https://lifa.ruhooai.com/) |
+| **免费注册** | [https://lifa.ruhooai.com/register](https://lifa.ruhooai.com/register) |
+
+> **试用账号：** `13900000001`　　**密码：** `owner123`
+
+---
+
 ## 💡 为什么选择 HireCut？
 
 传统理发店软件要么太贵，要么太复杂。HireCut 专注解决一个问题：
