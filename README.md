@@ -163,4 +163,4 @@ pnpm dev
 
 ## 📄 License
 
-Private — 仅供授权使用
+[GNU LGPL-2.0](LICENSE)
