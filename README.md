@@ -33,53 +33,24 @@
 
 ## 🎬 产品预览
 
-### 📊 营收看板 — 经营数据一目了然
-
-今日营收、订单数、会员数据、趋势图表，打开手机就能看到。
-
 <p align="center">
-  <img src="docs/pics/dashboard.jpeg" alt="营收看板" width="260" />
+  <a href="docs/preview.html">
+    <img src="docs/pics/dashboard.jpeg" alt="系统预览" width="260" />
+  </a>
 </p>
 
-### 🧾 快速开单 — 前台 10 分钟学会
-
-选择服务 → 结算 → 完成。支持余额、次卡、优惠券等多种支付方式混合结算。
-
 <p align="center">
-  <img src="docs/pics/order-list.jpeg" alt="订单列表" width="260" />
+  <a href="docs/preview.html">📱 查看完整系统预览（7 张截图）</a>
 </p>
 
-### 🎫 电子小票 — 门店专属水印
-
-结算后自动生成带门店水印的电子小票，支持分享给顾客留存。
-
-<p align="center">
-  <img src="docs/pics/ticket.jpeg" alt="电子小票" width="260" />
-</p>
-
-### 👥 会员管理 — 每位顾客都了如指掌
-
-会员档案、余额、次卡、消费记录、偏好标签，一个页面全部掌握。
-
-<p align="center">
-  <img src="docs/pics/memeber-detail.jpeg" alt="会员详情" width="260" />
-</p>
-
-### 📈 会员分析 — 精准运营有据可依
-
-会员等级分布、消费趋势分析，帮你看清谁是核心客户。
-
-<p align="center">
-  <img src="docs/pics/memeber-analysis.jpeg" alt="会员分析" width="260" />
-</p>
-
-### ⚙️ 店铺设置 — 灵活配置不求人
-
-营业时间、服务项目、员工管理，电脑端一目了然后台管理。
-
-<p align="center">
-  <img src="docs/pics/settings-store.png" alt="店铺设置" width="480" />
-</p>
+| 功能 | 说明 |
+|------|------|
+| 📊 **营收看板** | 今日营收、订单数、会员数据、趋势图表，打开手机就能看到 |
+| 🧾 **快速开单** | 选择服务 → 结算 → 完成，支持余额/次卡/优惠券混合结算 |
+| 🎫 **电子小票** | 门店专属水印，一键分享给顾客留存 |
+| 👥 **会员管理** | 会员档案、余额、次卡、消费记录、偏好标签 |
+| 📈 **会员分析** | 等级分布与消费趋势分析，精准运营有据可依 |
+| ⚙️ **店铺设置** | 营业时间、服务项目、员工管理，电脑端灵活配置 |
 
 ---
 
