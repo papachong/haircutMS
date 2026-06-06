@@ -1,4 +1,4 @@
-# ✂️ HireCut — 理发店管理系统
+# ✂️ RH-HaireCut — 儒虎理发店管理系统
 
 > 开箱即用的理发店数字化管理方案。注册即用，无需安装 App，手机/平板/电脑全端覆盖。
 
@@ -12,18 +12,14 @@
 
 ## 🚀 立即体验
 
-| | 地址 |
-|---|---|
-| **系统登录** | [https://lifa.ruhooai.com/](https://lifa.ruhooai.com/) |
-| **免费注册** | [https://lifa.ruhooai.com/register](https://lifa.ruhooai.com/register) |
-
-> **试用账号：** `13900000001`　　**密码：** `owner123`
+| **系统登录** | [https://lifa.ruhooai.com/](https://lifa.ruhooai.com/) | **试用账号：** `13900000001`　**密码：** `owner123`
+| **注册店铺(小店永久免费)** | [https://lifa.ruhooai.com/register](https://lifa.ruhooai.com/register) | 
 
 ---
 
-## 💡 为什么选择 HireCut？
+## 💡 为什么选择 HaireCut？
 
-传统理发店软件要么太贵，要么太复杂。HireCut 专注解决一个问题：
+传统理发店软件要么太贵，要么太复杂。HaireCut 专注解决一个问题：
 
 **让理发店老板用最少的操作，管好会员、收银和营收。**
 
