@@ -3,7 +3,8 @@
 > 开箱即用的理发店数字化管理方案。注册即用，无需安装 App，手机/平板/电脑全端覆盖。
 
 <p align="center">
-  <img src="docs/pics/store-register.png" alt="店铺注册" width="260" />
+[<img src="docs/pics/store-register.png" alt="店铺注册" width="260" />](https://lifa.ruhooai.com/register)
+  
 </p>
 
 <p align="center"><strong>30 秒注册 → 立即开始营业</strong></p>
