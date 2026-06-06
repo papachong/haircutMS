@@ -2,14 +2,13 @@
 
 > 开箱即用的理发店数字化管理方案。注册即用，无需安装 App，手机/平板/电脑全端覆盖。
 
-<p align="center"><strong>[30 秒注册 → 立即开始营业](https://lifa.ruhooai.com/register)</strong></p>
+#### [30 秒注册 → 立即开始营业(小店永久免费)](https://lifa.ruhooai.com/register)
 
 ---
 
 ## 🚀 立即体验
 
 | **系统登录** | [https://lifa.ruhooai.com/](https://lifa.ruhooai.com/) | **试用账号：** `13900000001`　**密码：** `owner123`
-| **注册店铺(小店永久免费)** | [https://lifa.ruhooai.com/register](https://lifa.ruhooai.com/register) | 
 
 ---
 
@@ -35,7 +34,7 @@
 </p>
 
 <p align="center">
-  <a href="docs/preview.html">📱 查看完整系统预览（7 张截图）</a>
+  <a href="docs/preview.html">📱 查看完整系统预览</a>
 </p>
 
 | 功能 | 说明 |
